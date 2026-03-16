@@ -1,46 +1,45 @@
+/datum/attribute_holder/sheet/job/cheesemaker
+	raw_attribute_list = list(
+		STAT_INTELLIGENCE = 1,
+		STAT_CONSTITUTION = 2,
+		/datum/attribute/skill/combat/knives = 20,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/craft/crafting = 20,
+		/datum/attribute/skill/misc/reading = 10,
+		/datum/attribute/skill/labor/taming = 10,
+		/datum/attribute/skill/craft/cooking = 40,
+		/datum/attribute/skill/labor/farming = 20
+	)
+
 /datum/job/cheesemaker
-	title =  "Cheesemaker"
+	title = "Cheesemaker"
 	tutorial = "Some say Dendor brings bountiful harvests - this much is true, but rot brings forth life. \
 	From life brings decay, and from decay brings life. Like your father before you, you let milk rot into cheese. \
 	This is your duty, this is your call."
-	flag = CHEESEMAKER
 	department_flag = PEASANTS
 	job_flags = (JOB_ANNOUNCE_ARRIVAL | JOB_SHOW_IN_CREDITS | JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE)
 	display_order = JDO_CHEESEMAKER
-	faction = FACTION_STATION
-	total_positions = 2
-	spawn_positions = 2
+	faction = FACTION_TOWN
+	total_positions = 0
+	spawn_positions = 0
 
-	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list(
-		"Humen",
-		"Rakshari",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Half-Orc",
-		"Kobold",
-	)
+	allowed_races = RACES_PLAYER_ALL
+	outfit = /datum/outfit/cheesemaker
+	cmode_music = 'sound/music/cmode/towner/CombatTowner2.ogg'
 
-	outfit = /datum/outfit/job/cheesemaker
+	job_bitflag = BITFLAG_CONSTRUCTOR
 
-/datum/outfit/job/cheesemaker/pre_equip(mob/living/carbon/human/H)
-	..()
-	H.mind?.adjust_skillrank(/datum/skill/combat/knives, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/crafting, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/reading, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/labor/taming, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 4, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/labor/farming, 2, TRUE)
+	attribute_sheet = /datum/attribute_holder/sheet/job/cheesemaker
+
+	traits = list()
+
+/datum/outfit/cheesemaker
+	name = "Cheesemaker"
 	belt = /obj/item/storage/belt/leather
-	pants = /obj/item/clothing/pants/tights/random
-	shirt = /obj/item/clothing/shirt/shortshirt/random
+	pants = /obj/item/clothing/pants/tights/colored/random
+	shirt = /obj/item/clothing/shirt/shortshirt/colored/random
 	cloak = /obj/item/clothing/cloak/apron
 	shoes = /obj/item/clothing/shoes/simpleshoes
 	backl = /obj/item/storage/backpack/backpack
@@ -48,6 +47,10 @@
 	wrists = /obj/item/clothing/wrists/bracers/leather
 	beltr = /obj/item/reagent_containers/glass/bottle/waterskin/milk
 	beltl = /obj/item/weapon/knife/villager
-	backpack_contents = list(/obj/item/reagent_containers/powder/salt = 3, /obj/item/reagent_containers/food/snacks/cheddar = 1, /obj/item/natural/cloth = 2, /obj/item/book/yeoldecookingmanual = 1)
-	H.change_stat(STATKEY_INT, 1)
-	H.change_stat(STATKEY_CON, 2)
+
+	backpack_contents = list(
+		/obj/item/reagent_containers/powder/salt = 3,
+		/obj/item/reagent_containers/food/snacks/cheddar = 1,
+		/obj/item/natural/cloth = 2,
+		/obj/item/book/yeoldecookingmanual = 1
+	)

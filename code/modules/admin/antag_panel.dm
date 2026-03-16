@@ -99,7 +99,7 @@ GLOBAL_VAR(antag_prototypes)
 				GLOB.antag_prototypes[cat_id] = list(A)
 			else
 				GLOB.antag_prototypes[cat_id] += A
-	sortTim(GLOB.antag_prototypes,/proc/cmp_text_asc,associative=TRUE)
+	sortTim(GLOB.antag_prototypes,GLOBAL_PROC_REF(cmp_text_asc),associative=TRUE)
 
 	var/list/sections = list()
 	var/list/priority_sections = list()
@@ -138,6 +138,7 @@ GLOBAL_VAR(antag_prototypes)
 		else //Show removal and current one
 			priority_sections |= antag_category
 			antag_header_parts += "<span class='bad'>[current_antag.name]</span>"
+			antag_header_parts += "<a href='byond://?src=[REF(src)];vv_antag=[REF(current_antag)]'>View Variables</a>"
 			antag_header_parts += "<a href='byond://?src=[REF(src)];remove_antag=[REF(current_antag)]'>Remove</a>"
 
 

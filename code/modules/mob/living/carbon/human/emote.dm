@@ -9,7 +9,7 @@
 
 /mob/living/carbon/human/verb/emote_cry()
 	set name = "Cry"
-	set category = "Noises"
+	set category = "Emotes.Noises"
 
 	emote("cry", intentional = TRUE)
 
@@ -17,8 +17,13 @@
 	. = ..()
 	if(. && iscarbon(user))
 		var/mob/living/carbon/C = user
-		if(C.silent || !C.can_speak())
+		if(!C.can_speak())
 			message = "makes a noise. Tears stream down their face."
+
+/datum/emote/living/carbon/human/cry/run_emote(mob/user, params, type_override, intentional, targetted)
+	. = ..()
+	if(. && user.mind)
+		record_featured_stat(FEATURED_STATS_CRYBABIES, user)
 
 /datum/emote/living/carbon/human/eyebrow
 	key = "eyebrow"
@@ -27,7 +32,7 @@
 
 /mob/living/carbon/human/verb/emote_eyebrow()
 	set name = "Raise Eyebrow"
-	set category = "Emotes"
+	set category = "Emotes.Silent"
 
 	emote("eyebrow", intentional = TRUE)
 
@@ -39,7 +44,7 @@
 
 /mob/living/carbon/human/verb/emote_psst()
 	set name = "Psst"
-	set category = "Noises"
+	set category = "Emotes.Noises"
 
 	emote("psst", intentional = TRUE)
 
@@ -52,7 +57,7 @@
 
 /mob/living/carbon/human/verb/emote_grumble()
 	set name = "Grumble"
-	set category = "Noises"
+	set category = "Emotes.Noises"
 
 	emote("grumble", intentional = TRUE)
 
@@ -60,7 +65,7 @@
 	key = "handshake"
 	message = "shakes their own hands."
 	message_param = "shakes hands with %t."
-	restraint_check = TRUE
+	hands_use_check = TRUE
 	emote_type = EMOTE_AUDIBLE
 
 
@@ -70,6 +75,12 @@
 	message = "mumbles."
 	emote_type = EMOTE_AUDIBLE
 
+/mob/living/carbon/human/verb/emote_mumble()
+	set name = "Mumble"
+	set category = "Emotes.Noises"
+
+	emote("mumble", intentional = TRUE)
+
 /datum/emote/living/carbon/human/pale
 	key = "pale"
 	message = "goes pale for a second."
@@ -78,14 +89,14 @@
 	key = "raise"
 	key_third_person = "raises"
 	message = "raises a hand."
-	restraint_check = TRUE
+	hands_use_check = TRUE
 
 /datum/emote/living/carbon/human/salute
 	key = "salute"
 	key_third_person = "salutes"
 	message = "salutes."
 	message_param = "salutes to %t."
-	restraint_check = TRUE
+	hands_use_check = TRUE
 
 /datum/emote/living/carbon/human/shrug
 	key = "shrug"
@@ -123,52 +134,33 @@
 	if(H.dna.species.is_wagging_tail())
 		. = null
 
-/datum/emote/living/carbon/human/wing
-	key = "wing"
-	key_third_person = "wings"
-	message = "their wings."
+/datum/emote/living/carbon/human/rakshari
 
-/datum/emote/living/carbon/human/wing/run_emote(mob/user, params, type_override, intentional)
-	. = ..()
-	if(.)
-		var/mob/living/carbon/human/H = user
-		if(findtext(select_message_type(user,intentional), "open"))
-			H.OpenWings()
-		else
-			H.CloseWings()
+/datum/emote/living/carbon/human/rakshari/meow
+	key = "meow"
+	key_third_person = "meows"
+	message = "meows!"
+	message_muffled = "meows silently."
+	emote_type = EMOTE_VISIBLE | EMOTE_AUDIBLE
+	vary = TRUE
+	sound = SFX_CAT_MEOW
 
-/datum/emote/living/carbon/human/wing/select_message_type(mob/user, intentional)
-	. = ..()
-	var/mob/living/carbon/human/H = user
-	if("wings" in H.dna.species.mutant_bodyparts)
-		. = "opens " + message
-	else
-		. = "closes " + message
+/datum/emote/living/carbon/human/rakshari/purr
+	key = "purr"
+	key_third_person = "purrs"
+	vary = TRUE
+	sound = SFX_CAT_PURR
+	message = "purrs."
+	emote_type = EMOTE_AUDIBLE
 
-/datum/emote/living/carbon/human/wing/can_run_emote(mob/user, status_check = TRUE, intentional)
-	if(!..())
-		return FALSE
-	var/mob/living/carbon/human/H = user
-	if(H.dna && H.dna.species && (H.dna.features["wings"] != "None"))
-		return TRUE
+/mob/living/carbon/human/species/rakshari/verb/emote_purr()
+	set name = "purr"
+	set category = "Emotes.Noises"
+	emote("purr", intentional = TRUE)
 
-/mob/living/carbon/human/proc/OpenWings()
-	if(!dna || !dna.species)
-		return
-	if("wings" in dna.species.mutant_bodyparts)
-		dna.species.mutant_bodyparts -= "wings"
-		dna.species.mutant_bodyparts |= "wingsopen"
-	update_body()
-
-/mob/living/carbon/human/proc/CloseWings()
-	if(!dna || !dna.species)
-		return
-	if("wingsopen" in dna.species.mutant_bodyparts)
-		dna.species.mutant_bodyparts -= "wingsopen"
-		dna.species.mutant_bodyparts |= "wings"
-	update_body()
-	if(isturf(loc))
-		var/turf/T = loc
-		T.Entered(src)
+/mob/living/carbon/human/species/rakshari/verb/emote_meow()
+	set name = "meow"
+	set category = "Emotes.Noises"
+	emote("meow", intentional = TRUE)
 
 //Ayy lmao

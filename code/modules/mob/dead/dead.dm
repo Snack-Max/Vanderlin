@@ -6,6 +6,8 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 	sight = SEE_TURFS | SEE_MOBS | SEE_OBJS | SEE_SELF
 	move_resist = INFINITY
 	throwforce = 0
+	/// For instant transfer once the round is set up
+	var/mob/living/new_character
 
 /mob/dead/Initialize()
 	SHOULD_CALL_PARENT(FALSE)
@@ -18,8 +20,9 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 	prepare_huds()
 
 	if(length(CONFIG_GET(keyed_list/cross_server)))
-		verbs += /mob/dead/proc/server_hop
+		add_verb(src, /mob/dead/proc/server_hop)
 	set_focus(src)
+	become_hearing_sensitive()
 	return INITIALIZE_HINT_NORMAL
 
 /mob/dead/Destroy()
@@ -89,7 +92,7 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 				continue
 			if(player.client.prefs.job_preferences[job.title] != JP_HIGH)
 				//i'm sorry for doing this
-				if(!is_adventurer_job(job) || player.client.prefs.job_preferences["Court Agent"] != JP_HIGH)
+				if(!istype(job, /datum/job/adventurer) || player.client.prefs.job_preferences["Court Agent"] != JP_HIGH)
 					continue
 			if(player.ready != PLAYER_READY_TO_PLAY)
 				continue
@@ -97,9 +100,6 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 			// We are ready
 			readied_as++
 			// But do we show them?
-
-			if((player.client.ckey in GLOB.hiderole))
-				continue
 
 			// We will show them
 			if(player.client.prefs.real_name)
@@ -137,13 +137,13 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 	set name = "Server Hop!"
 	set desc= "Jump to the other server"
 	set hidden = 1
-	if(notransform)
+	if(HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
 	var/list/csa = CONFIG_GET(keyed_list/cross_server)
 	var/pick
 	switch(csa.len)
 		if(0)
-			verbs -= /mob/dead/proc/server_hop
+			add_verb(src, /mob/dead/proc/server_hop)
 			to_chat(src, "<span class='notice'>Server Hop has been disabled.</span>")
 		if(1)
 			pick = csa[1]
@@ -160,11 +160,11 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 
 	var/client/C = client
 	to_chat(C, "<span class='notice'>Sending you to [pick].</span>")
-	new /atom/movable/screen/splash(C)
+	new /atom/movable/screen/splash(null, null, C, FALSE, FALSE)
 
-	notransform = TRUE
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, "server_hop")
 	sleep(29)	//let the animation play
-	notransform = FALSE
+	REMOVE_TRAIT(src, TRAIT_NO_TRANSFORM, "server_hop")
 
 	if(!C)
 		return
@@ -200,3 +200,52 @@ INITIALIZE_IMMEDIATE(/mob/dead)
 /mob/dead/onTransitZ(old_z,new_z)
 	..()
 	update_z(new_z)
+
+/// Creates a new playable mob for this client.
+/mob/dead/proc/create_character(atom/destination)
+	if(!client || QDELETED(src))
+		return
+	if(!mind?.assigned_role)
+		return
+	mind.active = FALSE
+	close_spawn_windows()
+	var/mob/living/spawning_mob = mind.assigned_role.get_spawn_mob(client, destination, islatejoin)
+	mind.transfer_to(spawning_mob)
+	spawning_mob.after_creation()
+	GLOB.chosen_names += spawning_mob.real_name
+	new_character = spawning_mob
+	return spawning_mob
+
+/// Transfers the player client to the new mob.
+/mob/dead/proc/transfer_character()
+	. = new_character
+	if(!.)
+		return
+	new_character.key = key
+	new_character.stop_sound_channel(CHANNEL_LOBBYMUSIC)
+	var/area/joined_area = get_area(new_character.loc)
+	if(joined_area)
+		joined_area.on_joining_game(new_character)
+	if(new_character.client)
+		var/atom/movable/screen/splash/Spl = new(null, null, new_character.client, TRUE, FALSE)
+		Spl.Fade(TRUE)
+	new_character = null
+	qdel(src)
+
+// This is pretty awful, we should be having specific windows close themselves upon spawning in
+/mob/dead/proc/close_spawn_windows()
+
+	src << browse(null, "window=latechoices") //closes late choices window
+	src << browse(null, "window=playersetup") //closes the player setup window
+	src << browse(null, "window=preferences") //closes job selection
+	src << browse(null, "window=mob_occupation")
+	src << browse(null, "window=latechoices") //closes late job selection
+	src << browse(null, "window=culinary_customization")
+	src << browse(null, "window=food_selection")
+	src << browse(null, "window=drink_selection")
+
+	SStriumphs.remove_triumph_buy_menu(client)
+
+	winshow(src, "stonekeep_prefwin", FALSE)
+	src << browse(null, "window=preferences_browser")
+	src << browse(null, "window=lobby_window")

@@ -1,9 +1,4 @@
-#define STAIR_TERMINATOR_AUTOMATIC 0
-#define STAIR_TERMINATOR_NO 1
-#define STAIR_TERMINATOR_YES 2
-
-// dir determines the direction of travel to go upwards (due to lack of sprites, currently only 1 and 2 make sense)
-// stairs require /turf/open/transparent/openspace as the tile above them to work
+// stairs require /turf/open/openspace as the tile above them to work
 // multiple stair objects can be chained together; the Z level transition will happen on the final stair object in the chain
 
 /obj/structure/stairs
@@ -12,8 +7,22 @@
 	icon_state = "stairs"
 	anchored = TRUE
 	layer = 2
-	obj_flags = CAN_BE_HIT
-	nomouseover = TRUE
+	obj_flags = CAN_BE_HIT | IGNORE_SINK | BLOCK_Z_OUT_DOWN | BLOCK_Z_IN_UP
+	no_over_text = TRUE
+	var/should_sink = FALSE
+
+/obj/structure/stairs/Initialize(mapload)
+	. = ..()
+	var/static/list/loc_connections = list(COMSIG_ATOM_EXIT = PROC_REF(on_exit))
+	AddElement(/datum/element/connect_loc, loc_connections)
+
+	if(should_sink)
+		obj_flags &= ~IGNORE_SINK
+
+/obj/structure/stairs/abyss
+	name = "abyss stairs"
+	icon = 'icons/delver/abyss_objects.dmi'
+	icon_state = "abyss_stairs"
 
 /obj/structure/stairs/stone
 	name = "stone stairs"
@@ -34,37 +43,19 @@
 
 /obj/structure/stairs/fancy/c
 	icon_state = "fancy_stairs_c"
+	uses_lord_coloring = LORD_PRIMARY
 
 /obj/structure/stairs/fancy/r
 	icon_state = "fancy_stairs_r"
+	uses_lord_coloring = LORD_PRIMARY
 
 /obj/structure/stairs/fancy/l
 	icon_state = "fancy_stairs_l"
-
-/obj/structure/stairs/fancy/Initialize()
-	. = ..()
-	if(GLOB.lordprimary)
-		lordcolor(GLOB.lordprimary,GLOB.lordsecondary)
-	else
-		GLOB.lordcolor += src
-
-/obj/structure/stairs/fancy/Destroy()
-	GLOB.lordcolor -= src
-	return ..()
-
-/obj/structure/stairs/fancy/lordcolor(primary,secondary)
-	if(!primary || !secondary)
-		return
-	var/mutable_appearance/M = mutable_appearance(icon, "[icon_state]_primary", -(layer+0.1))
-	M.color = primary
-	add_overlay(M)
-	GLOB.lordcolor -= src
-
+	uses_lord_coloring = LORD_PRIMARY
 
 /obj/structure/stairs/OnCrafted(dirin, mob/user)
 	dir = dirin
-	var/turf/partner = get_step_multiz(get_turf(src), UP)
-	partner = get_step(partner, dirin)
+	var/turf/partner = get_step_multiz(src, dirin|UP)
 	if(isopenturf(partner))
 		var/obj/structure/stairs/stairs = locate() in partner
 		if(!stairs)
@@ -74,88 +65,76 @@
 
 /obj/structure/stairs/d/OnCrafted(dirin, mob/user)
 	SHOULD_CALL_PARENT(FALSE)
-	dir = turn(dirin, 180)
-	var/turf/partner = get_step_multiz(get_turf(src), DOWN)
-	partner = get_step(partner, dirin)
+	dir = dirin
+	var/turf/partner = get_step_multiz(src, turn(dir, 180)|DOWN)
 	if(isopenturf(partner))
 		var/obj/structure/stairs/stairs = locate() in partner
 		if(!stairs)
 			stairs = new /obj/structure/stairs(partner)
 		stairs.dir = dir
+	SEND_SIGNAL(user, COMSIG_ITEM_CRAFTED, user, type)
+	record_featured_stat(FEATURED_STATS_CRAFTERS, user)
+	record_featured_object_stat(FEATURED_STATS_CRAFTED_ITEMS, name)
 	add_abstract_elastic_data(ELASCAT_CRAFTING, "[name]", 1)
 	return
 
 /obj/structure/stairs/stone/d/OnCrafted(dirin, mob/user)
 	SHOULD_CALL_PARENT(FALSE)
-	dir = turn(dirin, 180)
-	var/turf/partner = get_step_multiz(get_turf(src), DOWN)
-	partner = get_step(partner, dirin)
+	dir = dirin
+	var/turf/partner = get_step_multiz(src, turn(dir, 180)|DOWN)
 	if(isopenturf(partner))
 		var/obj/structure/stairs/stairs = locate() in partner
 		if(!stairs)
 			stairs = new /obj/structure/stairs/stone(partner)
 		stairs.dir = dir
+	SEND_SIGNAL(user, COMSIG_ITEM_CRAFTED, user, type)
+	record_featured_stat(FEATURED_STATS_CRAFTERS, user)
+	record_featured_object_stat(FEATURED_STATS_CRAFTED_ITEMS, name)
 	add_abstract_elastic_data(ELASCAT_CRAFTING, "[name]", 1)
 	return
 
-/obj/structure/stairs/Initialize(mapload)
-	return ..()
+/obj/structure/stairs/proc/on_exit(datum/source, atom/movable/leaving, atom/new_location)
+	SIGNAL_HANDLER
 
-/obj/structure/stairs/Destroy()
-	return ..()
-
-/obj/structure/stairs/Uncross(atom/movable/AM, turf/newloc)
-	if(!newloc || !AM)
-		return ..()
-	var/moved = get_dir(src, newloc)
-	if(moved == dir)
-		if(stair_ascend(AM,moved))
-			return FALSE
-	if(moved == turn(dir, 180))
-		if(stair_descend(AM,moved))
-			return FALSE
-	return ..()
-
-/obj/structure/stairs/proc/stair_ascend(atom/movable/AM, dirmove)
-	var/turf/checking = get_step_multiz(get_turf(src), UP)
-	if(!istype(checking))
+	if(isobserver(leaving))
 		return
-//	if(!checking.zPassIn(AM, UP, get_turf(src)))
-//		return
-	var/turf/target = get_step_multiz(get_turf(src), UP)
-	if(!istype(target))
-		return
-	return user_walk_into_target_loc(AM, dirmove, target)
 
-/obj/structure/stairs/proc/stair_descend(atom/movable/AM, dirmove)
-	var/turf/checking = get_step_multiz(get_turf(src), DOWN)
-	if(!istype(checking))
-		return
-//	if(!checking.zPassIn(AM, DOWN, get_turf(src)))
-//		return
-	var/turf/target = get_step_multiz(get_turf(src), DOWN)
-	if(!istype(target))
-		return
-	return user_walk_into_target_loc(AM, dirmove, target)
+	if(user_walk_into_target_loc(leaving, get_dir(src, new_location)))
+		leaving.Bump(src)
+		return COMPONENT_ATOM_BLOCK_EXIT
 
-/obj/structure/stairs/proc/user_walk_into_target_loc(atom/movable/AM, dirmove, turf/target)
-	var/based = FALSE
-	var/turf/newtarg = get_step(target, dirmove)
-	for(var/obj/structure/stairs/S in newtarg.contents)
-		if(S.dir == dir)
-			based = TRUE
-	if(based)
-		if(isliving(AM))
-			mob_move_travel_z_level(AM, newtarg)
-		else
-			AM.forceMove(newtarg)
+/// From a cardinal direction, returns the resulting turf we'll end up at if we're uncrossing the stairs. Used for pathfinding, mostly.
+/obj/structure/stairs/proc/get_transit_destination(dirmove)
+	return get_target_loc(dirmove) || get_step(src, dirmove) // just normal movement if we failed to find a matching stair
+
+/// Get the turf above/below us corresponding to the direction we're moving on the stairs.
+/obj/structure/stairs/proc/get_target_loc(dirmove)
+	var/turf/newtarg
+	if(dirmove == dir)
+		// the optimization macro here is beacuse this can be called in pathfinding
+		// and therefore can be quite expensive
+		newtarg = GET_TURF_ABOVE_DIAGONAL(get_turf(src), UP|dirmove)
+	else if(dirmove == REVERSE_DIR(dir))
+		newtarg = GET_TURF_BELOW_DIAGONAL(get_turf(src), DOWN|dirmove)
+	if(!newtarg)
+		return // nowhere to move to???
+	for(var/obj/structure/stairs/partner in newtarg)
+		if(partner.dir == dir) // partner matches our dir
+			return newtarg
+
+/obj/structure/stairs/proc/user_walk_into_target_loc(atom/movable/AM, dirmove)
+	var/turf/newtarg = get_target_loc(dirmove)
+	if(newtarg)
+		INVOKE_ASYNC(src, GLOBAL_PROC_REF(movable_travel_z_level), AM, newtarg)
 		return TRUE
 	return FALSE
 
-/obj/structure/stairs/intercept_zImpact(atom/movable/AM, levels = 1)
-	. = ..()
-
-/proc/mob_move_travel_z_level(mob/living/L, turf/newtarg)
+/// A helper proc to handle chained atoms moving across Z-levels. Currently only handles mobs pulling movables.
+/proc/movable_travel_z_level(atom/movable/AM, turf/newtarg)
+	if(!isliving(AM))
+		AM.forceMove(newtarg)
+		return
+	var/mob/living/L = AM
 	var/atom/movable/pulling = L.pulling
 	var/was_pulled_buckled = FALSE
 	if(pulling)
@@ -165,10 +144,10 @@
 	if(pulling)
 		L.stop_pulling()
 		pulling.forceMove(newtarg)
-		L.start_pulling(pulling, supress_message = TRUE)
+		L.start_pulling(pulling, suppress_message = TRUE)
 		if(was_pulled_buckled)
 			var/mob/living/M = pulling
-			if(M.mobility_flags & MOBILITY_STAND)	// piggyback carry
+			if(M.body_position != LYING_DOWN)	// piggyback carry
 				L.buckle_mob(pulling, TRUE, TRUE, FALSE, 0, 0)
 			else				// fireman carry
 				L.buckle_mob(pulling, TRUE, TRUE, 90, 0, 0)

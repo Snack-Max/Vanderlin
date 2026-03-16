@@ -32,36 +32,14 @@
 	glass_desc = ""
 
 /datum/reagent/consumable/coffee/overdose_process(mob/living/M)
-	M.Jitter(5)
+	M.adjust_jitter(5 SECONDS)
 	..()
 
 /datum/reagent/consumable/coffee/on_mob_life(mob/living/carbon/M)
-	M.dizziness = max(0,M.dizziness-5)
-	M.drowsyness = max(0,M.drowsyness-3)
-	M.AdjustSleeping(-40, FALSE)
-	//310.15 is the normal bodytemp.
-	M.adjust_bodytemperature(25 * TEMPERATURE_DAMAGE_COEFFICIENT, 0, BODYTEMP_NORMAL)
-	..()
-	. = 1
-
-/datum/reagent/consumable/tea
-	name = "Tea"
-	description = "Tasty black tea, it has antioxidants, it's good for you!"
-	color = "#101000" // rgb: 16, 16, 0
-	nutriment_factor = 0
-	taste_description = "tart black tea"
-	glass_icon_state = "teaglass"
-	glass_name = "glass of tea"
-	glass_desc = ""
-
-/datum/reagent/consumable/tea/on_mob_life(mob/living/carbon/M)
-	M.dizziness = max(0,M.dizziness-2)
-	M.drowsyness = max(0,M.drowsyness-1)
-	M.jitteriness = max(0,M.jitteriness-3)
-	M.AdjustSleeping(-20, FALSE)
-	if(M.getToxLoss() && prob(20))
-		M.adjustToxLoss(-1, 0)
-	M.adjust_bodytemperature(20 * TEMPERATURE_DAMAGE_COEFFICIENT, 0, BODYTEMP_NORMAL)
+	M.adjust_drowsiness(-10 SECONDS)
+	M.adjust_drowsiness(-6 SECONDS)
+	M.AdjustSleeping(-4 SECONDS)
+	M.adjust_bodytemperature(2, 0, BODYTEMP_NORMAL)
 	..()
 	. = 1
 
@@ -76,7 +54,7 @@
 	glass_desc = ""
 
 /datum/reagent/consumable/ice/on_mob_life(mob/living/carbon/M)
-	M.adjust_bodytemperature(-5 * TEMPERATURE_DAMAGE_COEFFICIENT, BODYTEMP_NORMAL)
+	M.adjust_bodytemperature(-2 * TEMPERATURE_DAMAGE_COEFFICIENT, BODYTEMP_NORMAL)
 	..()
 
 /datum/reagent/consumable/golden_calendula_tea
@@ -110,3 +88,40 @@
 	if(!HAS_TRAIT(M,TRAIT_NOSTAMINA))
 		M.adjust_stamina(-0.3, internal_regen = FALSE)
 	..()
+
+/datum/reagent/consumable/caffeine
+	name = "Caffeine"
+	description = "Why are you seeing this?"
+	hydration_factor = 5
+	overdose_threshold = 60
+
+/datum/reagent/consumable/caffeine/on_mob_life(mob/living/carbon/M)
+	. = ..()
+	M.adjust_stamina(-5)
+	M.apply_status_effect(/datum/status_effect/buff/vigor)
+
+/datum/reagent/consumable/caffeine/overdose_process(mob/living/carbon/M)
+	. = ..()
+	M.adjust_jitter(4 SECONDS)
+	if(prob(5))
+		M.heart_attack()
+
+/datum/reagent/consumable/caffeine/coffee
+	name = "Coffee"
+	description = "Coffee beans brewed into a hot drink. With a hint of bitterness. Rejuvenating."
+	reagent_state = LIQUID
+	color = "#482000"
+	taste_description = "caramelized bitterness" // coffee has so many flavors I am going for one
+	metabolization_rate = REAGENTS_METABOLISM
+	alpha = 173
+	quality = DRINK_GOOD
+
+/datum/reagent/consumable/caffeine/tea
+	name = "Exotic Tea"
+	description = "Tea leaves brewed into a hot drink. Slight hint of bitterness. Smooth."
+	reagent_state = LIQUID
+	color = "#508141" // Deeper green to make it look better
+	taste_description = "smooth grassiness" // Yeah, uh.
+	metabolization_rate = REAGENTS_METABOLISM
+	alpha = 173
+	quality = DRINK_GOOD

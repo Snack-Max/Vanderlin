@@ -32,6 +32,10 @@
 	name = "berry pie"
 	scent = "berry pie"
 
+/datum/pollutant/food/borowiki_pie
+	name = "borowiki pie"
+	scent = "borowiki pie"
+
 /datum/pollutant/food/bread
 	name = "fresh baked bread"
 	scent = "fresh baked bread"
@@ -68,6 +72,10 @@
 	name = "fresh baked prezzel"
 	scent = "fresh baked prezzel"
 
+/datum/pollutant/food/fritter
+	name = "fresh baked apple fritter"
+	scent = "fresh baked apple fritter"
+
 /datum/pollutant/food/honey_cake
 	name = "fresh baked honey cake"
 	scent = "fresh baked honey cake"
@@ -75,6 +83,22 @@
 /datum/pollutant/food/cheese_cake
 	name = "fresh baked cheese cake"
 	scent = "fresh baked cheese cake"
+
+/datum/pollutant/food/strawberry_cake
+	name = "fresh baked strawberry cake"
+	scent = "fresh baked strawberry cake"
+
+/datum/pollutant/food/crimson_cake
+	name = "fresh baked crimson pine cake"
+	scent = "fresh baked crimson pine cake"
+
+/datum/pollutant/food/scone
+	name = "fresh baked scones"
+	scent = "fresh baked scones"
+
+/datum/pollutant/food/griddlecake
+	name = "freshly fried griddle cake"
+	scent = "freshly fried griddle cake"
 
 /datum/pollutant/food/baked_potato
 	name = "baked potatos"
@@ -184,10 +208,54 @@
 	name = "truffle stew"
 	scent = "truffle stew"
 
+/datum/pollutant/food/borowiki_stew
+	name = "borowiki stew"
+	scent = "borowiki stew"
+
 /datum/pollutant/food/cheese_soup
 	name = "cheese soup"
 	scent = "cheese soup"
 
+/datum/pollutant/food/sugar
+	name = "saccharine sweetness"
+	scent = "saccharine sweetness"
+
 /datum/pollutant/food/druqks
 	name = "acrid air"
 	scent = "acrid air"
+
+/datum/pollutant/food/teas
+	name = "herbal smell"
+	scent = "herbal smell"
+
+/datum/pollutant/food/coffee
+	name = "rich smell"
+	scent = "rich smell"
+
+/datum/pollutant/food/fried_eggs
+	name = "fried egg"
+	scent = "fried egg"
+
+/datum/pollutant/food/bitter
+	name = "bitter smell"
+	scent = "bitter scent"
+
+/datum/pollutant/food/herb
+	name = "herbal smell"
+	scent = "herbal smell"
+
+/datum/pollutant/food/flower
+	name = "floral smell"
+	scent = "floral smell"
+
+/datum/pollutant/food/mint
+	name = "minty smell"
+	scent = "minty smell"
+
+/datum/pollutant/food/fried_messenger
+	name = "fried messenger"
+	scent = "fried messenger"
+
+/datum/pollutant/food/waddle
+	name = "meaty smell"
+	scent = "meaty smell"

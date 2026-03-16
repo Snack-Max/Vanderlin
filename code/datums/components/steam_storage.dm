@@ -41,14 +41,20 @@
 	current_steam -= amount_used
 	return TRUE
 
-/datum/component/steam_storage/proc/try_proxy_use_steam(mob/proxy, atom/source, amount_used, id)
+/datum/component/steam_storage/proc/try_proxy_use_steam(mob/proxy, atom/source, amount_used, id, emptying = FALSE, var/check_only = FALSE)
 	if(tank_id && id != tank_id)
 		return FALSE
 
-	if(amount_used > current_steam)
+	if((amount_used > current_steam) && !emptying)
 		return FALSE
 
-	current_steam -= amount_used
+	if(check_only)
+		return TRUE
+
+	if(!emptying)
+		current_steam -= amount_used
+	else
+		current_steam = 0
 	return TRUE
 
 /datum/component/steam_storage/proc/try_increase_steam(atom/source, amount_increased)
@@ -59,8 +65,8 @@
 	return TRUE
 
 /datum/component/steam_storage/proc/register_usage(atom/source, mob/living/equipped)
-	RegisterSignal(equipped, COMSIG_ATOM_PROXY_STEAM_USE, PROC_REF(try_proxy_use_steam))
-	RegisterSignal(parent, COMSIG_ITEM_DROPPED, PROC_REF(unregister_usage))
+	RegisterSignal(equipped, COMSIG_ATOM_PROXY_STEAM_USE, PROC_REF(try_proxy_use_steam), override = TRUE)
+	RegisterSignal(parent, COMSIG_ITEM_DROPPED, PROC_REF(unregister_usage), override = TRUE)
 
 /datum/component/steam_storage/proc/unregister_usage(atom/source, mob/living/dropper)
 	UnregisterSignal(parent, COMSIG_ITEM_DROPPED)

@@ -3,9 +3,14 @@
 
 /datum/species/elf
 	name = "Elfb"
-	id = "elf"
-	max_age = 850
-	changesource_flags = MIRROR_BADMIN | WABBAJACK | MIRROR_MAGIC | MIRROR_PRIDE | RACE_SWAP | SLIME_EXTRACT
+	id = SPEC_ID_ELF
+	changesource_flags = WABBAJACK
+	native_language = "Elfish"
+	exotic_bloodtype = /datum/blood_type/human/elf
+	bodypart_features = list(
+		/datum/bodypart_feature/hair/head,
+		/datum/bodypart_feature/hair/facial,
+	)
 
 /datum/species/elf/on_species_gain(mob/living/carbon/C, datum/species/old_species)
 	..()
@@ -18,7 +23,7 @@
 
 /datum/species/elf/after_creation(mob/living/carbon/C)
 	..()
-//	if(!C.has_language(/datum/language/elvish))
+	C.dna.species.accent_language = C.dna.species.get_accent(native_language, 1)
 	C.grant_language(/datum/language/elvish)
 	to_chat(C, "<span class='info'>I can speak Elfish with ,e before my speech.</span>")
 
@@ -29,17 +34,3 @@
 
 /datum/species/elf/qualifies_for_rank(rank, list/features)
 	return TRUE
-
-/datum/species/elf/get_skin_list()
-	return sortList(list(
-	"skin1" = "ffe0d1",
-	"skin2" = "fcccb3"
-	))
-
-/datum/species/elf/get_hairc_list()
-	return sortList(list(
-	"black - nightsky" = "0a0707",
-	"brown - treebark" = "362e25",
-	"blonde - moonlight" = "dfc999",
-	"red - autumn" = "a34332"
-	))

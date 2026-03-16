@@ -22,12 +22,13 @@ LINEN BINS
 
 	var/list/dream_messages = list("white")
 	var/datum/weakref/signal_sleeper //this is our goldylocks
+	var/bed_tucked = FALSE
 
 /obj/item/bedsheet/Initialize()
 	. = ..()
 	AddElement(/datum/element/bed_tuckable, 0, 0, 0)
 
-/obj/item/bedsheet/attack_self(mob/living/user)
+/obj/item/bedsheet/attack_self(mob/living/user, list/modifiers)
 	if(!user.CanReach(src))		//No telekenetic grabbing.
 		return
 	if(!user.resting)
@@ -39,9 +40,9 @@ LINEN BINS
 
 /obj/item/bedsheet/proc/coverup(mob/living/sleeper)
 	layer = ABOVE_MOB_LAYER
-	plane = -2
-	pixel_x = 0
-	pixel_y = 0
+	plane = GAME_PLANE_UPPER
+	pixel_x = base_pixel_x
+	pixel_y = base_pixel_y
 	to_chat(sleeper, "<span class='notice'>I cover myself with [src].</span>")
 	var/angle = sleeper.lying_prev
 	dir = angle2dir(angle + 180) // 180 flips it to be the same direction as the mob
@@ -77,6 +78,17 @@ LINEN BINS
 	UnregisterSignal(sleeper, COMSIG_PARENT_QDELETING)
 	signal_sleeper = null
 
+/obj/item/bedsheet/attack_hand(mob/user, list/modifiers)
+	if(!bed_tucked)
+		return ..()
+	if(do_after(user, 2 SECONDS, src))
+		var/obj/structure/bed/bed = locate() in loc
+		if(bed)
+			to_chat(user, span_notice("You start to remove \the [src] from \the [bed]."))
+			bed.sheet_tucked = FALSE
+			bed.sheet_on = FALSE
+			bed_tucked = FALSE
+		return ..()
 /obj/item/bedsheet/cloth
 	desc = ""
 	icon = 'icons/roguetown/misc/structure.dmi'

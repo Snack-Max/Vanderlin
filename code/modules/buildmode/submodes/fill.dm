@@ -1,6 +1,6 @@
 /datum/buildmode_mode/fill
 	key = "fill"
-	
+
 	use_corner_selection = TRUE
 	var/objholder = null
 
@@ -25,29 +25,26 @@
 			return
 	deselect_region()
 
-/datum/buildmode_mode/fill/handle_click(client/c, params, obj/object)
+/datum/buildmode_mode/fill/handle_click(client/c, list/modifiers, obj/object)
 	if(isnull(objholder))
 		to_chat(c, "<span class='warning'>Select an object type first.</span>")
 		deselect_region()
 		return
 	..()
 
-/datum/buildmode_mode/fill/handle_selected_area(client/c, params)
-	var/list/pa = params2list(params)
-	var/left_click = pa.Find("left")
-	var/alt_click = pa.Find("alt")
+/datum/buildmode_mode/fill/handle_selected_area(client/c, list/modifiers)
+	var/left_click = LAZYACCESS(modifiers, LEFT_CLICK)
+	var/alt_click = LAZYACCESS(modifiers, ALT_CLICKED)
 
 	if(left_click) //rectangular
 		if(alt_click)
 			var/list/deletion_area = block(get_turf(cornerA),get_turf(cornerB))
-			for(var/beep in deletion_area)
-				var/turf/T = beep
+			for(var/turf/T as anything in deletion_area)
 				for(var/atom/movable/AM in T)
 					qdel(AM)
 				// extreme haircut
 				T.ScrapeAway(INFINITY, CHANGETURF_DEFER_CHANGE)
-			for(var/beep in deletion_area)
-				var/turf/T = beep
+			for(var/turf/T as anything in deletion_area)
 				T.AfterChange()
 			log_admin("Build Mode: [key_name(c)] deleted turfs from [AREACOORD(cornerA)] through [AREACOORD(cornerB)]")
 			// if there's an analogous proc for this on tg lmk

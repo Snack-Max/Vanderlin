@@ -4,7 +4,7 @@
 	desc = ""
 	icon_state = "acid"
 	density = FALSE
-	opacity = 0
+	opacity = FALSE
 	anchored = TRUE
 	resistance_flags = FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	layer = ABOVE_NORMAL_TURF_LAYER
@@ -20,8 +20,8 @@
 		acid_level = min(acid_amt*acid_pwr, 12000) //capped so the acid effect doesn't last a half hour on the floor.
 
 	//handle APCs and newscasters and stuff nicely
-	pixel_x = target.pixel_x + rand(-4,4)
-	pixel_y = target.pixel_y + rand(-4,4)
+	pixel_x = base_pixel_x + target.pixel_x + rand(-4,4)
+	pixel_y = base_pixel_y + target.pixel_y + rand(-4,4)
 
 	START_PROCESSING(SSobj, src)
 
@@ -38,7 +38,7 @@
 		return 0
 
 	if(prob(5))
-		playsound(loc, 'sound/blank.ogg', 100, TRUE)
+		playsound(src, 'sound/blank.ogg', 100, TRUE)
 
 	for(var/obj/O in target)
 		if(prob(20) && !(resistance_flags & UNACIDABLE))

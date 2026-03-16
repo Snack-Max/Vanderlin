@@ -30,11 +30,11 @@
 		if(!length(text))
 			return
 
-	var/announcement
+	var/announcement = "<br><div class='alert_holder'>"
 
 	if(title && length(title) > 0)
-		announcement += "<h1 class='alert'>[title]</h1>"
-	announcement += "<br>[span_alert(text)]"
+		announcement += "<h1 class='alert'><center><u>[title]</u></h1></center>"
+	announcement += "<center>[span_alert(text)]</center><br></div>"
 
 	if(!players)
 		players = GLOB.player_list
@@ -62,3 +62,10 @@
 			to_chat(target, "[span_minorannounce("<font color = purple>[title]</font color><BR>[message]")]<BR>")
 			if(target.client.prefs.toggles & SOUND_ANNOUNCEMENTS)
 				target.playsound_local(target, 'sound/misc/alert.ogg', 100)
+
+/proc/bordered_message(mob/target, list/messages)
+	var/html = "<br><div class='alert_holder'>"
+	for(var/msg in messages)
+		html += "[msg]<br>"
+	html += "</div><br>"
+	to_chat(target, html)

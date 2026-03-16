@@ -1,79 +1,58 @@
+/datum/attribute_holder/sheet/job/bard
+	raw_attribute_list = list(
+		STAT_PERCEPTION = 1,
+		STAT_SPEED = 2,
+		STAT_STRENGTH = -1,
+		/datum/attribute/skill/combat/knives = 10,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/craft/crafting = 10,
+		/datum/attribute/skill/misc/swimming = 20,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/misc/riding = 30,
+		/datum/attribute/skill/misc/sewing = 10,
+		/datum/attribute/skill/misc/reading = 30,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/sneaking = 30,
+		/datum/attribute/skill/misc/stealing = 10,
+		/datum/attribute/skill/misc/lockpicking = 10,
+		/datum/attribute/skill/misc/music = 41,
+		/datum/attribute/skill/misc/athletics = 20
+	)
+
 /datum/job/bard
 	title = "Bard"
 	tutorial = "Bards make up one of the largest populations of registered adventurers in Vanderlin, \
 	mostly because they are the last ones in a party to die. \
 	Their wish is to experience the greatest adventures of the age and write amazing songs \
 	about them. This is not your story, for you are the storyteller."
-	flag = BARD
 	department_flag = PEASANTS
 	display_order = JDO_BARD
 	job_flags = (JOB_ANNOUNCE_ARRIVAL | JOB_SHOW_IN_CREDITS | JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE)
-	faction = FACTION_STATION
+	faction = FACTION_TOWN
 	total_positions = 4
 	spawn_positions = 4
+	bypass_lastclass = TRUE
 
-	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list(
-		"Humen",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Half-Orc",
-		"Rakshari"
+	allowed_races = RACES_PLAYER_ALL
+	outfit = /datum/outfit/bard
+	cmode_music = 'sound/music/cmode/adventurer/CombatIntense.ogg'
+	exp_types_granted = list(EXP_TYPE_BARD)
+
+	spells = list(
+		/datum/action/cooldown/spell/vicious_mockery,
+		// /datum/action/cooldown/spell/bardic_inspiration
 	)
 
-	outfit = /datum/outfit/job/bard
+	attribute_sheet = /datum/attribute_holder/sheet/job/bard
 
-/datum/outfit/job/bard/pre_equip(mob/living/carbon/human/H)
-	. = ..()
-	H.mind?.adjust_skillrank(/datum/skill/combat/knives, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/crafting, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/riding, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/sewing, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/reading, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/sneaking, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/stealing, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/lockpicking, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/music, 4, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 3, TRUE)
-	H.mind?.AddSpell(new /obj/effect/proc_holder/spell/invoked/mockery)
-	head = /obj/item/clothing/head/bardhat
-	shoes = /obj/item/clothing/shoes/boots
-	pants = /obj/item/clothing/pants/tights/random
-	shirt = /obj/item/clothing/shirt/tunic/noblecoat
-	if(prob(30))
-		gloves = /obj/item/clothing/gloves/fingerless
-	belt = /obj/item/storage/belt/leather
-	armor = /obj/item/clothing/armor/leather/vest
-	cloak = /obj/item/clothing/cloak/raincloak/blue
-	if(prob(50))
-		cloak = /obj/item/clothing/cloak/raincloak/red
-	backl = /obj/item/storage/backpack/satchel
-	beltr = /obj/item/weapon/knife/dagger/steel/special
-	beltl = /obj/item/storage/belt/pouch/coins/poor
-	backpack_contents = list(/obj/item/flint)
-	if(H.dna?.species?.id == "dwarf")
-		H.cmode_music = 'sound/music/cmode/combat_dwarf.ogg'
-	ADD_TRAIT(H, TRAIT_DODGEEXPERT, TRAIT_GENERIC)
-	ADD_TRAIT(H, TRAIT_BARDIC_TRAINING, TRAIT_GENERIC)
-	H.change_stat(STATKEY_PER, 1)
-	H.change_stat(STATKEY_SPD, 2)
-	H.change_stat(STATKEY_STR, -1)
+	traits = list(
+		TRAIT_DODGEEXPERT,
+		TRAIT_BARDIC_TRAINING
+	)
 
-/datum/job/bard/after_spawn(mob/living/carbon/spawned, client/player_client)
+/datum/job/bard/after_spawn(mob/living/carbon/human/spawned, client/player_client)
 	. = ..()
-	var/mob/living/carbon/H = spawned
-	H.advsetup = 1
-	H.invisibility = INVISIBILITY_MAXIMUM
-	H.become_blind("bard_select")
-	var/instruments = list(
+	spawned.select_equippable(player_client, list(
 		"Harp" = /obj/item/instrument/harp,
 		"Lute" = /obj/item/instrument/lute,
 		"Accordion" = /obj/item/instrument/accord,
@@ -81,14 +60,37 @@
 		"Flute" = /obj/item/instrument/flute,
 		"Drum" = /obj/item/instrument/drum,
 		"Hurdy-Gurdy" = /obj/item/instrument/hurdygurdy,
-		"Viola" = /obj/item/instrument/viola)
-	var/instrument_choice = input(player_client, "Choose your instrument.", "XYLIX") as anything in instruments
-	var/spawn_instrument = instruments[instrument_choice]
-	if(!spawn_instrument)
-		spawn_instrument = /obj/item/instrument/lute
-	H.equip_to_slot_or_del(new spawn_instrument(H),SLOT_BACK_R, TRUE)
-	H.advsetup = 0
-	H.invisibility = initial(H.invisibility)
-	H.cure_blind("bard_select")
-	var/atom/movable/screen/advsetup/GET_IT_OUT = locate() in H.hud_used?.static_inventory // dis line sux its basically a loop anyways if i remember
-	qdel(GET_IT_OUT)
+		"Viola" = /obj/item/instrument/viola
+		),
+		message = "Choose your instrument.",
+		title = "XYLIX"
+	)
+	spawned.inspiration = new /datum/inspiration(spawned)
+
+	if(spawned.dna?.species?.id == SPEC_ID_DWARF)
+		spawned.cmode_music = 'sound/music/cmode/combat_dwarf.ogg'
+
+/datum/outfit/bard
+	name = "Bard"
+	head = /obj/item/clothing/head/bardhat
+	shoes = /obj/item/clothing/shoes/boots
+	pants = /obj/item/clothing/pants/tights/colored/random
+	shirt = /obj/item/clothing/shirt/tunic/noblecoat
+	belt = /obj/item/storage/belt/leather
+	armor = /obj/item/clothing/armor/leather/vest
+	cloak = /obj/item/clothing/cloak/raincloak/colored/blue
+	backl = /obj/item/storage/backpack/satchel
+	beltr = /obj/item/weapon/knife/dagger/steel/special
+	beltl = /obj/item/storage/belt/pouch/coins/poor
+	backpack_contents = list(/obj/item/flint)
+	scabbards = list(/obj/item/weapon/scabbard/knife)
+
+/datum/outfit/bard/pre_equip(mob/living/carbon/human/H)
+	. = ..()
+	if(prob(30))
+		gloves = /obj/item/clothing/gloves/fingerless
+	if(prob(50))
+		cloak = /obj/item/clothing/cloak/raincloak/colored/red
+
+
+

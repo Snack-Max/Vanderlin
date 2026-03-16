@@ -5,7 +5,7 @@
 	icon_state = "submit"
 	density = FALSE
 	blade_dulling = DULLING_BASH
-	pixel_y = 32
+	SET_BASE_PIXEL(0, 32)
 
 /obj/structure/fake_machine/submission/proc/attemptsell(obj/item/I, mob/H, message = TRUE, sound = TRUE)
 	for(var/datum/stock/R in SStreasury.stockpile_datums)
@@ -17,7 +17,7 @@
 					stock_announce("[B.amount] units of [R.name] has been submitted to the stockpile.")
 				qdel(B)
 				if(sound == TRUE)
-					playsound(loc, 'sound/misc/hiss.ogg', 100, FALSE, -1)
+					playsound(src, 'sound/misc/hiss.ogg', 100, FALSE, -1)
 			continue
 		else if(istype(I, R.item_type))
 			if(!R.check_item(I))
@@ -28,21 +28,20 @@
 				if(message == TRUE)
 					stock_announce("[R.name] has been submitted to the stockpile.")
 				if(sound == TRUE)
-					playsound(loc, 'sound/misc/hiss.ogg', 100, FALSE, -1)
+					playsound(src, 'sound/misc/hiss.ogg', 100, FALSE, -1)
 			else
 				var/area/A = GLOB.areas_by_type[R.transport_item]
 				if(!A && message == TRUE)
 					say("Couldn't find where to send the submission.")
 					return
-				I.submitted_to_stockpile = TRUE
 				var/list/turfs = list()
-				for(var/turf/T in A)
+				for(var/turf/T in A.get_turfs_from_all_zlevels())
 					turfs += T
 				var/turf/T = pick(turfs)
 				I.forceMove(T)
 				if(sound == TRUE)
-					playsound(loc, 'sound/misc/hiss.ogg', 100, FALSE, -1)
-					playsound(loc, 'sound/misc/disposalflush.ogg', 100, FALSE, -1)
+					playsound(src, 'sound/misc/hiss.ogg', 100, FALSE, -1)
+					playsound(src, 'sound/misc/disposalflush.ogg', 100, FALSE, -1)
 			return
 
 /obj/structure/fake_machine/submission/attack_hand(mob/living/user)
@@ -50,7 +49,7 @@
 	if(.)
 		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+	playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	var/canread = user.can_read(src, TRUE)
 	var/contents = "<center>SUBMISSION HOLE<BR>"
 
@@ -74,18 +73,22 @@
 	popup.set_content(contents)
 	popup.open()
 
-/obj/structure/fake_machine/submission/attackby(obj/item/P, mob/user, params)
+/obj/structure/fake_machine/submission/attackby(obj/item/P, mob/user, list/modifiers)
 	if(ishuman(user))
 		attemptsell(P, user, TRUE, TRUE)
 		return TRUE
 
-/obj/structure/fake_machine/submission/attack_right(mob/user)
+/obj/structure/fake_machine/submission/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	if(ishuman(user))
 		for(var/obj/I in get_turf(src))
 			attemptsell(I, user, FALSE, FALSE)
 		say("Bulk submission in progress...")
-		playsound(loc, 'sound/misc/hiss.ogg', 100, FALSE, -1)
-		playsound(loc, 'sound/misc/disposalflush.ogg', 100, FALSE, -1)
+		playsound(src, 'sound/misc/hiss.ogg', 100, FALSE, -1)
+		playsound(src, 'sound/misc/disposalflush.ogg', 100, FALSE, -1)
 		return TRUE
 
 /*				//Var for keeping track of timer
@@ -99,10 +102,10 @@ GLOBAL_VAR(feeding_hole_reset_timer)
 	icon = 'icons/roguetown/misc/machines.dmi'
 	icon_state = "feedinghole"
 	density = FALSE
-	pixel_y = 32
+	SET_BASE_PIXEL(0, 32)
 
-/obj/structure/feedinghole/attackby(obj/item/P, mob/user, params)
-	if(istype(P, /obj/item/reagent_containers/food/snacks/produce/wheat))
+/obj/structure/feedinghole/attackby(obj/item/P, mob/user, list/modifiers)
+	if(istype(P, /obj/item/reagent_containers/food/snacks/produce/grain/wheat))
 		qdel(P)
 /*		if(!GLOB.feeding_hole_reset_timer || world.time > GLOB.feeding_hole_reset_timer)
 			GLOB.feeding_hole_wheat_count = 0
@@ -129,7 +132,7 @@ GLOBAL_VAR(feeding_hole_reset_timer)
 	if(.)
 		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+	playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	var/canread = user.can_read(src, TRUE)
 	var/contents = "<center>FEEDING HOLE<BR>"
 

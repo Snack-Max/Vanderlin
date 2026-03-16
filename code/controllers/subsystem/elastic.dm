@@ -17,6 +17,9 @@ SUBSYSTEM_DEF(elastic)
 	var/list/assoc_list_data = list() //! ### This NEEDS NEEDS NEEDS NEEDS NEEDS to be an assoclist. When 516 is in this will be an alist
 	///abstract information - basically want to keep track of spell casts over the round? do it like this
 	var/list/abstract_information = list()
+	/// list of /datum/http_request that we check to ensure they don't leak memory
+	var/list/active_requests = list()
+	var/shutting_down = FALSE
 
 /datum/controller/subsystem/elastic/Initialize(start_timeofday)
 	if(!CONFIG_GET(flag/elastic_middleware_enabled))
@@ -24,16 +27,33 @@ SUBSYSTEM_DEF(elastic)
 	set_abstract_data_zeros()
 	return ..()
 
+/datum/controller/subsystem/elastic/Shutdown()
+	shutting_down = TRUE
+	var/end_time = REALTIMEOFDAY + (5 SECONDS)
+	while((length(active_requests) > 0) && (REALTIMEOFDAY < end_time))
+		for(var/datum/http_request/request as anything in active_requests)
+			if(request.is_complete())
+				active_requests -= request
+				qdel(request)
+	active_requests.Cut()
+
 /datum/controller/subsystem/elastic/fire(resumed)
 	send_data()
+	for(var/datum/http_request/request as anything in active_requests)
+		if(request.is_complete()) // rust-g will clear the job once it's complete
+			active_requests -= request
+			qdel(request)
 
 /datum/controller/subsystem/elastic/proc/send_data()
+	if(shutting_down)
+		return
 	var/datum/http_request/request = new()
 	request.prepare(RUSTG_HTTP_METHOD_POST, CONFIG_GET(string/elastic_endpoint), get_compiled_data(), list(
 		"Authorization" = "ApiKey [CONFIG_GET(string/metrics_api_token)]",
 		"Content-Type" = "application/json"
 	))
 	request.begin_async()
+	active_requests += request
 
 /datum/controller/subsystem/elastic/proc/get_compiled_data()
 	var/list/compiled = list()
@@ -55,16 +75,11 @@ SUBSYSTEM_DEF(elastic)
 /datum/controller/subsystem/elastic/proc/get_round_data()
 	var/list/round_data = list()
 
-	round_data["blood_lost"] = round(SSticker.blood_lost / 100, 1)
-	round_data["ankles_broken"] = SSticker.holefall
-	round_data["deaths"] = SSticker.deaths
-	round_data["moat_fallers"] = SSticker.moatfallers
-	round_data["smited"] = SSticker.pplsmited
-	round_data["gibbed"] = SSticker.gibbs
-	round_data["triumph_gained"] = SSticker.tri_gained
-	round_data["triumph_lost"] = SSticker.tri_lost
-	round_data["snorted_drugs"] = SSticker.snort
-	round_data["beards_shaved"] = SSticker.beardshavers
+	for(var/patron_name in GLOB.patron_follower_counts)
+		round_data["[patron_name]_followers"] = GLOB.patron_follower_counts[patron_name]
+
+	for(var/stat in GLOB.vanderlin_round_stats)
+		round_data[stat] = GLOB.vanderlin_round_stats[stat]
 
 	return round_data
 

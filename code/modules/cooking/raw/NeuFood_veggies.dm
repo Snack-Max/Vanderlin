@@ -5,30 +5,25 @@
  *						*
  * * * * * * * * * * * **/
 
+/obj/item/reagent_containers/food/snacks/veg
+	faretype = FARE_POOR
+	nutrition = VEGGIE_NUTRITION
+
 /*	..................   Onion slice   ................... */
 /obj/item/reagent_containers/food/snacks/veg/onion_sliced
 	name = "sliced onion"
 	icon_state = "onion_sliced"
 	slices_num = 0
-	fried_type = /obj/item/reagent_containers/food/snacks/onion_fried
-	cooked_smell = /datum/pollutant/food/fried_onion
 
 /*	..................   Cabbage   ................... */
 /obj/item/reagent_containers/food/snacks/veg/cabbage_sliced
 	name = "shredded cabbage"
 	icon_state = "cabbage_sliced"
-	fried_type = /obj/item/reagent_containers/food/snacks/cabbage_fried
-	cooked_type = /obj/item/reagent_containers/food/snacks/cabbage_fried
-	cooked_smell = /datum/pollutant/food/fried_cabbage
-
 
 /*	..................   Potato   ................... */
 /obj/item/reagent_containers/food/snacks/veg/potato_sliced
 	name = "potato cuts"
 	icon_state = "potato_sliced"
-	fried_type = /obj/item/reagent_containers/food/snacks/potato/fried
-	cooked_type = /obj/item/reagent_containers/food/snacks/potato/fried
-	cooked_smell = /datum/pollutant/food/baked_potato
 
 /*	..................   Turnip   ................... */
 /obj/item/reagent_containers/food/snacks/veg/turnip_sliced
@@ -36,15 +31,29 @@
 	icon_state = "turnip_sliced"
 
 
-/*	..................   Sunflower seeds   ................... */
+/*	..................		Roasted seeds		................... */
 /obj/item/reagent_containers/food/snacks/roastseeds
-	list_reagents = list(/datum/reagent/consumable/nutriment = 1)
-	tastes = list("toasted sunflower seeds" = 1)
+	nutrition = BERRY_NUTRITION * COOK_MOD
+	tastes = list("roasted seeds" = 1)
 	name = "roasted seeds"
-	desc = "Food for birds, treats for humens."
+	desc = "Treats for both rats and humens."
+	icon_state = "roastseeds"
+	dropshrink = 0.8
+	color = "#e5b175"
+	foodtype = VEGETABLES
+	rotprocess = null
+	faretype = FARE_POOR
+
+/*	..................		Salted seeds		................... */
+/obj/item/reagent_containers/food/snacks/saltseeds
+	nutrition =  (BERRY_NUTRITION+1) * COOK_MOD
+	tastes = list("salted roasted seeds" = 1)
+	name = "salted roasted seeds"
+	desc = "Too salty for rats, delectable for humens."
 	icon_state = "roastseeds"
 	dropshrink = 0.8
 	color = "#e5b175"
 	foodtype = VEGETABLES
 	rotprocess = null
 	eat_effect = /datum/status_effect/buff/foodbuff
+	faretype = FARE_NEUTRAL

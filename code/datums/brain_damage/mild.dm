@@ -28,7 +28,6 @@
 
 /datum/brain_trauma/mild/dumbness/on_gain()
 	ADD_TRAIT(owner, TRAIT_DUMB, TRAUMA_TRAIT)
-	SEND_SIGNAL(owner, COMSIG_ADD_MOOD_EVENT, "dumb", /datum/mood_event/oblivious)
 	..()
 
 /datum/brain_trauma/mild/dumbness/on_life()
@@ -42,7 +41,6 @@
 /datum/brain_trauma/mild/dumbness/on_lose()
 	REMOVE_TRAIT(owner, TRAIT_DUMB, TRAUMA_TRAIT)
 	owner.derpspeech = 0
-	SEND_SIGNAL(owner, COMSIG_CLEAR_MOOD_EVENT, "dumb")
 	..()
 
 /datum/brain_trauma/mild/speech_impediment
@@ -73,10 +71,10 @@
 			if(1)
 				owner.vomit()
 			if(2,3)
-				owner.dizziness += 10
+				owner.adjust_dizzy(10 SECONDS)
 			if(4,5)
-				owner.confused += 10
-				owner.blur_eyes(10)
+				owner.adjust_confusion(10 SECONDS)
+				owner.set_eye_blur_if_lower(20 SECONDS)
 			if(6 to 9)
 				owner.slurring += 30
 			if(10)
@@ -99,7 +97,7 @@
 	var/fall_chance = 1
 	if(owner.m_intent == MOVE_INTENT_RUN)
 		fall_chance += 2
-	if(prob(fall_chance) && (owner.mobility_flags & MOBILITY_STAND))
+	if(prob(fall_chance) && (owner.body_position != LYING_DOWN))
 		to_chat(owner, "<span class='warning'>My leg gives out!</span>")
 		owner.Paralyze(35)
 
@@ -154,7 +152,7 @@
 	gain_text = "<span class='warning'>I lose my grasp on complex words.</span>"
 	lose_text = "<span class='notice'>I feel my vocabulary returning to normal again.</span>"
 
-	var/static/list/common_words = world.file2list("strings/1000_most_common.txt")
+	var/static/list/common_words = file2list("strings/1000_most_common.txt")
 
 /datum/brain_trauma/mild/expressive_aphasia/handle_speech(datum/source, list/speech_args)
 	var/message = speech_args[SPEECH_MESSAGE]

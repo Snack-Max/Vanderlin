@@ -1,14 +1,15 @@
 /datum/component/decal/blood
 	dupe_mode = COMPONENT_DUPE_UNIQUE
 
-/datum/component/decal/blood/Initialize(_icon, _icon_state, _dir, _cleanable=CLEAN_STRENGTH_BLOOD, _color, _layer=ABOVE_OBJ_LAYER)
+/datum/component/decal/blood/Initialize(_icon, _icon_state, _dir, _cleanable=CLEAN_TYPE_BLOOD, _color, _layer=ABOVE_OBJ_LAYER)
 	if(!isitem(parent))
 		return COMPONENT_INCOMPATIBLE
 	. = ..()
 	RegisterSignal(parent, COMSIG_ATOM_GET_EXAMINE_NAME, PROC_REF(get_examine_name))
 
 /datum/component/decal/blood/generate_appearance(_icon, _icon_state, _dir, _layer, _color)
-	testing("genappearance")
+	var/imported_color = _color || COLOR_BLOOD
+
 	var/obj/item/I = parent
 	if(I.bigboy)
 		if(!_icon)
@@ -33,8 +34,12 @@
 		blood_splatter_icon.Blend(icon(_icon, _icon_state), ICON_MULTIPLY) //adds blood and the remaining white areas become transparant
 		pic = mutable_appearance(blood_splatter_icon, initial(I.icon_state))
 		blood_splatter_appearances[index] = pic
+	pic.color = imported_color
 	pic.alpha = 150
 	return TRUE
+
+/datum/component/decal/blood/apply(atom/thing)
+	return ..()
 
 /datum/component/decal/blood/proc/get_examine_name(datum/source, mob/user, list/override)
 	var/atom/A = parent

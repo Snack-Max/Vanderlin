@@ -6,7 +6,8 @@
 	r_sleeve_status = SLEEVE_TORN
 	l_sleeve_status = SLEEVE_TORN
 	body_parts_covered = CHEST|VITALS
-	allowed_race = list("elf", "dark elf")
+	allowed_race = RACES_PLAYER_ELF_ALL
+	allowed_sex = list(FEMALE)
 	salvage_result = /obj/item/natural/silk
 
 /obj/item/clothing/shirt/apothshirt
@@ -49,7 +50,6 @@
 	body_parts_covered = CHEST|GROIN|ARMS|VITALS
 	icon_state = "jestershirt"
 	icon = 'icons/roguetown/clothing/shirts.dmi'
-	mob_overlay_icon = 'icons/roguetown/clothing/onmob/shirts.dmi'
 	sleeved = 'icons/roguetown/clothing/onmob/shirts.dmi'
 	boobed = TRUE
 	r_sleeve_status = SLEEVE_NORMAL
@@ -71,6 +71,16 @@
 	var/picked = FALSE
 	colorgrenz = TRUE
 
+/obj/item/clothing/shirt/grenzelhoft/Initialize()
+	. = ..()
+	if(!picked)
+		var/mob/living/carbon/human/L = loc
+		if(!istype(L))
+			return
+		if(!L.client)
+			return
+		INVOKE_ASYNC(src, PROC_REF(get_player_input))
+
 /obj/item/clothing/shirt/grenzelhoft/proc/get_player_input()
 	if(!ishuman(loc))
 		return
@@ -91,20 +101,52 @@
 	var/playerchoice = colors[choice]
 	picked = TRUE
 	detail_color = playerchoice
-	update_icon()
+	update_appearance(UPDATE_OVERLAYS)
 	for(var/obj/item/clothing/V in L.get_equipped_items(FALSE))
-		testing("clothes to color are [V]")
 		if(V.colorgrenz)
 			V.detail_color = playerchoice
-			V.update_icon()
+			V.update_appearance(UPDATE_OVERLAYS)
 	L.regenerate_icons()
 
-/obj/item/clothing/shirt/grenzelhoft/Initialize()
-	. = ..()
-	if(!picked)
-		var/mob/living/carbon/human/L = loc
-		if(!istype(L))
-			return
-		if(!L.client)
-			return
-		INVOKE_ASYNC(src, PROC_REF(get_player_input))
+/obj/item/clothing/shirt/ornate
+	name = "ornate base"
+	desc = "If you see this, someone messed up and either spawned the wrong item or mapped in the wrong item, yell at them!"
+	icon = 'icons/roguetown/clothing/ornate_tunic.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/onmob/ornate_tunic.dmi'
+	sleeved = 'icons/roguetown/clothing/onmob/ornate_tunic.dmi'
+	boobed = TRUE
+	abstract_type = /obj/item/clothing/shirt/ornate
+
+/obj/item/clothing/shirt/ornate/tunic
+	slot_flags = ITEM_SLOT_SHIRT|ITEM_SLOT_ARMOR
+	name = "ornate tunic"
+	desc = "A red tunic with gold accents, fit for nobility."
+	icon_state = "ornatetunic"
+	sellprice = 150
+
+/obj/item/clothing/shirt/ornate/dress
+	slot_flags = ITEM_SLOT_SHIRT|ITEM_SLOT_ARMOR
+	name = "ornate dress"
+	desc = "A red dress with gold accents, fit for nobility."
+	icon_state = "ornatedress"
+	sellprice = 150
+
+/obj/item/clothing/shirt/clothvest
+	slot_flags = ITEM_SLOT_SHIRT|ITEM_SLOT_ARMOR|ITEM_SLOT_CLOAK
+	name = "cloth vest"
+	desc = "a plain cloth vest, versatile and fashionable."
+	icon_state = "clothvest"
+	sleeved = 'icons/roguetown/clothing/onmob/helpers/sleeves_shirts.dmi'
+	color = CLOTHING_LINEN
+
+/obj/item/clothing/shirt/clothvest/colored
+	misc_flags = CRAFTING_TEST_EXCLUDE
+
+/obj/item/clothing/shirt/clothvest/colored/red
+	color = CLOTHING_ROYAL_RED
+
+/obj/item/clothing/shirt/clothvest/colored/random/Initialize()
+	color = pick(CLOTHING_LINEN, CLOTHING_BARK_BROWN, CLOTHING_FOREST_GREEN, CLOTHING_BERRY_BLUE, CLOTHING_BLOOD_RED, CLOTHING_PEAR_YELLOW, CLOTHING_ROYAL_TEAL)
+	return ..()
+
+

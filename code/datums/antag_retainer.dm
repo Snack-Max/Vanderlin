@@ -6,7 +6,10 @@
 	var/list/cultists = list()
 	var/list/liches = list()
 	var/list/aspirants = list()
+	var/list/aspirant_supporters = list()
 	var/list/bandits = list()
+	var/list/harlequins = list()
+	var/list/overlords = list()
 
 	var/cult_ascended = FALSE
 	var/head_rebel_decree = FALSE
@@ -18,8 +21,8 @@
 
 
 	///delf stuff
-	var/delf_contribute = 0
-	var/delf_goal = 1
+	var/delf_ears = 0
+	var/delf_goal = 5
 
 	///bandit stuff
 	var/bandit_goal = 1
@@ -34,11 +37,11 @@
 				if(isbrain(player)) //also technically dead
 					continue
 				if(is_in_roguetown(player))
-					var/datum/antagonist/D = player.mind.has_antag_datum(/datum/antagonist/werewolf)
+					var/datum/antagonist/D = player.mind.has_antag_datum(/datum/antagonist/werewolf, FALSE)
 					if(D && D.increase_votepwr)
 						wwoelf++
 						continue
-					D = player.mind.has_antag_datum(/datum/antagonist/vampire)
+					D = player.mind.has_antag_datum(/datum/antagonist/vampire/lord)
 					if(D && D.increase_votepwr)
 						vampyr++
 						continue
@@ -70,7 +73,8 @@
 			SSticker.missing_lord_time = world.time
 		if(world.time > SSticker.missing_lord_time + 10 MINUTES)
 			SSticker.missing_lord_time = world.time
-			addomen(OMEN_NOLORD)
+			if(!SSticker.vote_started)
+				addomen(OMEN_NOLORD)
 		return FALSE
 	else
 		return TRUE

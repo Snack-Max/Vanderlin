@@ -9,10 +9,10 @@
 	var/bundletype = null
 	var/quality = SMELTERY_LEVEL_NORMAL // To not ruin blacksmith recipes
 
-/obj/item/natural/attackby(obj/item/W, mob/living/user)
+/obj/item/natural/attackby(obj/item/W, mob/living/user, list/modifiers)
 	if(istype(W, /obj/item/natural/bundle))
 		if(item_flags & IN_STORAGE)
-			to_chat(user, span_warning("It's hard to find [W] in my bag."))
+			to_chat(user, span_warning("It's hard to find [src] in my bag."))
 			return
 		var/obj/item/natural/bundle/B = W
 		if(istype(src, B.stacktype))
@@ -21,28 +21,30 @@
 				B.update_bundle()
 				to_chat(user, span_notice("You add [src] to [W]."))
 				qdel(src)
+				user.changeNext_move(CLICK_CD_RANGE)
 			else
 				to_chat(user, span_warning("There's not enough space in [W]."))
 			return
-	else
-		return ..()
+	return ..()
 
-/obj/item/natural/pre_attack_right(atom/A, mob/living/user, params)
+/obj/item/natural/pre_attack_secondary(atom/A, mob/living/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
 	if(istype(A, /obj/item/natural))
 		if(item_flags & IN_STORAGE)
 			to_chat(user, span_warning("It's hard to find [src] in my bag."))
-			return
+			return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 		var/obj/item/natural/B = A
 		if(bundletype && bundletype == B.bundletype)
 			if(!user.temporarilyRemoveItemFromInventory(src))
-				return TRUE
+				return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 			var/obj/item/natural/bundle/N = new bundletype(loc)
 			to_chat(user, span_notice("You collect the [N.stackname] into a bundle."))
 			qdel(B)
 			qdel(src)
 			user.put_in_active_hand(N)
-			return TRUE
-	return ..()
+			return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 
 /obj/item/natural/bundle
 	name = "bundle"
@@ -60,14 +62,14 @@
 	var/icon2 = "fibersroll2"
 	var/icon2step = 6
 	var/icon3 = null
-	var/stacktype = /obj/item/natural/fibers/
+	var/stacktype = /obj/item/natural/fibers
 	var/stackname = "fibers"
 	var/items_per_increase = 5
 
 	var/base_width = 32
 	var/base_height = 32
 
-/obj/item/natural/bundle/attackby(obj/item/W, mob/living/user)
+/obj/item/natural/bundle/attackby(obj/item/W, mob/living/user, list/modifiers)
 	if(amount <= 0) //how did you manage to do this
 		qdel(src)
 		return
@@ -90,6 +92,7 @@
 				B.amount += amount
 				B.update_bundle()
 				qdel(src)
+			return
 	else if(istype(W, stacktype))
 		if(item_flags & IN_STORAGE)
 			return
@@ -100,53 +103,60 @@
 			qdel(W)
 		else
 			to_chat(user, span_warning("There's not enough space in [src]."))
-	else
-		return ..()
+		return
+	return ..()
 
-/obj/item/natural/bundle/attack_right(mob/user)
+/obj/item/natural/bundle/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	if(item_flags & IN_STORAGE)
+		to_chat(user, span_warning("I can't reach [src]!"))
 		return
 	if(amount <= 0) //how did you manage to do this
 		qdel(src)
 		return
-	var/atom/item = user.get_active_held_item()
-	if(item && item.type != stacktype)
-		return ..()
 	var/mob/living/carbon/human/H = user
 	switch(amount)
 		if(2)
 			if(!user.temporarilyRemoveItemFromInventory(src))
 				return
-			var/obj/F = new stacktype(src.loc)
-			var/obj/I = new stacktype(src.loc)
+			var/obj/F = new stacktype(get_turf(src))
+			var/obj/F2 = new stacktype(get_turf(src))
 			H.put_in_hands(F)
-			H.put_in_hands(I)
+			H.put_in_hands(F2)
 			qdel(src)
 			return
 		if(1)
 			if(!user.temporarilyRemoveItemFromInventory(src))
 				return
-			var/obj/F = new stacktype(src.loc)
+			var/obj/F = new stacktype(get_turf(src))
 			H.put_in_hands(F)
 			qdel(src)
 			return
 		else
 			amount -= 1
-			var/obj/F = new stacktype(src.loc)
+			var/obj/F = new stacktype(get_turf(src))
 			H.put_in_hands(F)
 			to_chat(user, span_notice("You remove \a [F] from [src]."))
+
 	update_bundle()
 
 /obj/item/natural/bundle/examine(mob/user)
 	. = ..()
 	. += span_notice("There are [amount] [stackname] in this bundle.")
 
-/obj/item/natural/bundle/pre_attack_right(atom/A, mob/living/user, params)
+/obj/item/natural/bundle/pre_attack_secondary(atom/A, mob/living/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	if(amount <= 0) //how did you manage to do this
 		qdel(src)
 		return
 	if(ismob(A))
-		return ..()
+		return SECONDARY_ATTACK_CALL_NORMAL
 	user.changeNext_move(CLICK_CD_MELEE)
 	if(amount >= maxamount)
 		to_chat(user, span_warning("There's not enough space in [src]."))
@@ -180,7 +190,6 @@
 					amount += B.amount
 					qdel(B)
 		update_bundle()
-	return TRUE
 
 /obj/item/natural/bundle/proc/update_bundle()
 	if(firefuel != 0)
@@ -210,6 +219,93 @@
 
 		storage.update_item(src)
 		storage.orient2hud()
+
+/obj/item/natural/clod
+	name = "generic clod"
+	desc = "A handful of nothing."
+	icon_state = "clod1"
+	dropshrink = 0
+	throwforce = 0
+	w_class = WEIGHT_CLASS_TINY
+	var/pile = null
+	var/clod_type = null
+
+/obj/item/natural/clod/attackby(obj/item/W, mob/user, list/modifiers)
+	if(istype(W, /obj/item/weapon/shovel))
+		var/obj/item/weapon/shovel/S = W
+		if(!S.heldclod && user.used_intent.type == /datum/intent/shovelscoop)
+			if(!(src.item_flags & IN_STORAGE))
+				playsound(src,'sound/items/dig_shovel.ogg', 100, TRUE)
+				src.forceMove(S)
+				S.heldclod = src
+				W.update_appearance(UPDATE_ICON_STATE)
+				return
+	return ..()
+
+/obj/item/natural/clod/Moved(oldLoc, dir)
+	..()
+	if((!throwing || throwing.target_turf == loc) && isturf(loc) && oldLoc != loc)
+		var/turf/T = loc
+		for(var/obj/structure/fluff/clodpile/C in T)
+			if(C == pile)
+				C.dirtamt = min(C.dirtamt+1, 5)
+				qdel(src)
+				return
+		var/dirtcount = 1
+		var/list/dirts = list()
+		for(var/obj/item/natural/clod/D in T)
+			if(D.clod_type == clod_type)
+				dirtcount++
+				dirts += D
+		if(dirtcount >=5)
+			for(var/obj/item/I in dirts)
+				qdel(I)
+			qdel(src)
+			new pile(T)
+
+/obj/item/natural/clod/attack_self(mob/living/user, params)
+	user.visible_message("<span class='warning'>[user] scatters [src].</span>")
+	qdel(src)
+
+/obj/structure/fluff/clodpile
+	name = "mystery pile"
+	desc = "There is no telling what this is or why it exists. In fact, it shouldn't."
+	icon = 'icons/roguetown/items/natural.dmi'
+	icon_state = "clodpile"
+	var/dirtamt = 5
+	climbable = FALSE
+	density = FALSE
+	climb_offset = 10
+	var/dirt_type = null
+
+/obj/structure/fluff/clodpile/Initialize()
+	. = ..()
+	dir = pick(GLOB.cardinals)
+
+/obj/structure/fluff/clodpile/attackby(obj/item/W, mob/user, params)
+	if(istype(W, /obj/item/weapon/shovel))
+		var/obj/item/weapon/shovel/S = W
+		if(user.used_intent.type == /datum/intent/shovelscoop)
+			if(!S.heldclod)
+				playsound(src,'sound/items/dig_shovel.ogg', 100, TRUE)
+				var/obj/item/J = new dirt_type(S)
+				S.heldclod = J
+				W.update_appearance(UPDATE_ICON_STATE)
+				dirtamt--
+				if(dirtamt <= 0)
+					qdel(src)
+				return
+			else
+				playsound(src,'sound/items/empty_shovel.ogg', 100, TRUE)
+				var/obj/item/I = S.heldclod
+				S.heldclod = null
+				qdel(I)
+				W.update_appearance(UPDATE_ICON_STATE)
+				dirtamt++
+				if(dirtamt > 5)
+					dirtamt = 5
+				return
+	return ..()
 
 /obj/item/natural/infernalash//T1 mage summon loot
 	name = "infernal ash"
@@ -258,7 +354,7 @@
 /obj/item/natural/abyssalflame//T4 mage summon loot
 	name = "abyssal flame"
 	icon_state = "abyssalflame"
-	desc = "A  flickering, black flame contained in a crystal; the heart of an archfiend. Or atleast, what passes for one. It pulses with dense thrums of magick."
+	desc = "A flickering, black flame contained in a crystal; the heart of an archfiend. Or, at least, what passes for one. It pulses with dense thrums of magick."
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20
@@ -337,7 +433,7 @@
 /obj/item/natural/elementalmote
 	name = "elemental mote"
 	icon_state = "mote"
-	desc = "A mystical essence embued with the power of Dendor. Merely holding it transports one's mind to ancient times."
+	desc = "A mystical essence imbued with the power of Dendor. Merely holding it transports one's mind to ancient times."
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20
@@ -354,7 +450,7 @@
 /obj/item/natural/elementalshard
 	name = "elemental shard"
 	icon_state = "shard"
-	desc = "A mystical essence embued with the power of Dendor. Merely holding it transports one's mind to ancient times."
+	desc = "A mystical essence imbued with the power of Dendor. Merely holding it transports one's mind to ancient times."
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20
@@ -371,7 +467,7 @@
 /obj/item/natural/elementalfragment
 	name = "elemental fragment"
 	icon_state = "fragment"
-	desc = "A mystical essence embued with the power of Dendor. Merely holding it transports one's mind to ancient times."
+	desc = "A mystical essence imbued with the power of Dendor. Merely holding it transports one's mind to ancient times."
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20
@@ -388,7 +484,7 @@
 /obj/item/natural/elementalrelic
 	name = "elemental relic"
 	icon_state = "relic"
-	desc = "A mystical essence embued with the power of Dendor. Merely holding it transports one's mind to ancient times."
+	desc = "A mystical essence imbued with the power of Dendor. Merely holding it transports one's mind to ancient times."
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20

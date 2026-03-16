@@ -23,11 +23,11 @@
 	. = ..()
 	check_counter = world.time
 
-/obj/item/bait/attack_self(mob/user)
+/obj/item/bait/attack_self(mob/user, list/modifiers)
 	. = ..()
 	user.visible_message("<span class='notice'>[user] begins deploying the bait...</span>", \
 						"<span class='notice'>I begin deploying the bait...</span>")
-	if(do_after(user, deploy_speed * (1/(user.mind?.get_skill_level(/datum/skill/craft/traps) + 1)), src)) //rogtodo hunting skill
+	if(do_after(user, deploy_speed * (1/(GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/traps) + 1)), src)) //rogtodo hunting skill
 		user.dropItemToGround(src, TRUE)
 		START_PROCESSING(SSobj, src)
 		name = "bait"
@@ -38,7 +38,7 @@
 	if(deployed)
 		user.visible_message("<span class='notice'>[user] begins gathering up the bait...</span>", \
 							"<span class='notice'>I begin gathering up the bait...</span>")
-		if(do_after(user, deploy_speed * (1/(user.mind?.get_skill_level(/datum/skill/craft/traps) + 1)), src)) //rogtodo hunting skill
+		if(do_after(user, deploy_speed * (1/(GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/traps) + 1)), src)) //rogtodo hunting skill
 			STOP_PROCESSING(SSobj, src)
 			name = initial(name)
 			deployed = 0
@@ -72,6 +72,12 @@
 				for(var/obj/structure/flora/grass/bush_meagre/RT in objects)
 					if(can_see(src, RT, 7))
 						possible_targets += RT
+				for(var/obj/structure/flora/grass/herb/RT in objects)
+					if(can_see(src, RT, 7))
+						possible_targets += RT
+				for(var/obj/structure/wild_plant/RT in objects)
+					if(can_see(src, RT, 7))
+						possible_targets += RT
 				for(var/obj/structure/chair/bench/ancientlog/RT in objects)
 					if(can_see(src, RT, 7))
 						possible_targets += RT
@@ -96,7 +102,7 @@
 
 /obj/item/bait/sweet
 	name = "bag of sweetbait"
-	desc = "This bait doesn't smell as bad. I might even try a bite.."
+	desc = "This bait doesn't smell as bad. I might even try a bite..."
 	icon_state = "baitp"
 	attracted_types = list(/mob/living/simple_animal/hostile/retaliate/goat = 33,
 							/mob/living/simple_animal/hostile/retaliate/goatmale = 33,
@@ -113,6 +119,13 @@
 	attracted_types = list(/mob/living/simple_animal/hostile/retaliate/wolf = 33,
 						/mob/living/simple_animal/hostile/retaliate/bigrat = 10,
 						/mob/living/simple_animal/hostile/retaliate/mole = 15,
-						/mob/living/simple_animal/hostile/retaliate/troll = 5,
-						/mob/living/simple_animal/hostile/retaliate/trollbog = 5,
+						/mob/living/simple_animal/hostile/retaliate/troll/axe = 5,
+						/mob/living/simple_animal/hostile/retaliate/troll/bog = 5,
 						/mob/living/simple_animal/hostile/retaliate/troll/caerbannog = 2.5)
+
+/obj/item/bait/forestdelight
+	name = "meat wrapped in strange herbs"
+	desc = "A piece of rotten and rancid meat wrapped in several herbs. The aroma induces both vomit and a nice herbal odor."
+	icon_state = "baitbriar"
+	attracted_types = list (/mob/living/simple_animal/hostile/retaliate/mole/briars = 50,
+						/mob/living/simple_animal/pet/cat/cabbit = 5) // cause get rabbited

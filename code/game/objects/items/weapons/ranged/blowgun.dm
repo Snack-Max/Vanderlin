@@ -1,8 +1,8 @@
 
 /obj/item/gun/ballistic/revolver/grenadelauncher/blowgun
 	name = "blowgun"
-	desc = "A primitive tool used for hunting. To use most accuratly, hold your breath for a moment before releasing."
-	icon = 'icons/roguetown/weapons/bows.dmi'
+	desc = "A primitive tool used for hunting. To use most accurately, hold your breath for a moment before releasing."
+	icon = 'icons/roguetown/weapons/32/bows.dmi'
 	icon_state = "blowgun"
 	possible_item_intents = list(/datum/intent/shoot/blowgun, /datum/intent/arc/blowgun, INTENT_GENERIC)
 	mag_type = /obj/item/ammo_box/magazine/internal/shot/blowgun
@@ -26,11 +26,10 @@
 				return list("shrink" = 0.3,"sx" = -2,"sy" = -5,"nx" = 4,"ny" = -5,"wx" = 0,"wy" = -5,"ex" = 2,"ey" = -5,"nturn" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0)
 
 /obj/item/gun/ballistic/revolver/grenadelauncher/blowgun/shoot_with_empty_chamber()
-	update_icon()
 	return
 
-/obj/item/gun/ballistic/revolver/grenadelauncher/blowgun/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
-	if(user.get_num_arms(FALSE) < 1)
+/obj/item/gun/ballistic/revolver/grenadelauncher/blowgun/process_fire(atom/target, mob/living/user, message = TRUE, list/modifiers, zone_override, bonus_spread = 0)
+	if(user.usable_hands < 1)
 		return FALSE
 	if(user.client)
 		if(user.client.chargedprog >= 100)
@@ -49,32 +48,28 @@
 			BB.embedchance = 100
 			BB.accuracy += 15 //fully aiming blow makes your accuracy better.
 
-		if(user.STAPER > 8)
-			BB.accuracy += (user.STAPER - 8) * 4 //each point of perception above 8 increases standard accuracy by 4.
-			BB.bonus_accuracy += (user.STAPER - 8) //Also, increases bonus accuracy by 1, which cannot fall off due to distance.
-		if(user.STAEND > 10) // Every point over 10 END adds 10% damage
-			BB.damage = BB.damage * (user.STAEND / 10)
+		if(GET_MOB_ATTRIBUTE_VALUE(user, STAT_PERCEPTION) > 8)
+			BB.accuracy += (GET_MOB_ATTRIBUTE_VALUE(user, STAT_PERCEPTION) - 8) * 4 //each point of perception above 8 increases standard accuracy by 4.
+			BB.bonus_accuracy += (GET_MOB_ATTRIBUTE_VALUE(user, STAT_PERCEPTION) - 8) //Also, increases bonus accuracy by 1, which cannot fall off due to distance.
+		if(GET_MOB_ATTRIBUTE_VALUE(user, STAT_ENDURANCE) > 10) // Every point over 10 END adds 10% damage
+			BB.damage = BB.damage * (GET_MOB_ATTRIBUTE_VALUE(user, STAT_ENDURANCE) / 10)
 		BB.damage *= damfactor // Apply blow's inherent damage multiplier regardless of PER
-		BB.bonus_accuracy += (user.mind.get_skill_level(/datum/skill/combat/bows) * 5) //+5 accuracy per level in bows. Bonus accuracy will not drop-off.
+		BB.bonus_accuracy += (GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/combat/bows) * 5) //+5 accuracy per level in bows. Bonus accuracy will not drop-off.
 	. = ..()
 	if(.)
 		if(istype(user) && user.mind)
-			var/modifier = 1/(spread+1)
-			var/boon = user.mind.get_learning_boon(/datum/skill/combat/bows)
-			var/amt2raise = user.STAINT/2
-			user.mind.adjust_experience(/datum/skill/combat/bows, amt2raise * boon * modifier, FALSE)
+			var/modifier = 1.25/(spread+1)
+			var/boon = user.get_learning_boon(/datum/attribute/skill/combat/bows)
+			var/amt2raise = GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE)/2
+			user.adjust_experience(/datum/attribute/skill/combat/bows, amt2raise * boon * modifier, FALSE)
 
-/obj/item/gun/ballistic/revolver/grenadelauncher/blowgun/update_icon()
+/obj/item/gun/ballistic/revolver/grenadelauncher/blowgun/update_overlays()
 	. = ..()
-	cut_overlays()
 	if(chambered)
 		var/obj/item/I = chambered
-		I.pixel_x = 0
-		I.pixel_y = 0
-		add_overlay(new /mutable_appearance(I))
-	if(ismob(loc))
-		var/mob/M = loc
-		M.update_inv_hands()
+		I.pixel_x = I.base_pixel_x
+		I.pixel_y = I.base_pixel_y
+		. += new /mutable_appearance(I)
 
 /obj/item/ammo_box/magazine/internal/shot/blowgun
 	ammo_type = /obj/item/ammo_casing/caseless/dart
@@ -89,20 +84,23 @@
 	item_damage_type = "piercing"
 
 /datum/intent/shoot/blowgun/can_charge()
-	if(mastermob)
-		if(mastermob.get_num_arms(FALSE) < 1)
+	var/mob/living/master = get_master_mob()
+	if(master)
+		if(master.usable_hands < 1)
 			return FALSE
 	return TRUE
 
 /datum/intent/shoot/blowgun/prewarning()
-	if(masteritem && mastermob)
-		mastermob.visible_message("<span class='warning'>[mastermob] takes a deep breath!</span>")
+	var/mob/master = get_master_mob()
+	if(master)
+		master.visible_message("<span class='warning'>[master] takes a deep breath!</span>")
 
 /datum/intent/shoot/blowgun/get_chargetime()
-	if(mastermob && chargetime)
+	var/mob/living/master = get_master_mob()
+	if(master && chargetime)
 		var/newtime = 0
 		newtime = newtime + 3 SECONDS
-		newtime = newtime - (mastermob.mind.get_skill_level(/datum/skill/combat/bows) * (5))- (mastermob.STAEND * 0.5)
+		newtime = newtime - (GET_MOB_SKILL_VALUE_OLD(master, /datum/attribute/skill/combat/bows) * (5))- (GET_MOB_ATTRIBUTE_VALUE(master, STAT_ENDURANCE) * 0.5)
 		if(newtime > 0)
 			return newtime
 		else
@@ -115,27 +113,30 @@
 	charging_slowdown = 1
 
 /datum/intent/arc/blowgun/can_charge()
-	if(mastermob)
-		if(mastermob.get_num_arms(FALSE) < 1)
+	var/mob/living/master = get_master_mob()
+	if(master)
+		if(master.usable_hands < 1)
 			return FALSE
 	return TRUE
 
 /datum/intent/arc/blowgun/prewarning()
-	if(masteritem && mastermob)
-		mastermob.visible_message("<span class='warning'>[mastermob] takes a deep breath!</span>")
+	var/mob/master = get_master_mob()
+	if(master)
+		master.visible_message("<span class='warning'>[master] takes a deep breath!</span>")
 
 /datum/intent/arc/blowgun/get_chargetime()
-	if(mastermob && chargetime)
+	var/mob/living/master = get_master_mob()
+	if(master && chargetime)
 		var/newtime = 0
 		//skill block
 		newtime = newtime + 10
-		newtime = newtime - (mastermob.mind.get_skill_level(/datum/skill/combat/bows) * (10/6))
+		newtime = newtime - (GET_MOB_SKILL_VALUE_OLD(master, /datum/attribute/skill/combat/bows) * (10/6))
 		//end block //rtd replace 10 with drawdiff on bows that are hard and scale end more (10/20 = 0.5)
 		newtime = newtime + 10
-		newtime = newtime - (mastermob.STAEND * (10/20))
+		newtime = newtime - (GET_MOB_ATTRIBUTE_VALUE(master, STAT_ENDURANCE) * (10/20))
 		//per block
 		newtime = newtime + 20
-		newtime = newtime - (mastermob.STAPER * 1) //20/20 is 1
+		newtime = newtime - (GET_MOB_ATTRIBUTE_VALUE(master, STAT_PERCEPTION) * 1) //20/20 is 1
 		if(newtime > 0)
 			return newtime
 		else

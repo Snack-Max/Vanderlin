@@ -23,9 +23,9 @@
 		thealert = alerts[category]
 		if(thealert.override_alerts)
 			return 0
-		if(new_master && new_master != thealert.master)
-			WARNING("[src] threw alert [category] with new_master [new_master] while already having that alert with master [thealert.master]")
-
+		var/obj/old_master = thealert.master_ref?.resolve()
+		if(new_master && new_master != old_master)
+			WARNING("[src] threw alert [category] with new_master [new_master] while already having that alert with master [old_master]")
 			clear_alert(category)
 			return .()
 		else if(thealert.type != type)
@@ -47,13 +47,12 @@
 	if(new_master)
 		var/old_layer = new_master.layer
 		var/old_plane = new_master.plane
-		new_master.layer = FLOAT_LAYER
 		new_master.plane = FLOAT_PLANE
 		thealert.add_overlay(new_master)
 		new_master.layer = old_layer
 		new_master.plane = old_plane
 		thealert.icon_state = "status" // We'll set the icon to the client's ui pref in reorganize_alerts()
-		thealert.master = new_master
+		thealert.master_ref = WEAKREF(new_master)
 	else
 		thealert.icon_state = "[initial(thealert.icon_state)][severity]"
 		thealert.severity = severity
@@ -86,10 +85,6 @@
 		client.screen -= alert
 	qdel(alert)
 
-#define ALERT_STATUS	0
-#define ALERT_DEBUFF	1
-#define ALERT_BUFF		2
-
 /atom/movable/screen/alert
 	icon = 'icons/mob/screen_alert.dmi'
 	icon_state = "status"
@@ -102,7 +97,7 @@
 	var/override_alerts = FALSE //If it is overriding other alerts of the same type
 	var/mob/mob_viewer //the mob viewing this alert
 	var/alert_group = ALERT_STATUS //decides where on the screen the alert shows up, if it's a debuff, status effect, or buff
-	nomouseover = FALSE
+	no_over_text = FALSE
 
 /atom/movable/screen/alert/MouseEntered(location,control,params)
 	..()
@@ -112,7 +107,7 @@
 
 /atom/movable/screen/alert/MouseExited()
 	..()
-//	close_tooltip(usr)
+//	closeToolTip(usr)
 
 
 //Gas alerts
@@ -191,12 +186,12 @@
 /atom/movable/screen/alert/status_effect/debuff/hot
 	name = "Too Hot"
 	desc = ""
-	icon_state = "hot"
+	icon_state = "debuff"
 
 /atom/movable/screen/alert/status_effect/debuff/cold
 	name = "Too Cold"
 	desc = ""
-	icon_state = "cold"
+	icon_state = "debuff"
 
 /atom/movable/screen/alert/lowpressure
 	name = "Low Pressure"
@@ -207,16 +202,6 @@
 	name = "High Pressure"
 	desc = ""
 	icon_state = "highpressure"
-
-/atom/movable/screen/alert/blind
-	name = "Blind"
-	desc = ""
-	icon_state = "blind"
-
-/atom/movable/screen/alert/high
-	name = "High"
-	desc = ""
-	icon_state = "high"
 
 /atom/movable/screen/alert/hypnosis
 	name = "Hypnosis"
@@ -250,9 +235,8 @@
 		if(ishuman(usr))
 			var/mob/living/carbon/human/H = usr
 			var/list/msg = list("***\n")
-			for(var/X in H.bodyparts)
-				var/obj/item/bodypart/BP = X
-				for(var/obj/item/I in BP.embedded_objects)
+			for(var/obj/item/bodypart/BP as anything in H.bodyparts)
+				for(var/obj/item/I as anything in BP.embedded_objects)
 					msg += "<a href='byond://?src=[REF(H)];embedded_object=[REF(I)];embedded_limb=[REF(BP)]' class='warning'>[I] - [BP.name]</a>\n"
 			msg += "***"
 			to_chat(H, "[msg.Join()]")
@@ -283,7 +267,7 @@
 	if(!istype(L) || !L.can_resist())
 		return
 	L.changeNext_move(CLICK_CD_RESIST)
-	if(L.mobility_flags & MOBILITY_MOVE)
+	if(!HAS_TRAIT(L, TRAIT_IMMOBILIZED))
 		return L.resist_fire() //I just want to start a flame in your hearrrrrrtttttt.
 
 //Ethereal
@@ -338,7 +322,7 @@
 //OBJECT-BASED
 
 /atom/movable/screen/alert/restrained/buckled
-	name = "Sitting/laying"
+	name = "Buckled"
 	desc = ""
 	icon_state = "buckled"
 
@@ -358,12 +342,14 @@
 	if(!istype(L) || !L.can_resist())
 		return
 	L.changeNext_move(CLICK_CD_RESIST)
-	if((L.mobility_flags & MOBILITY_MOVE) && (L.last_special <= world.time))
+	if(!HAS_TRAIT(L, TRAIT_IMMOBILIZED) && (L.last_special <= world.time))
 		return L.resist_restraints()
 
 /atom/movable/screen/alert/restrained/buckled/Click()
 	var/mob/living/L = usr
 	if(!istype(L) || !L.can_resist())
+		return
+	if(!L.buckled)
 		return
 	L.changeNext_move(CLICK_CD_RESIST)
 	if(L.last_special <= world.time)
@@ -468,7 +454,6 @@
 
 /atom/movable/screen/alert/Destroy()
 	severity = 0
-	master = null
 	mob_viewer = null
 	screen_loc = ""
 	return ..()

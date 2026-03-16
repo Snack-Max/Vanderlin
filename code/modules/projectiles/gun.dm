@@ -8,7 +8,7 @@
 	icon_state = "detective"
 	item_state = "gun"
 	flags_1 =  CONDUCT_1
-	slot_flags = ITEM_SLOT_BELT
+	slot_flags = ITEM_SLOT_HIP
 	w_class = WEIGHT_CLASS_NORMAL
 	possible_item_intents = list(INTENT_GENERIC, RANGED_FIRE)
 	throwforce = 5
@@ -38,6 +38,10 @@
 	var/automatic = 0 //can gun use it, 0 is no, anything above 0 is the delay between clicks in ds
 	var/pb_knockback = 0
 
+/obj/item/gun/Initialize()
+	. = ..()
+	AddElement(/datum/element/update_icon_updates_onmob)
+
 /obj/item/gun/Destroy()
 	if(chambered) //Not all guns are chambered (EMP'ed energy guns etc)
 		QDEL_NULL(chambered)
@@ -46,7 +50,7 @@
 /obj/item/gun/handle_atom_del(atom/A)
 	if(A == chambered)
 		chambered = null
-		update_icon()
+		update_appearance()
 	return ..()
 
 //called after the gun has successfully fired its chambered ammo.
@@ -73,19 +77,16 @@
 						"<span class='danger'>I shoot [src]!</span>", \
 						COMBAT_MESSAGE_RANGE)
 
-/obj/item/gun/afterattack(atom/target, mob/living/user, flag, params)
+/obj/item/gun/afterattack(atom/target, mob/living/user, proximity_flag, list/modifiers)
 	. = ..()
-	testing("gun afterattack")
 	if(!target)
-		testing("no target")
 		return
 	if(!user?.used_intent.tranged) //melee attack
 		return
-	if(flag) //It's adjacent, is the user, or is on the user's person
+	if(proximity_flag) //It's adjacent, is the user, or is on the user's person
 		if(target in user.contents) //can't shoot stuff inside us.
 			return
 		if(!ismob(target)) //melee attack
-			testing("gun with melee attack selected")
 			return
 		if(target == user && user.zone_selected != BODY_ZONE_PRECISE_MOUTH) //so we can't shoot ourselves (unless mouth selected)
 			return
@@ -97,24 +98,26 @@
 
 //	if(flag)
 //		if(user.zone_selected == BODY_ZONE_PRECISE_MOUTH)
-//			handle_suicide(user, target, params)
+//			handle_suicide(user, target, modifiers)
 //			return
 
 	if(!can_shoot()) //Just because you can pull the trigger doesn't mean it can shoot.
 		shoot_with_empty_chamber(user)
 		return
 
-	if(user?.used_intent.arc_check() && target.z != user.z) //temporary fix for openspace arrow dupe
-		target = get_turf(locate(target.x, target.y, user.z))
-
-	return process_fire(target, user, TRUE, params, null, 0)
+	return process_fire(target, user, TRUE, modifiers, null, 0)
 
 
 /obj/item/gun/proc/recharge_newshot()
 	return
 
 
-/obj/item/gun/proc/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
+/obj/item/gun/proc/process_fire(atom/target, mob/living/user, message = TRUE, list/modifiers, zone_override, bonus_spread = 0)
+	if(user)
+		SEND_SIGNAL(user, COMSIG_MOB_FIRED_GUN, src, target, modifiers, zone_override)
+
+	SEND_SIGNAL(src, COMSIG_GUN_FIRED, user, target, modifiers, zone_override)
+
 	add_fingerprint(user)
 
 	var/sprd = 0
@@ -130,7 +133,7 @@
 				return
 		sprd = round((rand() - 0.5) * DUALWIELD_PENALTY_EXTRA_MULTIPLIER * (randomized_gun_spread + randomized_bonus_spread))
 		before_firing(target,user)
-		if(!chambered.fire_casing(target, user, params, , FALSE, zone_override, sprd, src))
+		if(!chambered.fire_casing(target, user, modifiers, , FALSE, zone_override, sprd, src))
 			shoot_with_empty_chamber(user)
 			return
 		else
@@ -139,7 +142,7 @@
 		shoot_with_empty_chamber(user)
 		return
 	process_chamber()
-	update_icon()
+	update_appearance()
 
 	if(user)
 		user.update_inv_hands()
@@ -147,13 +150,13 @@
 	return TRUE
 
 
-/obj/item/gun/attackby(obj/item/I, mob/user, params)
+/obj/item/gun/attackby(obj/item/I, mob/user, list/modifiers)
 	if(!user.used_intent.tranged)
 		return ..()
 	else
 		return ..()
 
-/obj/item/gun/proc/handle_suicide(mob/living/carbon/human/user, mob/living/carbon/human/target, params, bypass_timer)
+/obj/item/gun/proc/handle_suicide(mob/living/carbon/human/user, mob/living/carbon/human/target, list/modifiers, bypass_timer)
 	if(!ishuman(user) || !ishuman(target))
 		return
 
@@ -177,11 +180,10 @@
 	if(chambered && chambered.BB)
 		chambered.BB.damage *= 5
 
-	process_fire(target, user, TRUE, params, BODY_ZONE_HEAD)
+	process_fire(target, user, TRUE, modifiers, BODY_ZONE_HEAD)
 
 //Happens before the actual projectile creation
 /obj/item/gun/proc/before_firing(atom/target,mob/user)
 	return
 
-/obj/item/gun/get_examine_string(mob/user, thats = FALSE)
-	return "[thats? "That's ":""]<b>[get_examine_name(user)]</b>"
+#undef DUALWIELD_PENALTY_EXTRA_MULTIPLIER

@@ -1,3 +1,4 @@
+GLOBAL_LIST_EMPTY(mana_fountains)
 
 /obj/structure/fluff/walldeco/mageguild
 	name = "Mage's Guild"
@@ -7,111 +8,38 @@
 	icon = 'icons/effects/96x96.dmi'
 	icon_state = "imbuement2"
 
-//adapted from forcefields.dm, this needs to be destructible
-/obj/structure/arcyne_wall
-	desc = "A wall of pure arcyne force."
-	name = "Arcyne Wall"
-	icon = 'icons/effects/effects.dmi'
-	icon_state = "arcynewall"
-	break_sound = 'sound/combat/hits/onstone/stonedeath.ogg'
-	attacked_sound = list('sound/combat/hits/onstone/wallhit.ogg', 'sound/combat/hits/onstone/wallhit2.ogg', 'sound/combat/hits/onstone/wallhit3.ogg')
-	opacity = 0
-	density = TRUE
-	max_integrity = 200
-	CanAtmosPass = ATMOS_PASS_DENSITY
-	climbable = TRUE
-	climb_time = 0
-
-/obj/structure/arcyne_wall/Initialize()
-	. = ..()
-
-/obj/structure/arcyne_wall/caster
-	var/mob/caster
-s
-/obj/structure/arcyne_wall/caster/Initialize(mapload, mob/summoner)
-	. = ..()
-	caster = summoner
-
-/obj/structure/arcyne_wall/caster/CanPass(atom/movable/mover, turf/target)	//only the caster can move through this freely
-	if(mover == caster)
-		return TRUE
-	if(ismob(mover))
-		var/mob/M = mover
-		if(M.anti_magic_check(chargecost = 0) || structureclimber == M)
-			return TRUE
-	return FALSE
-
-/obj/structure/arcyne_wall/greater
-	desc = "An immensely strong wall of pure arcyne force."
-	name = "Greater Arcyne Wall"
-	icon = 'icons/effects/effects.dmi'
-	icon_state = "arcynewall"
-	break_sound = 'sound/combat/hits/onstone/stonedeath.ogg'
-	attacked_sound = list('sound/combat/hits/onstone/wallhit.ogg', 'sound/combat/hits/onstone/wallhit2.ogg', 'sound/combat/hits/onstone/wallhit3.ogg')
-	max_integrity = 1100
-	CanAtmosPass = ATMOS_PASS_DENSITY
-	climbable = TRUE
-	climb_time = 0
-
-/obj/structure/arcyne_wall/greater/caster
-	var/mob/caster
-
-/obj/structure/arcyne_wall/greater/caster/Initialize(mapload, mob/summoner)
-	. = ..()
-	caster = summoner
-
-/obj/structure/arcyne_wall/greater/caster/CanPass(atom/movable/mover, turf/target)	//only the caster can move through this freely
-	if(mover == caster)
-		return TRUE
-	if(ismob(mover))
-		var/mob/M = mover
-		if(M.anti_magic_check(chargecost = 0) || structureclimber == M)
-			return TRUE
-	return FALSE
-
-/obj/structure/mineral_door/wood/deadbolt/arcyne
-	desc = "arcyne door"
+/obj/structure/door/arcyne
+	name = "arcyne door"
 	icon_state = "arcyne"
-	base_state = "arcyne"
-	keylock = FALSE
+	blade_dulling = DULLING_BASH
+	resistance_flags = FIRE_PROOF
+	lock = /datum/lock
+	can_add_lock = FALSE
 	max_integrity = 2000
-	over_state = "arcyneopen"
 
-/obj/structure/mineral_door/wood/deadbolt/arcyne/caster
+	repair_thresholds = null
+	broken_repair = null
+	repair_skill = null
+	metalizer_result = null
+
+/obj/structure/door/arcyne/bolt
+	has_bolt = TRUE
+
+/obj/structure/door/arcyne/bolt/caster
 	var/mob/caster
 
-/obj/structure/mineral_door/wood/deadbolt/arcyne/caster/Initialize(mapload, mob/summoner)
-//	icon_state = base_state
+/obj/structure/door/arcyne/bolt/caster/Initialize(mapload, mob/summoner)
 	. = ..()
 	caster = summoner
 
-/obj/structure/mineral_door/wood/deadbolt/arcyne/caster/attack_right(mob/user)
-	..()
-	if(door_opened || isSwitchingStates)
-		return
-	if(user == caster)
-		lock_toggle(user)
-		to_chat(user, span_warning("The lock to this door is broken."))
-		return
-	if(brokenstate)
-		to_chat(user, span_warning("There isn't much left of this door."))
-		return
-	if(get_dir(src,user) == lockdir)
-		lock_toggle(user)
-	else
-		to_chat(user, span_warning("The door doesn't lock from this side."))
+/obj/structure/door/arcyne/bolt/caster/attack_hand_secondary(mob/user, list/modifiers)
+	if(user != caster)
+		to_chat(user, span_warning("A magical force prevents me from interacting with [src]!"))
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+	return ..()
 
 /atom/movable
 	var/list/mana_beams
-
-/atom/proc/BeamBroken(atom/movable/target)
-	return
-
-/atom/movable/BeamBroken(atom/movable/target)
-	if(!length(mana_beams))
-		return
-	if(target in mana_beams)
-		mana_beams -= target
 
 /atom/movable/proc/draw_mana_beams(atom/movable/find_type, max_distance = 3)
 	for(var/atom/movable/movable in range(max_distance, src))
@@ -122,8 +50,25 @@ s
 		if(!istype(movable, find_type))
 			continue
 
-		LeyBeam(movable, "drain_life", time = INFINITY, maxdistance = max_distance, layer = LOWER_LEYLINE_LAYER)
+		var/datum/beam/mana = Beam(
+			movable,
+			icon_state = "drain_life",
+			max_distance = max_distance,
+			time = INFINITY,
+			beam_layer = LOWER_LEYLINE_LAYER,
+			beam_plane = LEYLINE_PLANE,
+			invisibility = INVISIBILITY_LEYLINES,
+		)
+
+		RegisterSignal(mana, COMSIG_PARENT_QDELETING, PROC_REF(beam_ended), movable)
+
 		LAZYADD(mana_beams, movable)
+
+/atom/movable/proc/beam_ended(atom/movable/target)
+	if(!length(mana_beams))
+		return
+	if(target in mana_beams)
+		mana_beams -= target
 
 /atom/movable/proc/draw_mana_beams_from_list(list/found_types, max_distance = 3)
 	for(var/atom/movable/movable in found_types)
@@ -132,7 +77,18 @@ s
 		if(movable in mana_beams)
 			continue
 
-		LeyBeam(movable, "drain_life", time = INFINITY, maxdistance = max_distance, layer = LOWER_LEYLINE_LAYER)
+		var/datum/beam/mana = Beam(
+			movable,
+			icon_state = "drain_life",
+			max_distance = max_distance,
+			time = INFINITY,
+			beam_layer = LOWER_LEYLINE_LAYER,
+			beam_plane = LEYLINE_PLANE,
+			invisibility = INVISIBILITY_LEYLINES,
+		)
+
+		RegisterSignal(mana, COMSIG_PARENT_QDELETING, PROC_REF(beam_ended), movable)
+
 		LAZYADD(mana_beams, movable)
 
 /obj/structure/well/fountain/mana
@@ -141,46 +97,42 @@ s
 	icon = 'icons/roguetown/misc/64x64.dmi'
 	icon_state = "manafountain"
 	layer = BELOW_MOB_LAYER
-	pixel_x = -16
+	SET_BASE_PIXEL(-16, 0)
 	layer = -0.1
 	has_initial_mana_pool = TRUE
+
+/obj/structure/well/fountain/mana/Initialize()
+	. = ..()
+	GLOB.mana_fountains |= src
+
+/obj/structure/well/fountain/mana/Destroy()
+	GLOB.mana_fountains -= src
+	return ..()
 
 /obj/structure/well/fountain/mana/get_initial_mana_pool_type()
 	return /datum/mana_pool/mana_fountain
 
-/obj/structure/well/fountain/mana/onbite(mob/user)
-	if(isliving(user))
-		var/mob/living/L = user
-		if(L.stat != CONSCIOUS)
-			return
-		if(iscarbon(user))
-			var/mob/living/carbon/C = user
-			if(C.is_mouth_covered())
-				return
-		var/list/waterl
-		if(mana_pool.amount > 50)
-			waterl = list(/datum/reagent/medicine/manapot = 2)
-		else
-			to_chat(user, span_warning("[src] is dry."))
-			return FALSE
-		playsound(user, pick('sound/foley/waterwash (1).ogg','sound/foley/waterwash (2).ogg'), 100, FALSE)
-		user.visible_message(span_info("[user] starts to drink from [src]."))
-		if(do_after(L, 2.5 SECONDS, target = src))
-			mana_pool.adjust_mana(-50)
-			waterl = list(/datum/reagent/medicine/manapot/weak = 2)
-			var/datum/reagents/reagents = new()
-			reagents.add_reagent_list(waterl)
-			reagents.trans_to(L, reagents.total_volume, transfered_by = user, method = INGEST)
-			playsound(user,pick('sound/items/drink_gen (1).ogg','sound/items/drink_gen (2).ogg','sound/items/drink_gen (3).ogg'), 100, TRUE)
-		return
-	..()
-/obj/structure/well/fountain/mana/attackby(obj/item/I, mob/user, params)
+/obj/structure/well/fountain/mana/onbite(mob/living/user)
+	if(mana_pool.amount < 50)
+		to_chat(user, span_warning("[src] is dry."))
+		return TRUE
+	. = ..()
+
+/obj/structure/well/fountain/mana/drink_from(mob/living/user)
+	mana_pool.adjust_mana(-50)
+	var/datum/reagents/reagents = new()
+	reagents.add_reagent(/datum/reagent/medicine/manapot/weak, 2)
+	reagents.trans_to(user, reagents.total_volume, transfered_by = user, method = INGEST)
+	playsound(user,pick('sound/items/drink_gen (1).ogg','sound/items/drink_gen (2).ogg','sound/items/drink_gen (3).ogg'), 100, TRUE)
+
+
+/obj/structure/well/fountain/mana/attackby(obj/item/I, mob/user, list/modifiers)
 	if(istype(I, /obj/item/reagent_containers/glass))
 		var/obj/item/reagent_containers/glass/W = I
 		if(W.reagents.holder_full())
 			to_chat(user, span_warning("[W] is full."))
 			return
-		var/mana_amount = max(round(mana_pool.amount / 25, 1), 40)
+		var/mana_amount = min(round(mana_pool.amount / 25, 1), 40)
 		if(!mana_amount)
 			to_chat(user, span_warning("[src] is dry."))
 			return
@@ -193,7 +145,7 @@ s
 			return
 	if(istype(I, /obj/item/grabbing))
 		if(mana_pool.amount < 500)
-			to_chat(user, "Their is not enough liquid mana to perform a baptism.")
+			to_chat(user, "There is not enough liquid mana to perform a baptism.")
 			return
 		var/atom/movable/grabbed = I:grabbed
 		if(!grabbed.mana_pool)
@@ -202,10 +154,11 @@ s
 		if(!do_after(user, 10 SECONDS, src))
 			return
 		grabbed.mana_pool.set_intrinsic_recharge(MANA_ALL_LEYLINES)
+		SEND_SIGNAL(grabbed, COMSIG_BAPTISM_RECEIVED, user)
 		playsound(user, pick('sound/foley/waterwash (1).ogg','sound/foley/waterwash (2).ogg'), 80, FALSE)
 		return
 
-	else ..()
+	return ..()
 
 /obj/machinery/light/fueled/forge/arcane
 	icon = 'icons/roguetown/misc/forge.dmi'
@@ -223,9 +176,9 @@ s
 		if(initial(fueluse) > 0)
 			if(fueluse > 0)
 				fueluse = max(fueluse - 10, 0)
-			if(fueluse == 0)//It's litterally powered by arcane lava. It's not gonna run out of fuel.
+			if(fueluse == 0)//It's literally powered by arcane lava. It's not gonna run out of fuel.
 				fueluse = 4000
-		update_icon()
+		update_appearance(UPDATE_ICON_STATE)
 
 /obj/structure/leyline
 	name = "inactive leyline"
@@ -269,7 +222,6 @@ s
 					icon_state = "inactiveleyline"
 					name = "inactive leyline"
 					desc = "A curious arrangement of stones."
-					update_icon()
 					last_process = world.time
 
 	else
@@ -277,13 +229,12 @@ s
 			to_chat(user, span_notice("I wave a hand through the circle of rocks, and pulse my arcyne magic through it. The leyline activates!"))
 			icon_state = "leylinerupture"
 			name = "active leyline"
-			desc = "An active tear into the leyline. It gives off plenty of energy"
+			desc = "An active tear into the leyline. It gives off plenty of energy."
 			active = TRUE
-			update_icon()
 		else
 			if(guardian)
 				if(do_after(user, 60))
-					to_chat(user, span_danger("The leyline is abuzz with energy in a feedback from the [guardian]! It lashes out at me!"))
+					to_chat(user, span_danger("The leyline is abuzz with energy in a feedback from \the [guardian]! It lashes out at me!"))
 					user.electrocute_act(10)
 
 			if(prob(60) && (!guardian))
@@ -291,17 +242,16 @@ s
 					to_chat(user, span_notice("I reach out towards the active leyline, peering within- and something peers back!"))
 					sleep(2 SECONDS)
 					guardian = new /mob/living/simple_animal/hostile/retaliate/leylinelycan(src.loc, src)
-					src.visible_message(span_danger("[guardian] emerges from the leyline rupture!"))
+					src.visible_message(span_danger("\The [guardian] emerges from the leyline rupture!"))
 
 			else
 				if(do_after(user, 60))
-					to_chat(user, span_notice("I reach out towards the active leyline, and it shatters! A large, usable piece of it drops at your feet."))
+					to_chat(user, span_notice("I reach out towards the active leyline, and it shatters! A large, usable piece of it drops at my feet."))
 					new /obj/item/natural/leyline(user.loc)
 					active = FALSE
 					icon_state = "inactiveleyline"
 					name = "inactive leyline"
 					desc = "A curious arrangement of stones."
-					update_icon()
 					last_process = world.time
 
 /obj/structure/voidstoneobelisk
@@ -333,7 +283,7 @@ s
 	qdel(src)
 
 /obj/structure/voidstoneobelisk/attack_hand(mob/living/carbon/human/user)
-	to_chat(user, span_notice("You reach out to touch the abberant obelisk..."))
+	to_chat(user, span_notice("You reach out to touch the aberrant obelisk..."))
 	if(do_after(user, 3 SECONDS, target = src))
 		user.visible_message(span_danger("[src] comes to life, archaic stone shifting into position!"))
 		sleep(2)

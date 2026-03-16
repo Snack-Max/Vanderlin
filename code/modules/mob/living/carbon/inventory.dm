@@ -1,18 +1,50 @@
 /mob/living/carbon/get_item_by_slot(slot_id)
 	switch(slot_id)
-		if(SLOT_BACK)
-			return back
-		if(SLOT_WEAR_MASK)
+		if(ITEM_SLOT_MASK)
 			return wear_mask
-		if(SLOT_NECK)
+		if(ITEM_SLOT_NECK)
 			return wear_neck
-		if(SLOT_HEAD)
+		if(ITEM_SLOT_HEAD)
 			return head
-		if(SLOT_HANDCUFFED)
+		if(ITEM_SLOT_HANDCUFFED)
 			return handcuffed
-		if(SLOT_LEGCUFFED)
+		if(ITEM_SLOT_LEGCUFFED)
 			return legcuffed
-	return null
+		if(ITEM_SLOT_MOUTH)
+			return mouth
+		if(ITEM_SLOT_GLOVES)
+			return gloves
+		if(ITEM_SLOT_SHOES)
+			return shoes
+		if(ITEM_SLOT_BACK_R)
+			return backr
+		if(ITEM_SLOT_BACK_L)
+			return backl
+	return ..()
+
+/mob/living/carbon/get_slot_by_item(obj/item/looking_for)
+	if(looking_for == backr)
+		return ITEM_SLOT_BACK_R
+
+	if(looking_for == backl)
+		return ITEM_SLOT_BACK_L
+
+	if(looking_for == wear_mask)
+		return ITEM_SLOT_MASK
+
+	if(looking_for == wear_neck)
+		return ITEM_SLOT_NECK
+
+	if(looking_for == head)
+		return ITEM_SLOT_HEAD
+
+	if(looking_for == handcuffed)
+		return ITEM_SLOT_HANDCUFFED
+
+	if(looking_for == legcuffed)
+		return ITEM_SLOT_LEGCUFFED
+
+	return ..()
 
 /mob/living/carbon/proc/equip_in_one_of_slots(obj/item/I, list/slots, qdel_on_fail = 1)
 	for(var/slot in slots)
@@ -23,65 +55,90 @@
 	return null
 
 //This is an UNSAFE proc. Use mob_can_equip() before calling this one! Or rather use equip_to_slot_if_possible() or advanced_equip_to_slot_if_possible()
-/mob/living/carbon/equip_to_slot(obj/item/I, slot, initial)
+/mob/living/carbon/equip_to_slot(obj/item/equipping, slot, initial = FALSE, redraw_mob = FALSE)
 	if(!slot)
 		return
-	if(!istype(I))
+	if(!istype(equipping))
 		return
 
-	var/index = get_held_index_of_item(I)
+	var/index = get_held_index_of_item(equipping)
 	if(index)
 		held_items[index] = null
 
-	if(I.pulledby)
-		I.pulledby.stop_pulling()
+	if(equipping.pulledby)
+		equipping.pulledby.stop_pulling()
 
-	I.screen_loc = null
+	equipping.screen_loc = null
 	if(client)
-		client.screen -= I
+		client.screen -= equipping
 	if(observers && observers.len)
-		for(var/M in observers)
-			var/mob/dead/observe = M
+		for(var/mob/dead/observe as anything in observers)
 			if(observe.client)
-				observe.client.screen -= I
-	I.forceMove(src)
-	I.layer = ABOVE_HUD_LAYER
-	I.plane = ABOVE_HUD_PLANE
-	I.appearance_flags |= NO_CLIENT_COLOR
+				observe.client.screen -= equipping
+	equipping.forceMove(src)
+	equipping.plane = ABOVE_HUD_PLANE
+	equipping.appearance_flags |= NO_CLIENT_COLOR
 	var/not_handled = FALSE
 	switch(slot)
-		if(SLOT_BACK)
-			back = I
-			update_inv_back()
-		if(SLOT_WEAR_MASK)
-			wear_mask = I
-			wear_mask_update(I, toggle_off = 0)
-		if(SLOT_HEAD)
-			head = I
-			head_update(I)
-		if(SLOT_NECK)
-			wear_neck = I
-			update_inv_neck(I)
-		if(SLOT_HANDCUFFED)
-			handcuffed = I
+		if(ITEM_SLOT_MASK)
+			if(wear_mask)
+				return
+			wear_mask = equipping
+			wear_mask_update(equipping, toggle_off = 0)
+		if(ITEM_SLOT_HEAD)
+			if(head)
+				return
+			head = equipping
+			head_update(equipping)
+		if(ITEM_SLOT_NECK)
+			if(wear_neck)
+				return
+			wear_neck = equipping
+			update_inv_neck(equipping)
+		if(ITEM_SLOT_HANDCUFFED)
+			set_handcuffed(equipping)
 			update_handcuffed()
-		if(SLOT_LEGCUFFED)
-			legcuffed = I
+		if(ITEM_SLOT_LEGCUFFED)
+			if(legcuffed)
+				return
+			legcuffed = equipping
 			update_inv_legcuffed()
-		if(SLOT_HANDS)
-			put_in_hands(I)
+		if(ITEM_SLOT_HANDS)
+			put_in_hands(equipping)
 			update_inv_hands()
-		if(SLOT_IN_BACKPACK)
+		if(ITEM_SLOT_GLOVES)
+			if(gloves)
+				return
+			gloves = equipping
+			update_inv_gloves()
+		if(ITEM_SLOT_SHOES)
+			if(shoes)
+				return
+			shoes = equipping
+			update_inv_shoes()
+		if(ITEM_SLOT_MOUTH)
+			if(mouth)
+				return
+			mouth = equipping
+			update_inv_mouth()
+		if(ITEM_SLOT_BACK_R)
+			if(backr)
+				return
+			backr = equipping
+			update_inv_back()
+		if(ITEM_SLOT_BACK_L)
+			if(backl)
+				return
+			backl = equipping
+			update_inv_back()
+		if(ITEM_SLOT_BACKPACK)
 			not_handled = TRUE
 			if(backr)
-				testing("insert4")
-				if(SEND_SIGNAL(backr, COMSIG_TRY_STORAGE_INSERT, I, src, TRUE, !initial)) // If inital is true, item is from job datum and should be silent
+				if(SEND_SIGNAL(backr, COMSIG_TRY_STORAGE_INSERT, equipping, src, TRUE, !initial)) // If inital is true, item is from job datum and should be silent
 					not_handled = FALSE
 			if(backl && not_handled)
-				testing("insert5")
-				if(SEND_SIGNAL(backl, COMSIG_TRY_STORAGE_INSERT, I, src, TRUE, !initial)) // If inital is true, item is from job datum and should be silent
+				if(SEND_SIGNAL(backl, COMSIG_TRY_STORAGE_INSERT, equipping, src, TRUE, !initial)) // If inital is true, item is from job datum and should be silent
 					not_handled = FALSE
-
 		else
 			not_handled = TRUE
 
@@ -89,11 +146,11 @@
 	//We cannot call it for items that have not been handled as they are not yet correctly
 	//in a slot (handled further down inheritance chain, probably living/carbon/human/equip_to_slot
 	if(!not_handled)
-		I.equipped(src, slot)
+		equipping.equipped(src, slot)
 
 	if(hud_used)
-		hud_used.throw_icon?.update_icon()
-		hud_used.give_intent?.update_icon()
+		hud_used.throw_icon?.update_appearance(UPDATE_ICON_STATE)
+		hud_used.give_intent?.update_appearance(UPDATE_ICON_STATE)
 
 	return not_handled
 
@@ -106,10 +163,6 @@
 		head = null
 		if(!QDELETED(src))
 			head_update(I)
-	else if(I == back)
-		back = null
-		if(!QDELETED(src))
-			update_inv_back()
 	else if(I == wear_mask)
 		wear_mask = null
 		if(!QDELETED(src))
@@ -119,7 +172,7 @@
 		if(!QDELETED(src))
 			update_inv_neck(I)
 	else if(I == handcuffed)
-		handcuffed = null
+		set_handcuffed(null)
 		if(buckled && buckled.buckle_requires_restraints)
 			buckled.unbuckle_mob(src)
 		if(!QDELETED(src))

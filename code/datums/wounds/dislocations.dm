@@ -5,7 +5,7 @@
 	crit_message = list(
 		"The %BODYPART jolts painfully!",
 		"The %BODYPART is twisted out of place!",
-		"The %BODYPART is wrenched out of it's socket!",
+		"The %BODYPART is wrenched out of its socket!",
 		"The %BODYPART is dislocated!",
 	)
 	sound_effect = "fracturedry"
@@ -69,22 +69,20 @@
 	crit_message = list(
 		"The spine slips!",
 		"The spine twists!",
-		"The %BODYPART is wrenched out of it's socket!",
+		"The %BODYPART is wrenched out of its socket!",
 	)
 	whp = 80
 	woundpain = 100
 
+/datum/wound/dislocation/neck/can_apply_to_mob(mob/living/affected)
+	if(!QDELETED(affected) && istype(affected, /mob/living/carbon/human/species/skeleton/death_arena))
+		return FALSE
+	. = ..()
+
 /datum/wound/dislocation/neck/on_mob_gain(mob/living/affected)
 	. = ..()
-	if(!istype(affected, /mob/living/carbon/human/species/skeleton/death_arena))
-		ADD_TRAIT(affected, TRAIT_PARALYSIS, "[type]")
-	if(iscarbon(affected))
-		var/mob/living/carbon/carbon_affected = affected
-		carbon_affected.update_disabled_bodyparts()
+	ADD_TRAIT(affected, TRAIT_PARALYSIS, "[type]")
 
 /datum/wound/dislocation/neck/on_mob_loss(mob/living/affected)
 	. = ..()
 	REMOVE_TRAIT(affected, TRAIT_PARALYSIS, "[type]")
-	if(iscarbon(affected))
-		var/mob/living/carbon/carbon_affected = affected
-		carbon_affected.update_disabled_bodyparts()

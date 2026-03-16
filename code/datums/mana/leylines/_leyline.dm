@@ -42,6 +42,17 @@ GLOBAL_LIST_EMPTY_TYPED(all_leylines, /datum/mana_pool/leyline)
 	discharge_destinations = NONE
 	intrinsic_recharge_sources = NONE //we don't pull from leylines
 
+	var/datum/beam/current_beam
+
+/datum/mana_pool/leyline/Destroy(force, ...)
+	QDEL_NULL(intensity)
+	QDEL_LIST(themes)
+	if(current_beam)
+		QDEL_NULL(current_beam)
+
+	GLOB.all_leylines -= src
+
+	return ..()
 
 /datum/mana_pool/leyline/New(atom/parent = null, z_level = SSmapping.levels_by_trait(ZTRAIT_STATION)[1])
 	GLOB.all_leylines += src
@@ -75,14 +86,6 @@ GLOBAL_LIST_EMPTY_TYPED(all_leylines, /datum/mana_pool/leyline)
 	var/list/datum/leyline_variable/attunement_theme/themes = get_random_attunement_themes()
 
 	return themes
-
-/datum/mana_pool/leyline/Destroy(force, ...)
-	QDEL_NULL(intensity)
-	QDEL_LIST(themes)
-
-	GLOB.all_leylines -= src
-
-	return ..()
 
 /// GETTERS / SETTERS
 
@@ -153,8 +156,24 @@ GLOBAL_LIST_EMPTY_TYPED(all_leylines, /datum/mana_pool/leyline)
 /datum/mana_pool/leyline/proc/create_leyline_objects(z_level)
 	var/list/data = generate_start_and_end(z_level)
 	var/turf/starting = data[1]
+	var/turf/ending = data[2]
 	var/datum/leyline_variable/attunement_theme/theme
+
 	if(length(themes))
 		theme = themes[1]
 
-	starting.LeyBeam(data[2], icon_state = "blood", maxdistance = world.maxx, time = INFINITY, beam_color = theme?.beam_color, mana_pool = src, redraws = FALSE)
+	current_beam = starting.Beam(
+		ending,
+		icon_state = "blood",
+		time = INFINITY,
+		beam_type = /obj/effect/ebeam/leyline,
+		max_distance = world.maxx,
+		beam_color = theme?.beam_color,
+		beam_layer = UPPER_LEYLINE_LAYER,
+		beam_plane = LEYLINE_PLANE,
+		invisibility = INVISIBILITY_LEYLINES,
+		mana_pool = src,
+	)
+
+/obj/effect/ebeam/leyline
+	vis_flags = VIS_HIDE

@@ -6,4 +6,7 @@
 	This file separation can support different servers using their own maps, especially supporting downstreams
 */
 
-//#include "..\..\_maps\map_files\roguetest\map_adjustment_template.dm"
+#include "..\..\_maps\map_files\rosewood\map_adjustment_rosewood.dm"
+#include "..\..\_maps\map_files\daftmarsh\map_adjustment_daftmarsh.dm"
+#include "..\..\_maps\map_files\whitepalacepass\map_adjustment_whitepalacepass.dm"
+#include "..\..\_maps\map_files\voyager\map_adjustment_voyager.dm"

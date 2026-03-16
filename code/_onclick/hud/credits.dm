@@ -11,7 +11,7 @@
 //	var/icon/credits_icon = new(CREDITS_PATH)
 	LAZYINITLIST(credits)
 	var/list/_credits = credits
-//	verbs += /client/proc/ClearCredits
+//	add_verb(src, /client/proc/ClearCredits)
 //	var/static/list/credit_order_for_this_round
 //	if(isnull(credit_order_for_this_round))
 //		credit_order_for_this_round = list("Thanks for playing!") + (shuffle(icon_states(credits_icon)) - "Thanks for playing!")
@@ -20,24 +20,23 @@
 	for(var/I in coomer)
 //		if(!credits)
 //			return
-		_credits += new /atom/movable/screen/credit(null, I, src, coomer[I]["icon"])
+		_credits += new /atom/movable/screen/credit(null, null, I, src, coomer[I]["icon"])
 		sleep(CREDIT_SPAWN_SPEED)
 //	sleep(CREDIT_ROLL_SPEED - CREDIT_SPAWN_SPEED)
-//	verbs -= /client/proc/ClearCredits
+//	add_verb(src, /client/proc/ClearCredits)
 //	qdel(credits_icon)
 
 /client/proc/ClearCredits()
 	set name = "Hide Credits"
 	set category = "OOC"
-	verbs -= /client/proc/ClearCredits
+	add_verb(src, /client/proc/ClearCredits)
 	QDEL_LIST(credits)
 	credits = null
 
 /atom/movable/screen/credit
-	mouse_opacity = 1
+	mouse_opacity = MOUSE_OPACITY_ICON
 	alpha = 0
 	screen_loc = "1,1"
-	layer = SPLASHSCREEN_LAYER
 	plane = SPLASHSCREEN_PLANE
 	var/client/parent
 	var/creditee
@@ -46,7 +45,6 @@
 /atom/movable/screen/credit/Click()
 	if(upvoted)
 		return
-	testing("clicdebugk")
 	upvoted = TRUE
 	var/image/I = new('icons/effects/effects.dmi', "hearty")
 	I.pixel_x = rand(-32,32)
@@ -62,20 +60,12 @@
 				animate(IR, pixel_y = 64, alpha = 0, time = 18, flags = ANIMATION_PARALLEL)
 				CR.add_overlay(IR)
 
-/atom/movable/screen/credit/Initialize(mapload, credited, client/P, icon/I)
+/atom/movable/screen/credit/Initialize(mapload, datum/hud/hud_owner, credited, client/P, icon/I)
 	. = ..()
-	testing("spawned credit [credited]")
 	icon = I
 	parent = P
-	var/voicecolor = "dc0174"
-	if(GLOB.credits_icons[credited])
-		if(GLOB.credits_icons[credited]["vc"])
-			voicecolor=GLOB.credits_icons[credited]["vc"]
-//	icon_state = credited
-	maptext = {"<span style='vertical-align:top; text-align:center;
-				color: #[voicecolor]; font-size: 100%;
-				text-shadow: 1px 1px 2px black, 0 0 1em black, 0 0 0.2em black;
-				font-family: "Pterra";'>[credited]</span>"}
+	var/voicecolor = LAZYACCESSASSOC(GLOB.credits_icons, credited, "vc") || "dc0174"
+	maptext = MAPTEXT_CENTER("<span style='vertical-align:top; color: #[voicecolor]'>[credited]</span>")
 	creditee = credited
 	maptext_x = -32
 	maptext_y = 8
@@ -103,3 +93,9 @@
 
 /atom/movable/screen/credit/proc/FadeOut()
 	animate(src, alpha = 0, time = 10,  flags = ANIMATION_PARALLEL)
+
+#undef CREDIT_ROLL_SPEED
+#undef CREDIT_SPAWN_SPEED
+#undef CREDIT_ANIMATE_HEIGHT
+#undef CREDIT_EASE_DURATION
+#undef CREDITS_PATH

@@ -1,0 +1,29 @@
+//MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
+"a" = (
+/turf/open/floor/cobblerock,
+/area/under/tomb)
+"h" = (
+/turf/closed/wall/mineral/stone/moss,
+/area/under/tomb)
+"m" = (
+/obj/effect/dungeon_directional_helper/west,
+/obj/effect/dungeon_directional_helper/east,
+/turf/open/floor/cobble,
+/area/under/tomb)
+"A" = (
+/turf/closed/wall/mineral/stone,
+/area/under/tomb)
+
+(1,1,1) = {"
+h
+m
+a
+A
+"}
+
+(1,1,2) = {"
+A
+a
+a
+A
+"}

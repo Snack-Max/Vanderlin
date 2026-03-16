@@ -9,7 +9,7 @@
 
 	density = FALSE
 	gender = FEMALE
-	pass_flags = PASSTABLE | PASSMOB
+	pass_flags = PASSMOB|PASSTABLE
 	mob_size = MOB_SIZE_SMALL
 	ventcrawler = VENTCRAWLER_ALWAYS
 	emote_see = list("pecks at the ground.","flaps its wings viciously.")
@@ -26,10 +26,10 @@
 						/obj/item/natural/feather = 1)
 
 	var/egg_type = /obj/item/reagent_containers/food/snacks/egg
-	food_type = list(/obj/item/reagent_containers/food/snacks/produce/jacksberry,
+	food_type = list(/obj/item/reagent_containers/food/snacks/produce/fruit/jacksberry,
 					/obj/item/natural/worms, // well this works for domesticating but to actually eat it has to be a reagen_container/food object. Leaving it for now.
-					/obj/item/reagent_containers/food/snacks/produce/wheat,
-					/obj/item/reagent_containers/food/snacks/produce/oat)
+					/obj/item/reagent_containers/food/snacks/produce/grain/wheat,
+					/obj/item/reagent_containers/food/snacks/produce/grain/oat)
 
 	health = CHICKEN_HEALTH
 	maxHealth = CHICKEN_HEALTH
@@ -46,6 +46,9 @@
 	melee_damage_upper = 5
 
 	pooptype = /obj/item/natural/poo/horse
+	happy_funtime_mob = TRUE
+
+	generate_genetics = TRUE
 
 	var/eggsFertile = TRUE
 	var/body_color
@@ -54,13 +57,13 @@
 	var/list/validColors = list("brown","black","white")
 	var/static/chicken_count = 0
 
-	TOTALCON = 1
-	TOTALSTR = 1
-	TOTALSPD = 5
+	base_constitution = 1
+	base_strength = 1
+	base_speed = 5
 	tame = TRUE
 
-	AIStatus = AI_STATUS_OFF
-	can_have_ai = FALSE
+	var/production = 0
+
 	ai_controller = /datum/ai_controller/basic_controller/chicken
 
 	var/chicken_init = TRUE
@@ -115,15 +118,12 @@
 
 /mob/living/simple_animal/hostile/retaliate/chicken/Initialize()
 	. = ..()
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
 	if(chicken_init)
 		if(!body_color)
 			body_color = pick(validColors)
 		icon_state = "[icon_prefix]_[body_color]"
 		icon_living = "[icon_prefix]_[body_color]"
 		icon_dead = "[icon_prefix]_[body_color]_dead"
-	pixel_x = rand(-6, 6)
-	pixel_y = rand(0, 10)
 	++chicken_count
 
 /mob/living/simple_animal/hostile/retaliate/chicken/Destroy()
@@ -132,22 +132,23 @@
 
 /mob/living/simple_animal/hostile/retaliate/chicken/Life()
 	..()
-	if(!stat && (production > 29) && egg_type && isturf(loc) && !enemies.len)
-		if(!stop_automated_movement)
-			//look for nests
-			var/list/foundnests = list()
-			for(var/obj/structure/fluff/nest/N in oview(src))
-				foundnests += N
-			//if no nests, look for chaff and build one
-			if(!foundnests.len)
-				new /obj/structure/fluff/nest(loc)
-				visible_message("<span class='notice'>[src] builds a nest.</span>")
+	if(SEND_SIGNAL(src, COMSIG_MOB_RETURN_HUNGER) > 0)
+		var/productive = 1
+		if(HAS_TRAIT(src, TRAIT_ANIMAL_PRODUCTIVE))
+			productive *= 3
+		production = min(production + productive, 100)
 
 /mob/living/simple_animal/hostile/retaliate/chicken/proc/hatch_eggs()
 	for(var/obj/item/reagent_containers/food/snacks/egg/egg in loc)
 		if(!egg.fertile)
 			continue
-		egg.hatch(src)
+		var/mob/living/simple_animal/hostile/retaliate/chicken/suprise_father
+		for(var/mob/living/simple_animal/hostile/retaliate/chicken/potential_father in range(5, src))
+			if(potential_father.gender == MALE)
+				suprise_father = potential_father
+				break
+
+		egg.hatch(src, suprise_father)
 		qdel(egg)
 
 
@@ -160,7 +161,7 @@
 
 	density = FALSE
 	gender = FEMALE
-	pass_flags = PASSTABLE | PASSMOB
+	pass_flags = PASSMOB
 
 	botched_butcher_results = list(/obj/item/reagent_containers/food/snacks/meat/poultry/cutlet = 1)
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/fat = 1,
@@ -189,10 +190,11 @@
 
 	ai_controller = /datum/ai_controller/basic_controller/chicken/baby
 	chicken_init = FALSE
+	generate_genetics = FALSE
 
 /obj/structure/fluff/nest
 	name = "nest"
-	desc = "a chicken's nest."
+	desc = "A chicken's nest."
 	icon = 'icons/roguetown/misc/structure.dmi'
 	icon_state = "nest"
 	density = FALSE

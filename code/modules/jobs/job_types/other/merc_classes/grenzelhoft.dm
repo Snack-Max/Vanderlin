@@ -1,57 +1,100 @@
-/datum/advclass/mercenary/grenzelhoft
-	name = "Grenzelhoft"
-	tutorial = "A mercenary from the Grenzelhoft Empire's Mercenary Guild. Their only care is coin, and the procurement of coin."
-	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list(
-		"Humen",
-		"Dwarf"
+/datum/attribute_holder/sheet/job/grenzelhoft
+	raw_attribute_list = list(
+		STAT_CONSTITUTION = 2,
+		/datum/attribute/skill/misc/swimming = 20,
+		/datum/attribute/skill/misc/climbing = 30,
+		/datum/attribute/skill/misc/sneaking = 30,
+		/datum/attribute/skill/combat/wrestling = 20,
+		/datum/attribute/skill/misc/athletics = 30,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/combat/swords = 20,
+		/datum/attribute/skill/combat/whipsflails = 10,
+		/datum/attribute/skill/combat/shields = 10,
+		/datum/attribute/skill/misc/reading = 10,
+		/datum/attribute/skill/craft/cooking = 10,
 	)
-	outfit = /datum/outfit/job/mercenary/grenzelhoft
+
+/datum/attribute_holder/sheet/job/grenzelhoft/zwei
+	attribute_variance = list(
+		/datum/attribute/skill/combat/axesmaces = list(20, 30)
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		/datum/attribute/skill/combat/swords = 10,
+	)
+
+/datum/attribute_holder/sheet/job/grenzelhoft/halberd
+	attribute_variance = list(
+		/datum/attribute/skill/combat/axesmaces = list(20, 30)
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		/datum/attribute/skill/combat/polearms = 30,
+	)
+
+/datum/attribute_holder/sheet/job/grenzelhoft/musket
+	raw_attribute_list = list(
+		/datum/attribute/skill/combat/firearms = 30,
+		/datum/attribute/skill/combat/polearms = 30,
+	)
+
+/datum/job/advclass/mercenary/grenzelhoft
+	title = "Grenzelhoft Mercenary"
+	tutorial = "A mercenary from the Grenzelhoft Empire's Mercenary Guild. Their only care is coin, and the procurement of coin."
+	allowed_races = list(SPEC_ID_HUMEN, SPEC_ID_DWARF, SPEC_ID_AASIMAR)
+	outfit = /datum/outfit/mercenary/grenzelhoft
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/grenzelhoft
+
+	traits = list(TRAIT_MEDIUMARMOR)
+	languages = list(/datum/language/newpsydonic)
 	category_tags = list(CTAG_MERCENARY)
-	maximum_possible_slots = 5
+	total_positions = 2
 
 	cmode_music = 'sound/music/cmode/combat_grenzelhoft.ogg'
 
-/datum/outfit/job/mercenary/grenzelhoft/pre_equip(mob/living/carbon/human/H)
-	..()
-	if(H.mind)
-		H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/sneaking, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 4, TRUE)	//Big sword user so - really helps them.
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/swords, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/whipsflails, pick(1,1,2), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/axesmaces, pick(2,3), TRUE) // Equal chance between skilled and average, can use a cudgel to beat less dangerous targets into submission
-		H.mind?.adjust_skillrank(/datum/skill/combat/shields, pick(0,0,1), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 1, TRUE)
+/datum/outfit/mercenary/grenzelhoft
+	name = "Grenzelhoft (Mercenary)"
+	neck = /obj/item/clothing/neck/chaincoif
+	pants = /obj/item/clothing/pants/grenzelpants
+	shoes = /obj/item/clothing/shoes/rare/grenzelhoft
+	gloves = /obj/item/clothing/gloves/angle/grenzel
+	belt = /obj/item/storage/belt/leather/mercenary
+	shirt = /obj/item/clothing/shirt/grenzelhoft
+	head = /obj/item/clothing/head/helmet/skullcap/grenzelhoft
+	armor = /obj/item/clothing/armor/cuirass/grenzelhoft
 
+/datum/outfit/mercenary/grenzelhoft/pre_equip(mob/living/carbon/human/H)
+	. = ..()
 	if(H.gender == FEMALE)
 		H.underwear = "Femleotard"
 		H.underwear_color = CLOTHING_SOOT_BLACK
 		H.update_body()
 
-	beltr = /obj/item/storage/belt/pouch/coins/poor
-	neck = /obj/item/clothing/neck/chaincoif
-	pants = /obj/item/clothing/pants/grenzelpants
-	shoes = /obj/item/clothing/shoes/grenzelhoft
-	gloves = /obj/item/clothing/gloves/angle/grenzel
-	belt = /obj/item/storage/belt/leather/mercenary
-	beltl = /obj/item/weapon/mace/cudgel
-	shirt = /obj/item/clothing/shirt/grenzelhoft
-	head = /obj/item/clothing/head/helmet/skullcap/grenzelhoft
-	armor = /obj/item/clothing/armor/cuirass/grenzelhoft
-	backl = /obj/item/storage/backpack/satchel
-	backr = /obj/item/weapon/sword/long/greatsword/zwei
-	if(!H.has_language(/datum/language/oldpsydonic))
-		H.grant_language(/datum/language/oldpsydonic)
-		to_chat(H, "<span class='info'>I can speak Old Psydonic with ,m before my speech.</span>")
-
+/datum/job/advclass/mercenary/grenzelhoft/after_spawn(mob/living/carbon/human/H)
+	. = ..()
 	H.merctype = 2
-
-	H.change_stat(STATKEY_STR, 2) // They need this to roll at least min STR for the Zwei.
-	H.change_stat(STATKEY_END, 1)
-	H.change_stat(STATKEY_CON, 2)
-	ADD_TRAIT(H, TRAIT_MEDIUMARMOR, TRAIT_GENERIC)
+	if(H.dna?.species.id == SPEC_ID_HUMEN)
+		H.dna.species.native_language = "Old Psydonic"
+		H.dna.species.accent_language = H.dna.species.get_accent(H.dna.species.native_language)
+	var/weapons = list("Zweihander", "Musket", "Halberd")
+	var/weapon_choice = input(H,"CHOOSE YOUR WEAPON.", "GO EARN SOME COIN.") as anything in weapons
+	switch(weapon_choice)
+		if("Zweihander")
+			H.equip_to_slot_or_del(new /obj/item/weapon/sword/long/greatsword/zwei, ITEM_SLOT_BACK_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel, ITEM_SLOT_BACK_L, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/storage/belt/pouch/coins/poor, ITEM_SLOT_BELT_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/weapon/mace/cudgel, ITEM_SLOT_BELT_L, TRUE)
+			H.attributes?.add_sheet(/datum/attribute_holder/sheet/job/grenzelhoft/zwei)
+		if("Musket")
+			H.equip_to_slot_or_del(new /obj/item/gun/ballistic/revolver/grenadelauncher/pistol/musket, ITEM_SLOT_BACK_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/ammo_holder/bullet/bullets, ITEM_SLOT_BELT_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel/musketeer, ITEM_SLOT_BACK_L, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/weapon/sword/sabre/dec, ITEM_SLOT_BELT_L, TRUE)
+			H.attributes?.add_sheet(/datum/attribute_holder/sheet/job/grenzelhoft/musket)
+		if("Halberd")
+			H.equip_to_slot_or_del(new /obj/item/weapon/polearm/halberd, ITEM_SLOT_BACK_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel, ITEM_SLOT_BACK_L, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/storage/belt/pouch/coins/poor, ITEM_SLOT_BELT_R, TRUE)
+			H.equip_to_slot_or_del(new /obj/item/weapon/mace/cudgel, ITEM_SLOT_BELT_L, TRUE)
+			H.attributes?.add_sheet(/datum/attribute_holder/sheet/job/grenzelhoft/halberd)

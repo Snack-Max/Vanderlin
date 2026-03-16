@@ -5,7 +5,11 @@
 ///How often a carbon becomes penalized
 #define BEYBLADE_DIZZINESS_PROBABILITY 20
 ///How long the screenshake lasts
-#define BEYBLADE_DIZZINESS_DURATION (1 SECONDS)
+#define BEYBLADE_DIZZINESS_DURATION (10 SECONDS)
+///How much confusion a carbon gets every time they are penalized
+#define BEYBLADE_CONFUSION_INCREMENT (5 SECONDS)
+///A max for how much confusion a carbon will be for beyblading
+#define BEYBLADE_CONFUSION_LIMIT (20 SECONDS)
 
 //The code execution of the emote datum is located at code/datums/emotes.dm
 /mob/proc/emote(act, m_type = null, message = null, intentional = FALSE, forced = FALSE, targetted = FALSE, custom_me = FALSE)
@@ -29,10 +33,12 @@
 	var/mute_time = 0
 	if(!length(key_emotes) || custom_param)
 		if(intentional)
+			#ifdef USES_PQ
 			if(client)
 				if(get_playerquality(client.ckey) <= -10)
 					to_chat(src, "<span class='warning'>Unrecognized emote.</span>")
 					return
+				#endif
 			var/list/custom_emote = GLOB.emote_list["me"]
 			for(var/datum/emote/P in custom_emote)
 				mute_time = P.mute_time
@@ -49,29 +55,11 @@
 	else
 		next_emote = world.time + mute_time
 
-/atom/movable/proc/send_speech_emote(message, range = 7, obj/source = src, bubble_type, list/spans, datum/language/message_language = null, message_mode, original_message)
-	var/rendered = compose_message(src, message_language, message, , spans, message_mode)
-	for(var/_AM in get_hearers_in_view(range, source))
-		var/atom/movable/AM = _AM
-		AM.Hear(rendered, src, message_language, message, , spans, message_mode)
-//	if(intentional)
-//		to_chat(src, "<span class='notice'>Unusable emote '[act]'. Say *help for a list.</span>")
-/*
-/datum/emote/flip
-	key = "flip"
-	key_third_person = "flips"
-	restraint_check = TRUE
-	mob_type_allowed_typecache = list(/mob/living, /mob/dead/observer)
-	mob_type_ignore_stat_typecache = list(/mob/dead/observer)
+/atom/movable/proc/send_speech_emote(message, range = 7, obj/source = src, bubble_type, list/spans, datum/language/message_language = null, list/message_mods = list(), original_message)
+	var/rendered = compose_message(src, message_language, message, null, spans, message_mods)
+	for(var/atom/movable/AM as anything in get_hearers_in_view(range, source))
+		AM.Hear(rendered, src, message_language, message, null, spans, message_mods, original_message)
 
-/datum/emote/living/carbon/human/flip/can_run_emote(mob/user, status_check = TRUE , intentional)
-	return FALSE
-
-/datum/emote/flip/run_emote(mob/user, params, type_override, intentional)
-	. = ..()
-	if(.)
-		user.SpinAnimation(7,1)
-*/
 /datum/emote/spin
 	key = "spin"
 	key_third_person = "spins"
@@ -82,7 +70,7 @@
 
 /mob/living/carbon/human/verb/emote_spin()
 	set name = "Spin"
-	set category = "Emotes"
+	set category = "Emotes.Silent"
 	emote("spin", intentional = TRUE)
 
 /datum/emote/spin/can_run_emote(mob/living/carbon/user, status_check = TRUE , intentional)
@@ -98,13 +86,14 @@
 		user.spin(4, 1)
 		user.Immobilize(5)
 
-		if(user.dizziness > BEYBLADE_PUKE_THRESHOLD)
+		if(user.get_timed_status_effect_duration(/datum/status_effect/confusion) > BEYBLADE_PUKE_THRESHOLD)
 			user.vomit(BEYBLADE_PUKE_NUTRIENT_LOSS, distance = 0)
 			return
 
 		if(prob(BEYBLADE_DIZZINESS_PROBABILITY))
 			to_chat(user, span_warning("You feel woozy from spinning."))
-			user.Dizzy(BEYBLADE_DIZZINESS_DURATION)
+			user.set_dizzy_if_lower(BEYBLADE_DIZZINESS_DURATION)
+			user.adjust_confusion_up_to(BEYBLADE_CONFUSION_INCREMENT, BEYBLADE_CONFUSION_LIMIT)
 
 		// if(iscyborg(user) && user.has_buckled_mobs())
 		// 	var/mob/living/silicon/robot/R = user
@@ -119,3 +108,5 @@
 #undef BEYBLADE_PUKE_NUTRIENT_LOSS
 #undef BEYBLADE_DIZZINESS_PROBABILITY
 #undef BEYBLADE_DIZZINESS_DURATION
+#undef BEYBLADE_CONFUSION_INCREMENT
+#undef BEYBLADE_CONFUSION_LIMIT

@@ -1,6 +1,7 @@
 SUBSYSTEM_DEF(lighting)
 	name = "Lighting"
 	wait = 0
+
 	init_order = INIT_ORDER_LIGHTING
 	flags = SS_TICKER
 	priority = FIRE_PRIORITY_DEFAULT
@@ -14,13 +15,10 @@ SUBSYSTEM_DEF(lighting)
 
 
 /datum/controller/subsystem/lighting/Initialize(timeofday)
+	#ifdef ABSOLUTE_MINIMUM_MODE
+	return ..()
+	#endif
 	if(!initialized)
-		if (CONFIG_GET(flag/starlight))
-			for(var/I in GLOB.sortedAreas)
-				var/area/A = I
-				if (A.dynamic_lighting == DYNAMIC_LIGHTING_IFSTARLIGHT)
-					A.luminosity = 0
-
 		create_all_lighting_objects()
 		initialized = TRUE
 
@@ -90,3 +88,13 @@ SUBSYSTEM_DEF(lighting)
 /datum/controller/subsystem/lighting/Recover()
 	initialized = SSlighting.initialized
 	..()
+
+/datum/controller/subsystem/lighting/proc/create_all_lighting_objects()
+	for(var/area/dynamic_area in GLOB.areas)
+		if(!IS_DYNAMIC_LIGHTING(dynamic_area))
+			continue
+		for(var/turf/contained_turf in dynamic_area.get_turfs_from_all_zlevels())
+			if(!IS_DYNAMIC_LIGHTING(contained_turf))
+				continue
+			new/atom/movable/lighting_object(contained_turf)
+			CHECK_TICK

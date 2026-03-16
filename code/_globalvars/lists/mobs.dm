@@ -1,3 +1,4 @@
+GLOBAL_LIST_EMPTY(keys_by_ckey)						//all client ckeys, and their associated keys (keys_by_ckey[ckey] -> key), isn't cleared when the client leaves the game
 GLOBAL_LIST_EMPTY(clients)							//all clients
 GLOBAL_LIST_EMPTY(admins)							//all clients whom are admins
 GLOBAL_PROTECT(admins)
@@ -27,7 +28,6 @@ GLOBAL_LIST_EMPTY(spirit_list)				//all instances of /mob/living/carbon/spirit a
 GLOBAL_LIST_EMPTY(ai_list)
 GLOBAL_LIST_EMPTY(pai_list)
 GLOBAL_LIST_EMPTY(available_ai_shells)
-GLOBAL_LIST_INIT(simple_animals, list(list(),list(),list(),list())) // One for each AI_* status define
 GLOBAL_LIST_EMPTY(spidermobs)				//all sentient spider mobs
 GLOBAL_LIST_EMPTY(bots_list)
 GLOBAL_LIST_EMPTY(aiEyes)
@@ -35,6 +35,7 @@ GLOBAL_LIST_EMPTY(aiEyes)
 GLOBAL_LIST_EMPTY(language_datum_instances)
 GLOBAL_LIST_EMPTY(all_languages)
 
+/// Associative list of species id to type
 GLOBAL_LIST_EMPTY(species_list)
 
 GLOBAL_LIST_EMPTY(latejoin_ai_cores)
@@ -45,7 +46,7 @@ GLOBAL_LIST_EMPTY(emote_list)
 
 GLOBAL_LIST_INIT(dangerous_turfs, typecacheof(list(
 	/turf/open/lava,
-	/turf/open/transparent,
+	/turf/open/openspace,
 	/turf/open/water/acid,
 	)))
 
@@ -63,8 +64,7 @@ GLOBAL_LIST_INIT(dangerous_turfs, typecacheof(list(
 		update_mob_config_movespeeds()
 
 /proc/update_mob_config_movespeeds()
-	for(var/i in GLOB.mob_list)
-		var/mob/M = i
+	for(var/mob/M as anything in GLOB.mob_list)
 		M.update_config_movespeed()
 
 /proc/init_emote_list()
@@ -80,3 +80,14 @@ GLOBAL_LIST_INIT(dangerous_turfs, typecacheof(list(
 			.[E.key_third_person] = list(E)
 		else
 			.[E.key_third_person] |= E
+
+/// Cultures can't be interacted with so we only ever need as many datums as exist
+GLOBAL_LIST_INIT(culture_singletons, init_culture_singletons())
+
+/proc/init_culture_singletons()
+	var/list/culture_list = list()
+	for(var/datum/culture/culture as anything in subtypesof(/datum/culture))
+		if(IS_ABSTRACT(culture))
+			continue
+		culture_list[culture] = new culture()
+	return culture_list

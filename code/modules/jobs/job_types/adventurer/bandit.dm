@@ -3,22 +3,16 @@
 	tutorial = "Long ago you did a crime \
 	worthy of your bounty being hung on the wall outside of the local inn. \
 	You now live with your fellow free men in the bog, and generally get up to no good."
-	flag = BANDIT
-	department_flag = PEASANTS
-	job_flags = (JOB_EQUIP_RANK)
+	department_flag = OUTSIDERS
+	job_flags = (JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE | JOB_SHOW_IN_CREDITS)
 	display_order = JDO_BANDIT
-	faction = FACTION_STATION
-	total_positions = 0
-	spawn_positions = 0
-	min_pq = 4
+	faction = FACTION_NEUTRAL
+	total_positions = 6
+	spawn_positions = 4
 	antag_job = TRUE
 
-	allowed_races = ALL_PLAYER_RACES_BY_NAME
-
-	outfit = null
-	outfit_female = null
-
 	advclass_cat_rolls = list(CTAG_BANDIT = 20)
+	blacklisted_species = list(SPEC_ID_HALFLING)
 
 	is_foreigner = TRUE
 	job_reopens_slots_on_death = FALSE //no endless stream of bandits, unless the migration waves deem it so
@@ -27,18 +21,16 @@
 	can_have_apprentices = FALSE
 	cmode_music = 'sound/music/cmode/antag/combat_bandit2.ogg'
 
-/datum/job/bandit/after_spawn(mob/living/spawned, client/player_client)
-	..()
-	var/mob/living/carbon/human/H = spawned
-	if(!H.mind)
-		return
-	H.advsetup = 1
-	H.invisibility = INVISIBILITY_MAXIMUM
-	H.become_blind("advsetup")
-	H.ambushable = FALSE
+	traits = list(TRAIT_NOAMBUSH)
 
-/datum/outfit/job/bandit/post_equip(mob/living/carbon/human/H)
-	..()
-	var/datum/antagonist/new_antag = new /datum/antagonist/bandit()
-	H.mind.add_antag_datum(new_antag)
-	addtimer(CALLBACK(H, TYPE_PROC_REF(/mob/living/carbon/human, choose_name_popup), "BANDIT"), 5 SECONDS)
+	antag_role = /datum/antagonist/bandit
+
+	exp_type = list(EXP_TYPE_LIVING)
+	exp_types_granted = list(EXP_TYPE_COMBAT)
+	exp_requirements = list(
+		EXP_TYPE_LIVING = 900
+	)
+/datum/job/advclass/bandit
+	exp_types_granted = list(EXP_TYPE_COMBAT)
+	spawn_with_torch = TRUE
+	department_flag = OUTSIDERS

@@ -8,12 +8,15 @@
 									//10 is the default weight. 20 is twice more likely; 5 is half as likely as this default.
 									//0 here does NOT disable the event, it just makes it extremely unlikely
 
-	var/earliest_start = 12 MINUTES	//The earliest world.time that an event can start (round-duration in deciseconds) default: 20 mins
+	var/earliest_start = 10 MINUTES	//The earliest world.time that an event can start (round-duration in deciseconds) default: 10 mins
 	var/min_players = 0				//The minimum amount of alive, non-AFK human players on server required to start the event.
 
-	var/occurrences = 0				//How many times this event has occured
-	var/max_occurrences = 20		//The maximum number of times this event can occur (naturally), it can still be forced.
-									//By setting this to 0 you can effectively disable an event.
+	/// How many times this event has occured
+	var/occurrences = 0
+	/// The maximum number of times this event can occur (naturally), it can still be forced. By setting this to 0 you can effectively disable an event.
+	var/max_occurrences = 20
+	/// Loaded occurrences from the last round events
+	var/last_round_occurrences = 0
 
 	var/holidayID = ""				//string which should be in the SSeventss.holidays list if you wish this event to be holiday-specific
 									//anything with a (non-null) holidayID which does not match holiday, cannot run.
@@ -52,7 +55,28 @@
 	var/can_run_post_roundstart = TRUE
 	/// If set then the type or list of types of storytellers we are restricted to being trigged by
 	var/list/allowed_storytellers
+	/// List of storytellers that will pick only their dedicated and general events in some cases, like when they are ascendant
+	var/list/dedicated_storytellers
 
+/datum/round_event_control/New()
+	if(config && !wizardevent) // Magic is unaffected by configs
+		earliest_start = CEILING(earliest_start * CONFIG_GET(number/events_min_time_mul), 1)
+		min_players = CEILING(min_players * CONFIG_GET(number/events_min_players_mul), 1)
+
+/datum/round_event_control/Topic(href, href_list)
+	..()
+
+	if(!check_rights(NONE))
+		return
+
+	if(href_list["cancel"])
+		if(!triggering)
+			to_chat(usr, "<span class='admin'>I am too late to cancel that event</span>")
+			return
+		triggering = FALSE
+		message_admins("[key_name_admin(usr)] cancelled event [name].")
+		log_admin_private("[key_name(usr)] cancelled event [name].")
+		SSblackbox.record_feedback("tally", "event_admin_cancelled", 1, typepath)
 
 /datum/round_event_control/proc/valid_for_map()
 	return TRUE
@@ -63,41 +87,35 @@
 		string += "Roundstart"
 	if(length(allowed_storytellers) && !(SSgamemode.current_storyteller.type in allowed_storytellers))
 		if(string)
-			string += ","
+			string += ", "
 		string += "Wrong God"
 	if(length(todreq) && !(GLOB.tod in todreq))
 		if(string)
-			string += ","
+			string += ", "
 		string += "Wrong Time of Day"
 	if(occurrences >= max_occurrences)
 		if(string)
-			string += ","
+			string += ", "
 		string += "Cap Reached"
-	if(earliest_start >= world.time-SSticker.round_start_time)
+	if(earliest_start > max(world.time - SSticker.round_start_time, 0))
 		if(string)
-			string += ","
+			string += ", "
 		string +="Too Soon"
 	if(players_amt < min_players)
 		if(string)
-			string += ","
+			string += ", "
 		string += "Lack of players"
 	if(checks_antag_cap)
 		if(!roundstart && !SSgamemode.can_inject_antags())
 			if(string)
-				string += ","
+				string += ", "
 			string += "Too Many Villians"
 	return string
-
-/datum/round_event_control/New()
-	if(config && !wizardevent) // Magic is unaffected by configs
-		earliest_start = CEILING(earliest_start * CONFIG_GET(number/events_min_time_mul), 1)
-		min_players = CEILING(min_players * CONFIG_GET(number/events_min_players_mul), 1)
 
 /datum/round_event_control/wizard
 	wizardevent = TRUE
 
-// Checks if the event can be spawned. Used by event controller and "false alarm" event.
-// Admin-created events override this.
+/// Checks if the event can be spawned. Used by event controller and "false alarm" event. Admin-created events override this.
 /datum/round_event_control/proc/canSpawnEvent(players_amt, gamemode, fake_check = FALSE)
 	if(SSgamemode.current_storyteller?.disable_distribution || SSgamemode.halted_storyteller)
 		return FALSE
@@ -108,8 +126,7 @@
 
 	if(occurrences >= max_occurrences)
 		return FALSE
-
-	if(earliest_start >= world.time-SSticker.round_start_time)
+	if(earliest_start > max(world.time - SSticker.round_start_time, 0))
 		return FALSE
 
 	if(wizardevent != SSevents.wizardmode)
@@ -118,9 +135,15 @@
 		return FALSE
 	if(length(todreq) && !(GLOB.tod in todreq))
 		return FALSE
+
 	if(length(allowed_storytellers))
 		if(!(SSgamemode.current_storyteller.type in allowed_storytellers))
 			return FALSE
+	if(length(dedicated_storytellers))
+		if(SSgamemode.current_storyteller.ascendant)
+			if(!(SSgamemode.current_storyteller.type in dedicated_storytellers))
+				return FALSE
+
 	if(req_omen)
 		if(!GLOB.badomens.len)
 			return FALSE
@@ -149,22 +172,10 @@
 		if(!GLOB.badomens.len)
 			return EVENT_CANCELLED
 		badomen(pick_n_take(GLOB.badomens))
-		testing("[name] has started")
 
 	triggering = FALSE
 
 	return EVENT_READY
-
-/datum/round_event_control/Topic(href, href_list)
-	..()
-	if(href_list["cancel"])
-		if(!triggering)
-			to_chat(usr, "<span class='admin'>I are too late to cancel that event</span>")
-			return
-		triggering = FALSE
-		message_admins("[key_name_admin(usr)] cancelled event [name].")
-		log_admin_private("[key_name(usr)] cancelled event [name].")
-		SSblackbox.record_feedback("tally", "event_admin_cancelled", 1, typepath)
 
 /datum/round_event_control/proc/runEvent(random = FALSE, admin_forced = TRUE)
 	var/datum/round_event/round_event = new typepath(TRUE, src)
@@ -300,7 +311,7 @@
 	SSevents.running -= src
 
 
-//Sets up the event then adds the event to the the list of running events
+//Sets up the event then adds the event to the list of running events
 /datum/round_event/New(my_processing = TRUE, datum/round_event_control/source)
 	control = source
 	processing = my_processing
@@ -362,6 +373,10 @@
 
 /datum/round_event_control/Topic(href, href_list)
 	. = ..()
+
+	if(!check_rights(NONE))
+		return
+
 	if(QDELETED(src))
 		return
 	switch(href_list["action"])
@@ -386,21 +401,37 @@ GLOBAL_LIST_INIT(badomens, list())
 
 /proc/addomen(input)
 	if(!(input in GLOB.badomens))
-		testing("Omen added: [input]")
 		GLOB.badomens += input
 
 /proc/removeomen(input)
 	if(!hasomen(input))
 		return
-	testing("Omen removed: [input]")
 	GLOB.badomens -= input
 
-
 /datum/round_event_control/proc/badomen(eventreason)
-	var/used
+	var/used = "Zizo."
+	var/title = "Bad Omen"
+	var/sound = 'sound/misc/evilevent.ogg'
 	switch(eventreason)
 		if(OMEN_ROUNDSTART)
-			used = "Zizo."
+			used = pick( \
+				"Zizo.", \
+				"Unholy invocations channel the will of Her.", \
+				"Forbidden rituals cause echoes through the plane.", \
+				"Whispers of the Dark Lady in the shadows.", \
+				"The servants of Zizo undermine the Ten.", \
+				"Her influence becomes more tangible...", \
+				"A foul curse temporarily takes the land.", \
+				"The dead churn and dig at their graves.", \
+			)
+			title = pick( \
+				"Zizo Sneers", \
+				"The Dark Lady Watches", \
+				"Zizo's Attention", \
+				"She Peers", \
+				"Zizo Smirks", \
+			)
+			sound = 'sound/misc/gods/zizo_omen.ogg'
 		if(OMEN_NOLORD)
 			used = "The Monarch is dead! We need a new ruler."
 		if(OMEN_NOPRIEST)
@@ -415,5 +446,8 @@ GLOBAL_LIST_INIT(badomens, list())
 			used = "Zizo will rise once again."
 		if("psycross")
 			used = "You have angered the gods!"
-	if(eventreason && used)
-		priority_announce(used, "Bad Omen", 'sound/misc/evilevent.ogg')
+	if(!eventreason)
+		return
+	if(!used || !title || !sound)
+		return
+	priority_announce(used, title, sound)

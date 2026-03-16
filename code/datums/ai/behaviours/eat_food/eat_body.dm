@@ -54,7 +54,7 @@
 			target.gib()
 			if(istype(basic_mob, /mob/living/simple_animal/hostile/retaliate))
 				var/mob/living/simple_animal/hostile/retaliate/mob = basic_mob
-				mob.food = mob.food_max // yummy
+				SEND_SIGNAL(mob, COMSIG_MOB_FILL_HUNGER)
 			finish_action(controller, TRUE)
 	finish_action(controller, FALSE)
 
@@ -68,8 +68,9 @@
 	. = ..()
 	if(!succeeded)
 		controller.clear_blackboard_key(target_key)
-		if(controller.pawn.icon_state != "Trollso")
-			controller.pawn.icon_state = "Trollso"
+		if(istype(controller.pawn, /mob/living/simple_animal/hostile/retaliate/troll))
+			var/mob/living/simple_animal/hostile/retaliate/troll/mob = controller.pawn
+			mob.hide()
 
 /datum/ai_behavior/eat_dead_body/mimic/finish_action(datum/ai_controller/controller, succeeded, target_key, targetting_datum_key, hiding_location_key)
 	. = ..()

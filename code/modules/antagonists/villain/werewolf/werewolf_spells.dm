@@ -1,67 +1,116 @@
-/obj/effect/proc_holder/spell/self/howl
+/datum/action/cooldown/spell/undirected/howl
 	name = "Howl"
 	desc = "!"
-	overlay_state = "howl"
-	antimagic_allowed = TRUE
-	recharge_time = 600 //1 minute
-	ignore_cockblock = TRUE
+	button_icon_state = "howl"
+	has_visual_effects = FALSE
+	antimagic_flags = NONE
+	spell_flags = SPELL_IGNORE_SPELLBLOCK
+
+	charge_required = FALSE
+	cooldown_time = 1 MINUTES
+
+	var/message
 	var/use_language = FALSE
 
-/obj/effect/proc_holder/spell/self/howl/cast(mob/user = usr)
-	..()
-	var/message = input("Howl at the hidden moon...", "MOONCURSED") as text|null
-	if(!message) return
+/datum/action/cooldown/spell/undirected/howl/before_cast(atom/cast_on)
+	. = ..()
+	if(. & SPELL_CANCEL_CAST)
+		return
 
-	var/datum/antagonist/werewolf/werewolf_player = user.mind.has_antag_datum(/datum/antagonist/werewolf)
+	message = browser_input_text(owner, "Howl at the hidden moon...", "MOONCURSED", multiline = TRUE)
+	if(QDELETED(src) || QDELETED(owner) || !can_cast_spell())
+		return . | SPELL_CANCEL_CAST
+
+	if(!message)
+		reset_spell_cooldown()
+		return . | SPELL_CANCEL_CAST
+
+/datum/action/cooldown/spell/undirected/howl/cast(atom/cast_on)
+	. = ..()
 
 	// sound played for owner
-	playsound(src, pick('sound/vo/mobs/wwolf/howl (1).ogg','sound/vo/mobs/wwolf/howl (2).ogg'), 75, TRUE)
+	playsound(owner, pick('sound/vo/mobs/wwolf/howl (1).ogg', 'sound/vo/mobs/wwolf/howl (2).ogg'), 75, TRUE)
 
-	for(var/mob/player in GLOB.player_list)
+	// for(var/mob/player as anything in (GLOB.player_list - owner))
+	// 	if(!player.mind)
+	// 		continue
+	// 	if(player.stat == DEAD)
+	// 		continue
 
-		if(!player.mind) continue
-		if(player.stat == DEAD) continue
-		if(isbrain(player)) continue
+	// 	// Announcement to other werewolves (and anyone else who has beast language somehow)
+	// 	if(player.mind.has_antag_datum(/datum/antagonist/werewolf) || (use_language && player.has_language(/datum/language/beast)))
+	// 		to_chat(player, span_boldannounce("[werewolf_player ? werewolf_player.wolfname : owner.real_name] howls to the hidden moon: [message]"))
 
-		// Announcement to other werewolves (and anyone else who has beast language somehow)
-		if(player.mind.has_antag_datum(/datum/antagonist/werewolf) || (use_language && player.has_language(/datum/language/beast)))
-			to_chat(player, span_boldannounce("[werewolf_player ? werewolf_player.wolfname : user.real_name] howls to the hidden moon: [message]"))
+	// 	if(get_dist(player, owner) > 7)
+	// 		player.playsound_local(get_turf(player), pick('sound/vo/mobs/wwolf/howldist (1).ogg','sound/vo/mobs/wwolf/howldist (2).ogg'), 50, FALSE, pressure_affected = FALSE)
 
-		//sound played for other players
-		if(player == src) continue
-		if(get_dist(player, src) > 7)
-			player.playsound_local(get_turf(player), pick('sound/vo/mobs/wwolf/howldist (1).ogg','sound/vo/mobs/wwolf/howldist (2).ogg'), 50, FALSE, pressure_affected = FALSE)
+	owner.log_message("howls: [message] (WEREWOLF)", LOG_ATTACK)
 
-	user.log_message("howls: [message] (WEREWOLF)" ,LOG_ATTACK)
-
-/obj/effect/proc_holder/spell/self/claws
+/datum/action/cooldown/spell/undirected/claws
 	name = "Lupine Claws"
 	desc = "!"
-	overlay_state = "claws"
-	antimagic_allowed = TRUE
-	recharge_time = 20 //2 seconds
-	ignore_cockblock = TRUE
+	button_icon_state = "claws"
+	has_visual_effects = FALSE
+	antimagic_flags = NONE
+	spell_flags = SPELL_IGNORE_SPELLBLOCK
+	associated_skill = null
+
+	charge_required = FALSE
+	cooldown_time = 5 SECONDS
+
 	var/extended = FALSE
 
-/obj/effect/proc_holder/spell/self/claws/cast(mob/user = usr)
-	..()
-	var/obj/item/weapon/werewolf_claw/left/l
-	var/obj/item/weapon/werewolf_claw/right/r
+/datum/action/cooldown/spell/undirected/claws/cast(atom/cast_on)
+	. = ..()
+	var/obj/item/weapon/werewolf_claw/left/left_claw
+	var/obj/item/weapon/werewolf_claw/right/right_claw
 
-	l = user.get_active_held_item()
-	r = user.get_inactive_held_item()
 	if(extended)
-		if(istype(user.get_active_held_item(), /obj/item/weapon/werewolf_claw))
-			user.dropItemToGround(l, TRUE)
-			user.dropItemToGround(r, TRUE)
-			qdel(l)
-			qdel(r)
-			//user.visible_message("Your claws retract.", "You feel your claws retracting.", "You hear a sound of claws retracting.")
-			extended = FALSE
+		for(var/obj/item/weapon/werewolf_claw/claw in owner.held_items)
+			qdel(claw)
+		to_chat(owner, "You feel your claws retracting.")
+		//owner.visible_message("Your claws retract.", "You feel your claws retracting.", "You hear a sound of claws retracting.")
 	else
-		l = new(user,1)
-		r = new(user,2)
-		user.put_in_hands(l, TRUE, FALSE, TRUE)
-		user.put_in_hands(r, TRUE, FALSE, TRUE)
-		//user.visible_message("Your claws extend.", "You feel your claws extending.", "You hear a sound of claws extending.")
-		extended = TRUE
+		left_claw = new()
+		right_claw = new()
+		if(!owner.put_in_l_hand(left_claw))
+			qdel(left_claw)
+		if(!owner.put_in_r_hand(right_claw))
+			qdel(right_claw)
+		to_chat(owner, "You feel your claws extending.")
+		//owner.visible_message("Your claws extend.", "You feel your claws extending.", "You hear a sound of claws extending.")
+	extended = !extended
+
+/datum/action/cooldown/spell/woundlick
+	name = "Lick the wounds"
+	desc = "Heal the wounds of somebody"
+	button_icon_state = "diagnose"
+
+	cast_range = 1
+
+	spell_cost = 5
+	cooldown_time = 5 SECONDS
+	charge_required = FALSE
+	associated_skill = null
+	has_visual_effects = FALSE
+
+/datum/action/cooldown/spell/woundlick/is_valid_target(atom/target_atom)
+	. = ..()
+	if(!.)
+		return FALSE
+	return ismob(target_atom)
+
+/datum/action/cooldown/spell/woundlick/cast(mob/living/carbon/human/cast_on)
+	. = ..()
+	if(!istype(cast_on))
+		return
+
+	if(do_after(owner, 4 SECONDS, cast_on))
+		var/ramount = 5 // fully metabolized just under 9 seconds. DO NOT ALLOW REAGENT STACKING
+		var/rid = /datum/reagent/medicine/healthpot
+		cast_on.reagents.add_reagent(rid, ramount)
+
+		if(cast_on.mind?.has_antag_datum(/datum/antagonist/werewolf))
+			cast_on.visible_message(span_green("[owner] is licking [cast_on]'s wounds with its tongue!"), span_notice("My kin has covered my wounds..."), vision_distance = COMBAT_MESSAGE_RANGE)
+		else
+			cast_on.visible_message(span_green("[owner] is licking [cast_on]'s wounds with its tongue!"), span_notice("That thing... Did it lick my wounds?"), vision_distance = COMBAT_MESSAGE_RANGE)

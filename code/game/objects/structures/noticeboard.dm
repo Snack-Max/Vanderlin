@@ -23,7 +23,7 @@
 	icon_state = "nboard0[notices]"
 
 //attaching papers!!
-/obj/structure/noticeboard/attackby(obj/item/O, mob/user, params)
+/obj/structure/noticeboard/attackby(obj/item/O, mob/user, list/modifiers)
 	if(istype(O, /obj/item/paper))
 		if(notices < 5)
 			if(!user.transferItemToLoc(O, src))
@@ -37,9 +37,6 @@
 		return ..()
 
 /obj/structure/noticeboard/interact(mob/user)
-	ui_interact(user)
-
-/obj/structure/noticeboard/ui_interact(mob/user)
 	. = ..()
 	var/auth = TRUE
 	var/dat = "<B>[name]</B><BR>"
@@ -55,7 +52,7 @@
 	..()
 	usr.set_machine(src)
 	if(href_list["remove"])
-		if((usr.stat || usr.restrained()))	//For when a player is handcuffed while they have the notice window open
+		if((usr.stat || HAS_TRAIT(usr, TRAIT_RESTRAINED)))	//For when a player is handcuffed while they have the notice window open
 			return
 		var/obj/item/I = locate(href_list["remove"]) in contents
 		if(istype(I) && I.loc == src)
@@ -65,7 +62,7 @@
 			icon_state = "nboard0[notices]"
 
 	if(href_list["write"])
-		if((usr.stat || usr.restrained())) //For when a player is handcuffed while they have the notice window open
+		if((usr.stat || HAS_TRAIT(usr, TRAIT_RESTRAINED))) //For when a player is handcuffed while they have the notice window open
 			return
 		var/obj/item/P = locate(href_list["write"]) in contents
 		if(istype(P) && P.loc == src)

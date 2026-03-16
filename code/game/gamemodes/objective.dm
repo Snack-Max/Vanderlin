@@ -12,10 +12,17 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 	var/martyr_compatible = 0			//If the objective is compatible with martyr objective, i.e. if you can still do it while dead.
 	var/triumph_count = 1
 	var/flavor = "Goal" //so it appear as "goal", "dream", "aspiration", etc
+	var/hidden = FALSE
 
-/datum/objective/New(text)
+/datum/objective/New(text, datum/mind/owner)
 	if(text)
 		explanation_text = text
+	if(owner)
+		src.owner = owner
+	on_creation()
+
+/datum/objective/proc/on_creation()
+	return
 
 /datum/objective/proc/get_owners() // Combine owner and team into a single list.
 	. = (team && team.members) ? team.members.Copy() : list()
@@ -56,7 +63,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 	if(M.force_escaped)
 		return TRUE
 	var/area/A = get_area(M.current)
-	if(istype(A, /area/rogue/indoors/town/cell))
+	if(istype(A, /area/indoors/town/cell))
 		return FALSE
 	return TRUE
 
@@ -89,8 +96,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 
 /datum/objective/proc/get_crewmember_minds()
 	. = list()
-	for(var/V in GLOB.data_core.locked)
-		var/datum/data/record/R = V
+	for(var/datum/data/record/R as anything in GLOB.data_core.locked)
 		var/datum/mind/M = R.fields["mindref"]
 		if(M)
 			. += M
@@ -102,8 +108,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 		dupe_search_range = get_owners()
 	var/list/possible_targets = list()
 	var/try_target_late_joiners = FALSE
-	for(var/I in owners)
-		var/datum/mind/O = I
+	for(var/datum/mind/O as anything in owners)
 		if(O.late_joiner)
 			try_target_late_joiners = TRUE
 	for(var/datum/mind/possible_target in get_crewmember_minds())
@@ -112,8 +117,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 				possible_targets += possible_target
 	if(try_target_late_joiners)
 		var/list/all_possible_targets = possible_targets.Copy()
-		for(var/I in all_possible_targets)
-			var/datum/mind/PT = I
+		for(var/datum/mind/PT as anything in all_possible_targets)
 			if(!PT.late_joiner)
 				possible_targets -= PT
 		if(!possible_targets.len)
@@ -132,7 +136,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 	if(receiver && receiver.current)
 		if(ishuman(receiver.current))
 			var/mob/living/carbon/human/H = receiver.current
-			var/list/slots = list("backpack" = SLOT_IN_BACKPACK)
+			var/list/slots = list("backpack" = ITEM_SLOT_BACKPACK)
 			for(var/eq_path in special_equipment)
 				var/obj/O = new eq_path
 				H.equip_in_one_of_slots(O, slots)
@@ -180,23 +184,6 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 	else
 		explanation_text = "Free Objective"
 
-/datum/objective/maroon
-	name = "maroon"
-	var/target_role_type=FALSE
-	martyr_compatible = 1
-
-/datum/objective/maroon/check_completion()
-	return !target || !considered_alive(target) || (!target.current.onCentCom())
-
-/datum/objective/maroon/update_explanation_text()
-	if(target && target.current)
-		explanation_text = "Prevent [target.name], the [!target_role_type ? target.assigned_role.title : target.special_role], from escaping alive."
-	else
-		explanation_text = "Free Objective"
-
-/datum/objective/maroon/admin_edit(mob/admin)
-	admin_simple_target_pick(admin)
-
 /datum/objective/debrain
 	name = "debrain"
 	var/target_role_type=0
@@ -228,7 +215,7 @@ GLOBAL_LIST(admin_objective_list) //Prefilled admin assignable objective list
 
 /datum/objective/protect//The opposite of killing a dude.
 	name = "protect"
-	martyr_compatible = 1
+	martyr_compatible = TRUE
 	var/target_role_type = FALSE
 	var/human_check = TRUE
 
@@ -405,29 +392,6 @@ GLOBAL_LIST_EMPTY(possible_items)
 	update_explanation_text()
 	return target_amount
 
-/datum/objective/capture/update_explanation_text()
-	. = ..()
-	explanation_text = "Capture [target_amount] lifeform\s with an energy net. Live, rare specimens are worth more."
-
-/datum/objective/capture/check_completion()//Basically runs through all the mobs in the area to determine how much they are worth.
-	var/captured_amount = 0
-	var/area/centcom/holding/A = GLOB.areas_by_type[/area/centcom/holding]
-	for(var/mob/living/carbon/human/M in A)//Humans.
-		if(M.stat == DEAD)//Dead folks are worth less.
-			captured_amount+=0.5
-			continue
-		captured_amount+=1
-	for(var/mob/living/carbon/monkey/M in A)//Monkeys are almost worthless, you failure.
-		captured_amount+=0.1
-
-	return captured_amount >= target_amount
-
-/datum/objective/capture/admin_edit(mob/admin)
-	var/count = input(admin,"How many mobs to capture ?","capture",target_amount) as num|null
-	if(count)
-		target_amount = count
-	update_explanation_text()
-
 /datum/objective/protect_object
 	name = "protect object"
 	var/obj/protect_target
@@ -499,7 +463,6 @@ GLOBAL_LIST_EMPTY(possible_items)
 
 	var/list/allowed_types = sortList(list(
 		/datum/objective/assassinate,
-		/datum/objective/maroon,
 		/datum/objective/debrain,
 		/datum/objective/protect,
 		/datum/objective/escape,
@@ -508,11 +471,10 @@ GLOBAL_LIST_EMPTY(possible_items)
 		/datum/objective/steal,
 		/datum/objective/capture,
 		/datum/objective/custom
-	),/proc/cmp_typepaths_asc)
+	),GLOBAL_PROC_REF(cmp_typepaths_asc))
 
-	for(var/T in allowed_types)
-		var/datum/objective/X = T
-		GLOB.admin_objective_list[initial(X.name)] = T
+	for(var/datum/objective/objective as anything in allowed_types)
+		GLOB.admin_objective_list[initial(objective.name)] = objective
 
 /datum/objective/contract
 	var/payout = 0
@@ -523,7 +485,7 @@ GLOBAL_LIST_EMPTY(possible_items)
 /datum/objective/contract/proc/generate_dropoff()
 	var/found = FALSE
 	while (!found)
-		var/area/dropoff_area = pick(GLOB.sortedAreas)
+		var/area/dropoff_area = pick(GLOB.areas)
 		if(dropoff_area && is_station_level(dropoff_area.z) && !dropoff_area.outdoors)
 			dropoff = dropoff_area
 			found = TRUE

@@ -22,7 +22,7 @@
 	anchored = TRUE
 	density = TRUE
 	max_buckled_mobs = 1
-	buckle_lying = FALSE
+	buckle_lying = 0
 	buckle_prevents_pull = TRUE
 	layer = ABOVE_MOB_LAYER
 	plane = GAME_PLANE_UPPER
@@ -70,9 +70,12 @@
 
 		unbuckle_all_mobs()
 
-/obj/structure/guillotine/attack_right(mob/user)
-	if(.)
+/obj/structure/guillotine/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
 		return
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+
 	user.changeNext_move(CLICK_CD_MELEE)
 	add_fingerprint(user)
 
@@ -126,9 +129,6 @@
 
 		playsound(src, 'sound/misc/guillotine.ogg', 100, TRUE)
 
-		// The delay is to making large crowds have a longer laster applause
-		var/delay_offset = 0
-
 		if(blade_sharpness >= GUILLOTINE_DECAP_MIN_SHARP || head.brute_dam >= 100)
 			if(head.dismemberable)
 				head.dismember()
@@ -138,8 +138,6 @@
 			H.regenerate_icons()
 			unbuckle_all_mobs()
 			kill_count += 1
-
-//			H.adjust_triumphs(-1)
 
 			var/blood_overlay = "bloody"
 
@@ -154,20 +152,16 @@
 
 			// The crowd is pleased
 			for(var/mob/M in viewers(src, 7))
-				M.add_stress(/datum/stressevent/viewexecution)
-				addtimer(CALLBACK(M, TYPE_PROC_REF(/mob, emote), "clap"), delay_offset * 0.3)
-				delay_offset++
+				M.add_stress(/datum/stress_event/viewexecution)
 		else
 			H.apply_damage(30 * blade_sharpness, BRUTE, head)
 			log_combat(user, H, "dropped the blade on", src, " non-fatally")
 			H.emote("scream")
 			// Executor has failed and was ashamed
-			user.add_stress(/datum/stressevent/guillotineexecutorfail)
+			user.add_stress(/datum/stress_event/guillotineexecutorfail)
 			// The crowd is unpleased
 			for(var/mob/M in viewers(src, 7))
-				M.add_stress(/datum/stressevent/guillotinefail)
-				addtimer(CALLBACK(M, TYPE_PROC_REF(/mob, emote), "huh"), delay_offset * 0.3)
-				delay_offset++
+				M.add_stress(/datum/stress_event/guillotinefail)
 
 		if (blade_sharpness > 1)
 			blade_sharpness -= 1
@@ -175,7 +169,7 @@
 	blade_status = GUILLOTINE_BLADE_DROPPED
 	icon_state = "guillotine"
 
-/obj/structure/guillotine/attackby(obj/item/W, mob/user, params)
+/obj/structure/guillotine/attackby(obj/item/W, mob/user, list/modifiers)
 	if (istype(W, /obj/item/natural/stone))
 		add_fingerprint(user)
 		if (blade_status == GUILLOTINE_BLADE_SHARPENING)
@@ -186,8 +180,8 @@
 				blade_status = GUILLOTINE_BLADE_SHARPENING
 				if(do_after(user, 7 DECISECONDS, src))
 					blade_status = GUILLOTINE_BLADE_RAISED
-					user.visible_message("<span class='notice'>[user] sharpens the large blade of the guillotine.</span>",
-						              "<span class='notice'>I sharpen the large blade of the guillotine.</span>")
+					user.visible_message(span_notice("[user] sharpens the large blade of the guillotine."),
+						              span_notice("I sharpen the large blade of the guillotine."))
 					blade_sharpness += 1
 					playsound(src, 'sound/items/sharpen_long1.ogg', 100, TRUE)
 					return
@@ -195,10 +189,10 @@
 					blade_status = GUILLOTINE_BLADE_RAISED
 					return
 			else
-				to_chat(user, "<span class='warning'>The blade is sharp enough!</span>")
+				to_chat(user, span_warning("The blade is sharp enough!"))
 				return
 		else
-			to_chat(user, "<span class='warning'>I need to raise the blade in order to sharpen it!</span>")
+			to_chat(user, span_warning("I need to raise the blade in order to sharpen it!"))
 			return
 	else
 		return ..()
@@ -286,6 +280,7 @@
 #undef GUILLOTINE_BLADE_MAX_SHARP
 #undef GUILLOTINE_DECAP_MIN_SHARP
 #undef GUILLOTINE_ANIMATION_LENGTH
+#undef GUILLOTINE_ANIMATION_RAISE_LENGTH
 #undef GUILLOTINE_BLADE_RAISED
 #undef GUILLOTINE_BLADE_MOVING
 #undef GUILLOTINE_BLADE_DROPPED

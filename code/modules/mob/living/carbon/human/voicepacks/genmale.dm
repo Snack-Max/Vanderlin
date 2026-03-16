@@ -50,6 +50,8 @@
 				used = list('sound/vo/male/gen/haltyell (1).ogg','sound/vo/male/gen/haltyell (2).ogg')
 				if(prob(3))
 					used = 'sound/vo/male/gen/HEY.ogg'
+			if("haltyellorphan")
+				used = list('sound/vo/male/gen/haltyellorphan (1).ogg','sound/vo/male/gen/haltyellorphan (2).ogg')
 			if("hmm")
 				used = 'sound/vo/male/gen/hmm.ogg'
 			if("huh")
@@ -92,8 +94,6 @@
 				used = 'sound/vo/attn.ogg'
 			if("psst")
 				used = 'sound/vo/psst.ogg'
-			if("moan")
-				used = list('sound/vo/male/gen/moan (1).ogg','sound/vo/male/gen/moan (2).ogg','sound/vo/male/gen/moan (3).ogg')
 			if("clap")
 				used = list('sound/vo/clap (1).ogg', 'sound/vo/clap (2).ogg', 'sound/vo/clap (3).ogg', 'sound/vo/clap (4).ogg')
 

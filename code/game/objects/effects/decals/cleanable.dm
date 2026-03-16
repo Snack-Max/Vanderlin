@@ -6,12 +6,14 @@
 	var/bloodiness = 0 //0-100, amount of blood in this decal, used for making footprints and affecting the alpha of bloody footprints
 	var/mergeable_decal = TRUE //when two of these are on a same tile or do we need to merge them into just one?
 	var/beauty = 0
-	obj_flags = CAN_BE_HIT
-	var/minimum_clean_strength = CLEAN_WEAK
+	///The type of cleaning required to clean the decal. See __DEFINES/cleaning.dm for the options
+	var/clean_type = CLEAN_TYPE_LIGHT_DECAL
+	var/wash_precent = 0
+	COOLDOWN_DECLARE(wash_cooldown)
 
 /obj/effect/decal/cleanable/Initialize(mapload)
 	. = ..()
-	if (random_icon_states && (icon_state == initial(icon_state)) && length(random_icon_states) > 0)
+	if(random_icon_states && (icon_state == initial(icon_state)) && length(random_icon_states) > 0)
 		icon_state = pick(random_icon_states)
 	create_reagents(300)
 	if(loc && isturf(loc))
@@ -40,8 +42,10 @@
 	if(mergeable_decal)
 		return TRUE
 
-/obj/effect/decal/cleanable/attackby(obj/item/W, mob/user, params)
+/obj/effect/decal/cleanable/attackby(obj/item/W, mob/user, list/modifiers)
 	lazy_init_reagents()
+	if(!reagents)
+		return ..()
 	if(istype(W, /obj/item/reagent_containers/glass))
 		if(src.reagents && W.reagents)
 			. = 1 //so the containers don't splash their content on the src while scooping.
@@ -95,9 +99,9 @@
 				add_blood = bloodiness
 			bloodiness -= add_blood
 			S.bloody_shoes[blood_state] = min(MAX_SHOE_BLOODINESS,S.bloody_shoes[blood_state]+add_blood)
-			S.add_blood_DNA(return_blood_DNA())
+			S.add_blood_DNA(GET_ATOM_BLOOD_DNA(src))
 			S.blood_state = blood_state
-			update_icon()
+			update_appearance(UPDATE_ICON)
 			H.update_inv_shoes()
 
 /obj/effect/decal/cleanable/proc/can_bloodcrawl_in()
@@ -106,7 +110,18 @@
 	else
 		return 0
 
-/obj/effect/decal/cleanable/wash_act(clean)
+/obj/effect/decal/cleanable/wash(clean_types)
 	. = ..()
-	if(clean >= minimum_clean_strength)
+	if (. || (clean_types & clean_type))
 		qdel(src)
+		return TRUE
+	return .
+
+/obj/effect/decal/cleanable/weather_act_on(weather_trait, severity)
+	if(weather_trait != PARTICLEWEATHER_RAIN || !COOLDOWN_FINISHED(src, wash_cooldown))
+		return
+	COOLDOWN_START(src, wash_cooldown, 7.5 SECONDS)
+	wash_precent += min(25, severity / 2)
+	alpha = 255 *((100 - wash_precent) * 0.01)
+	if(wash_precent >= 100)
+		wash(CLEAN_WASH)

@@ -1,62 +1,67 @@
-/*
-	Keep in mind the thing stored on the mind is a key
-	Thus we mus convert it to a ckey
-*/
-/datum/mind/proc/adjust_triumphs(amt, counted = TRUE)
-	if(!key)
-		return
-	var/ckeey = ckey(key)
-	SStriumphs.triumph_adjust(amt, ckeey)
-	SStriumphs.adjust_leaderboard(key)
+/proc/adjust_triumphs(datum/key_holder, amount, counted = TRUE, reason, silent = FALSE, override_bonus = FALSE)
 
-	if(amt > 0)
-		if(counted)
-			SSticker.tri_gained += amt
-		if(current)
-			to_chat(current, "\n<font color='purple'>[amt] TRIUMPH(S) awarded.</font>")
-	else if(amt < 0)
-		if(counted)
-			SSticker.tri_lost += amt
-		if(current)
-			to_chat(current, "\n<font color='purple'>[amt*-1] TRIUMPH(S) lost.</font>")
-
-
-
-/*
-	A client will only exist when a client is live
-	So we can always get a ckey.
-*/
-/client/proc/adjust_triumphs(amt, counted = TRUE)
-	if(!amt)
+	if(!key_holder)
 		return
 
-	SStriumphs.triumph_adjust(amt, ckey)
-	SStriumphs.adjust_leaderboard(key)
+	if(!amount)
+		return
 
-	if(amt > 0)
-		if(counted)
-			SSticker.tri_gained += amt
-		to_chat(src, "\n<font color='purple'>[amt] TRIUMPH(S) awarded.</font>")
-	else if(amt < 0)
-		if(counted)
-			SSticker.tri_lost += amt
-		to_chat(src, "\n<font color='purple'>[amt*-1] TRIUMPH(S) lost.</font>")
+	var/key
+	var/ckey
+	var/unsafe_ckey = FALSE //for handling offline ckeys
 
-/*
-	mobs also got ckeys p simple
-*/
-/mob/proc/adjust_triumphs(amt, counted = TRUE, reason)
+	if(!ismob(key_holder) && !ismind(key_holder) && !isclient(key_holder))
+		var/possible_ckey = key_holder
+		if(!(possible_ckey in GLOB.keys_by_ckey))
+			unsafe_ckey = TRUE
+			ckey = possible_ckey
+		else
+			ckey = key_holder // in the case that a ckey is passed (ie in triumphs refund)
+	else
+		key = key_holder:key
+
+	// donator triumph increase
+	if((key_is_donator(key) || ckey_is_donator(ckey)) && !override_bonus && (amount > 0))
+		amount *= 1.5
+
+	ckey = ckey ? ckey : ckey(key)
+
 	if(!ckey)
 		return
-	else
-		SStriumphs.triumph_adjust(amt, ckey)
-		SStriumphs.adjust_leaderboard(key)
 
-	if(amt > 0)
+	SStriumphs.triumph_adjust(amount, ckey)
+
+	if(unsafe_ckey)
+		return
+
+	SStriumphs.adjust_leaderboard(GLOB.keys_by_ckey[ckey])
+
+	var/adjustment_verb
+	if(amount > 0)
+		adjustment_verb = "awarded"
 		if(counted)
-			SSticker.tri_gained += amt
-		to_chat(src, "\n<font color='purple'>[amt] TRIUMPH(S) awarded.[reason ? " REASON: [reason]" : ""]</font>")
-	else if(amt < 0)
+			record_round_statistic(STATS_TRIUMPHS_AWARDED, amount)
+	else
+		adjustment_verb = "lost"
 		if(counted)
-			SSticker.tri_lost += amt
-		to_chat(src, "\n<font color='purple'>[amt*-1] TRIUMPH(S) lost.[reason ? " REASON: [reason]" : ""]</font>")
+			record_round_statistic(STATS_TRIUMPHS_STOLEN, amount)
+
+	var/final_text = "[abs(amount)] TRIUMPH\s [adjustment_verb]."
+	if(reason)
+		final_text += " REASON: [reason]"
+
+	if(!silent)
+		to_chat(key_holder, span_purple("[final_text]"))
+
+/datum/mind/proc/adjust_triumphs(amt, counted = TRUE, reason, silent = FALSE, override_bonus = FALSE)
+	if(!key)
+		return
+	global.adjust_triumphs(src, amt, counted, reason, silent, override_bonus)
+
+/client/proc/adjust_triumphs(amt, counted = TRUE, reason, silent = FALSE, override_bonus = FALSE)
+	global.adjust_triumphs(src, amt, counted, reason, silent, override_bonus)
+
+/mob/proc/adjust_triumphs(amt, counted = TRUE, reason, silent = FALSE, override_bonus = FALSE)
+	if(!key)
+		return
+	global.adjust_triumphs(src, amt, counted, reason, silent, override_bonus)

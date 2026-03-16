@@ -1,55 +1,88 @@
-/datum/advclass/combat/monk
-	name = "Monk"
-	allowed_sexes = list(MALE, FEMALE)
-	tutorial = "A traveling monk of the God Ravox, unmatched in unarmed combat and with an unwavering devotion to Justice."
-	allowed_races = list(
-		"Humen",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Kobold",
-		"Aasimar"
+/datum/attribute_holder/sheet/job/monk
+	attribute_variance = list(
+		/datum/attribute/skill/combat/polearms = list(10, 20),
+		/datum/attribute/skill/misc/athletics = list(20, 30)
 	)
-	outfit = /datum/outfit/job/adventurer/monk
-	min_pq = 0
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		STAT_CONSTITUTION = 2,
+		STAT_ENDURANCE = 2,
+		STAT_PERCEPTION = -1,
+		STAT_SPEED = 2,
+		/datum/attribute/skill/misc/reading = 30,
+		/datum/attribute/skill/combat/unarmed = 40,
+		/datum/attribute/skill/combat/wrestling = 30,
+		/datum/attribute/skill/misc/sewing = 20,
+		/datum/attribute/skill/misc/medicine = 10,
+		/datum/attribute/skill/misc/climbing = 40,
+	)
+
+/datum/attribute_holder/sheet/job/monk/kobold
+	attribute_variance = list()
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		STAT_SPEED = -1,
+	)
+/datum/job/advclass/combat/monk
+	title = "Monk"
+	allowed_races = RACES_PLAYER_NONHERETICAL
+	allowed_patrons = ALL_TEMPLE_PATRONS
+	tutorial = "A traveling monk of the Ten, unmatched in the unarmed arts, with an unwavering devotion to their patron God's Justice."
+	total_positions = 4
+	outfit = /datum/outfit/adventurer/monk
+
 	category_tags = list(CTAG_ADVENTURER)
 	cmode_music = 'sound/music/cmode/adventurer/CombatMonk.ogg'
-	vampcompat = FALSE
+	exp_types_granted = list(EXP_TYPE_ADVENTURER, EXP_TYPE_COMBAT, EXP_TYPE_CLERIC)
+	allowed_patrons = ALL_TEMPLE_PATRONS  // randomize patron if not in ten
 
-/datum/outfit/job/adventurer/monk
+	attribute_sheet = /datum/attribute_holder/sheet/job/monk
 
-/datum/outfit/job/adventurer/monk/pre_equip(mob/living/carbon/human/H)
-	..()
-	head = /obj/item/clothing/head/roguehood/brown
-	neck = /obj/item/clothing/neck/psycross/silver/ravox
+	traits = list(
+		TRAIT_DODGEEXPERT,
+	)
+
+/datum/job/advclass/combat/monk/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	if(spawned.dna?.species.id == "kobold")
+		spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/monk/kobold)
+
+/datum/outfit/adventurer/monk
+	name = "Monk (Adventurer)"
+
+	head = /obj/item/clothing/head/roguehood/colored/brown
 	shoes = /obj/item/clothing/shoes/shortboots
-	cloak = /obj/item/clothing/cloak/raincloak/furcloak/brown
-	armor = /obj/item/clothing/shirt/robe/plain
+	cloak = /obj/item/clothing/cloak/raincloak/furcloak/colored/brown
+	armor = /obj/item/clothing/shirt/robe/colored/plain
 	wrists = /obj/item/clothing/wrists/bracers/leather
+	gloves = /obj/item/clothing/gloves/bandages/pugilist
 	belt = /obj/item/storage/belt/leather/rope
 	beltr = /obj/item/storage/belt/pouch/coins/poor
 	backl = /obj/item/storage/backpack/backpack
 	backr = /obj/item/weapon/polearm/woodstaff
+	neck = /obj/item/clothing/cloak/templar/undivided
 
-	if(H.mind)
-		if(H.patron != /datum/patron/divine/ravox)
-			H.set_patron(/datum/patron/divine/ravox)
+/datum/outfit/adventurer/monk/pre_equip(mob/living/carbon/human/H, visuals_only)
+	. = ..()
 
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 5, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 4, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/polearms, pick(1,1,2), TRUE) // Wood staff
-		H.mind?.adjust_skillrank(/datum/skill/misc/sewing, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/medicine, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 4, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, pick(2,2,3), TRUE)
-
-		H.change_stat(STATKEY_STR, 3)
-		H.change_stat(STATKEY_CON, 2)
-		H.change_stat(STATKEY_END, 2)
-		H.change_stat(STATKEY_PER, -1)
-		H.change_stat(STATKEY_SPD, 1)
-
-		ADD_TRAIT(H, TRAIT_DODGEEXPERT, TRAIT_GENERIC)
-
-
+	switch(H.patron?.type)
+		if(/datum/patron/divine/astrata)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/astrata
+		if(/datum/patron/divine/necra) // Necra acolytes are now gravetenders
+			neck = /obj/item/clothing/neck/psycross/silver/divine/necra
+		if(/datum/patron/divine/eora)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/eora
+		if(/datum/patron/divine/noc)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/noc
+		if(/datum/patron/divine/pestra)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/pestra
+		if(/datum/patron/divine/dendor)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/dendor
+		if(/datum/patron/divine/abyssor)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/abyssor
+		if(/datum/patron/divine/ravox)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/ravox
+		if(/datum/patron/divine/xylix)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/xylix
+		if(/datum/patron/divine/malum)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/malum

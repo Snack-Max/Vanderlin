@@ -25,12 +25,10 @@
 
 	icon = 'icons/obj/guns/harpoon.dmi'
 	icon_state = "harpoon"
-	twohands_required = TRUE
 
 	gripped_intents = list(/datum/intent/mace/smash/heavy, /datum/intent/mace/thrust) //its practically a mace at this size
 	possible_item_intents = list(/datum/intent/mace/strike)
-	pixel_y = -16
-	pixel_x = -16
+	SET_BASE_PIXEL(-16, -16)
 	inhand_x_dimension = 64
 	inhand_y_dimension = 64
 	bigboy = TRUE
@@ -57,10 +55,23 @@
 /obj/item/harpoon_gun/Initialize(mapload)
 	. = ..()
 	harpoon_sound = new(src)
-	update_overlays()
-	AddComponent(/datum/component/steam_storage, 300, 0)
+	update_appearance(UPDATE_ICON_STATE)
 
-/obj/item/harpoon_gun/afterattack(atom/target, mob/living/user, proximity)
+/obj/item/harpoon_gun/apply_components()
+	AddComponent(/datum/component/steam_storage, 300, 0, "harpoon_gun")
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
+
+/obj/item/harpoon_gun/Destroy()
+	leash_target = null
+	if(leash)
+		QDEL_NULL(leash)
+	if(harpoon_sound)
+		QDEL_NULL(harpoon_sound)
+	if(zipline)
+		QDEL_NULL(zipline)
+	return ..()
+
+/obj/item/harpoon_gun/afterattack(atom/target, mob/living/user, proximity, list/modifiers)
 	. = ..()
 
 	if(isgroundlessturf(target))
@@ -86,17 +97,18 @@
 	if(user.CanReach(attacked_atom))
 		return
 
-	if(!SEND_SIGNAL(src, COMSIG_ATOM_STEAM_USE, 50))
+	if(!SEND_SIGNAL(src, COMSIG_ATOM_STEAM_USE, 50, "harpoon_gun"))
 		return
 	. |= TRUE
 
 	var/atom/bullet = fire_projectile(/obj/projectile/grapple_hook, attacked_atom, 'sound/zipline_fire.ogg')
-	zipline = user.Beam(bullet, icon_state = "chain", maxdistance = 9, time = INFINITY)
+	zipline = user.Beam(bullet, icon_state = "chain", max_distance = 9, time = INFINITY)
 	retracted_hook = FALSE
 	RegisterSignal(bullet, COMSIG_PROJECTILE_SELF_ON_HIT, PROC_REF(on_grapple_hit))
 	RegisterSignal(bullet, COMSIG_PARENT_PREQDELETED, PROC_REF(on_grapple_fail))
 	harpooner = WEAKREF(user)
-	update_overlays()
+	update_appearance(UPDATE_ICON_STATE)
+
 
 
 /obj/item/harpoon_gun/proc/setup_leash(mob/living/target, mob/firer)
@@ -105,10 +117,13 @@
 	leash_target = target
 
 	RegisterSignal(target, COMSIG_PARENT_EXAMINE, PROC_REF(leashed_examine))
-	target.apply_damage(15, BRUTE, firer.zone_selected)
+	if(istype(firer))
+		target.apply_damage(15, BRUTE, firer.zone_selected)
+	else
+		target.apply_damage(15, BRUTE, BODY_ZONE_CHEST)
 
 /obj/item/harpoon_gun/proc/leashed_examine(datum/source, mob/user, list/examine_list)
-	examine_list += "<a href='byond://?src=[REF(src)];pull_harpoon=1'>You have a harpoon stuck in you!</a>"
+	examine_list += "<a href='byond://?src=[REF(src)];pull_harpoon=1'>embedded harpoon</a>"
 
 /obj/item/harpoon_gun/Topic(href, href_list)
 	. = ..()
@@ -152,24 +167,26 @@
 		setup_leash(target, firer)
 		return
 
-	zipline = user.Beam(target, icon_state = "chain", maxdistance = 9, time = INFINITY)
+	zipline = user.Beam(target, icon_state = "chain", max_distance = 9, time = INFINITY)
 	RegisterSignal(zipline, COMSIG_PARENT_PREQDELETED, PROC_REF(on_zipline_break))
 	RegisterSignal(user, COMSIG_MOVABLE_MOVED, PROC_REF(determine_distance))
 	RegisterSignal(user, COMSIG_MOVABLE_PRE_THROW, PROC_REF(apply_throw_traits))
 	stored_launch = target
 
-/obj/item/harpoon_gun/attack_right(mob/user)
+/obj/item/harpoon_gun/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
 	if(leashed)
 		user.visible_message(span_danger("[user] starts to retract [src]."), span_danger("You start to retract [src]."))
 		if(!do_after(user, 2.5 SECONDS, src))
-			return
+			return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 		QDEL_NULL(leash)
 		leashed = FALSE
 		leash_target = null
-	. = ..()
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 
-
-/obj/item/harpoon_gun/attack_self(mob/user)
+/obj/item/harpoon_gun/attack_self(mob/user, list/modifiers)
 	. = ..()
 	if(leashed)
 		user.visible_message(span_danger("[user] starts to reel in [src]."), span_danger("You start to reel in [src]."))
@@ -207,7 +224,7 @@
 	var/atom/target_atom = arguements[1]
 	if(isnull(target_atom))
 		return
-	var/dir_to_turn = Get_Angle(source, target_atom)
+	var/dir_to_turn = get_angle(source, target_atom)
 	if(dir_to_turn > 175 && dir_to_turn < 190)
 		dir_to_turn = 0
 
@@ -244,7 +261,7 @@
 	harpooner = null
 	retracted_hook = TRUE
 	harpoon_sound.stop()
-	update_icon_state()
+	update_appearance(UPDATE_ICON_STATE)
 
 /obj/item/harpoon_gun/update_icon_state()
 	. = ..()

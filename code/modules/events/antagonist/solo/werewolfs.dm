@@ -1,15 +1,17 @@
 /datum/round_event_control/antagonist/solo/werewolf
 	name = "Verevolfs"
 	tags = list(
+		TAG_DENDOR,
+		TAG_GRAGGAR,
 		TAG_COMBAT,
 		TAG_HAUNTED,
-		TAG_VILLIAN,
+		TAG_VILLAIN,
 	)
 	roundstart = TRUE
 	antag_flag = ROLE_WEREWOLF
 	shared_occurence_type = SHARED_HIGH_THREAT
 
-	denominator = 80
+	denominator = 55
 
 	base_antags = 1
 	maximum_antags = 2
@@ -17,42 +19,32 @@
 	weight = 12
 
 	earliest_start = 0 SECONDS
+	min_players = LOWPOP_THRESHOLD
 
 	typepath = /datum/round_event/antagonist/solo/werewolf
 	antag_datum = /datum/antagonist/werewolf
 
 	restricted_roles = list(
-		"Monarch",
-		"Consort",
-		"Dungeoneer",
-		"Inquisitor",
-		"Men-at-arms",
-		"Merchant",
-		"Priest",
-		"Acolyte",
-		"Adepts",
-		"Templar",
-		"Bandit",
-		"Prince",
-		"Princess",
-		"Hand",
-		"Steward",
-		"Feldsher",
-		"Town Elder",
-		"Captain",
-		"Archivist",
-		"Merchant",
-		"Royal Knight",
-		"Garrison Guard",
-		"Jailor",
-		"Court Magician",
-		"Forest Warden",
-		"Inquisitor",
-		"Adepts",
-		"Forest Guard",
-		"Squire",
-		"Veteran",
-		"Apothecary"
+		/datum/job/lord,
+		/datum/job/consort,
+		/datum/job/priest,
+		/datum/job/hand,
+		/datum/job/captain,
+		/datum/job/prince,
+		/datum/job/inquisitor,
+		/datum/job/absolver,
+		/datum/job/orthodoxist,
+		/datum/job/adept,
+		/datum/job/forestwarden,
+		/datum/job/royalknight,
+		/datum/job/templar,
+		/datum/job/gmtemplar,
+		/datum/job/advclass/combat/assassin,
 	)
+
+/datum/round_event_control/antagonist/solo/werewolf/valid_for_map()
+	if(SSmapping.config.map_name != "Voyage")
+		return TRUE
+	return FALSE
 
 /datum/round_event/antagonist/solo/werewolf

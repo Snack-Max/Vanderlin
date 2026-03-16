@@ -34,9 +34,8 @@
 	if(hotspots == null)
 		hotspots = -1
 
-/datum/buildmode_mode/boom/handle_click(client/c, params, obj/object)
-	var/list/pa = params2list(params)
-	var/left_click = pa.Find("left")
+/datum/buildmode_mode/boom/handle_click(client/c, list/modifiers, obj/object)
+	var/left_click = LAZYACCESS(modifiers, LEFT_CLICK)
 
 	if(left_click)
 		explosion(object, devastation, heavy, light, flash, FALSE, TRUE, flames, hotspots)

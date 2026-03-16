@@ -12,28 +12,25 @@
 
 	..()
 
-	var/motd = global.config.motd
-	if(motd)
-		to_chat(src, "<div class=\"motd\">[motd]</div>", handle_whitespace=FALSE)
+	if(GLOB.join_motd)
+		to_chat(src, span_info("MOTD:\n \t [GLOB.join_motd]"))
+
+	if(GLOB.current_tms)
+		to_chat(src, span_info("Testmerges:\n \t [GLOB.current_tms]"))
 
 	if(GLOB.rogue_round_id)
-		to_chat(src, "<span class='info'>ROUND ID: [GLOB.rogue_round_id]</span>")
-
-//	if(motd)
-//		to_chat(src, "<B>If this is your first time here,</B> <a href='byond://?src=[REF(src)];rpprompt=1'>read this lore primer.</a>", handle_whitespace=FALSE)
+		to_chat(src, span_info("ROUND ID: [GLOB.rogue_round_id]"))
 
 	if(GLOB.admin_notice)
-		to_chat(src, "<span class='notice'><b>Admin Notice:</b>\n \t [GLOB.admin_notice]</span>")
+		to_chat(src, span_notice("<b>Admin Notice:</b>\n \t [GLOB.admin_notice]"))
 
 	var/spc = CONFIG_GET(number/soft_popcap)
 	if(spc && living_player_count() >= spc)
-		to_chat(src, "<span class='notice'><b>Server Notice:</b>\n \t [CONFIG_GET(string/soft_popcap_message)]</span>")
+		to_chat(src, span_notice("<b>Server Notice:</b>\n \t [CONFIG_GET(string/soft_popcap_message)]"))
 
 	sight |= SEE_TURFS
 
-	new_player_panel()
-	if(client)
-		client.playtitlemusic()
+	client?.playtitlemusic()
 	if(SSticker.current_state < GAME_STATE_SETTING_UP)
 		var/tl = SSticker.GetTimeLeft()
 		var/postfix
@@ -47,6 +44,6 @@
 			var/list/thinz = list("takes [client.p_their()] seat.", "settles in.", "joins the session", "joins the table.", "becomes a player.")
 			SEND_TEXT(world, "<span class='notice'>[usedkey] [pick(thinz)]</span>")
 
-	client.change_view(8)
-	sleep(1 SECONDS)
-	client.change_view(CONFIG_GET(string/default_view))
+	// client?.change_view(8)
+	// sleep(1 SECONDS)
+	client?.view_size?.resetToDefault()

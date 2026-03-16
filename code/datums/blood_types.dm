@@ -1,5 +1,6 @@
 GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys(/datum/blood_type))
 
+#define VITAE / BLOOD_VOLUME_NORMAL
 
 /**
  * Blood Types
@@ -10,7 +11,7 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
 	/// The short-hand name of the blood type
 	var/name = "?"
 	///this is the color of our blood
-	var/color = LIGHT_COLOR_LIGHT_CYAN
+	var/color = COLOR_BLOOD
 	/// What blood types can this type receive from
 	/// Itself is always included in this list
 	var/list/compatible_types = list()
@@ -18,6 +19,14 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
 	var/datum/reagent/reagent_type = /datum/reagent/blood
 	/// What chem is used to restore this blood type (outside of itself, of course)?
 	var/datum/reagent/restoration_chem
+	///do we contain Lux?
+	var/contains_lux = FALSE
+	///is our lux tainted?
+	var/tainted_lux = FALSE
+	///the chimeric table we pull from when creating chimeric nodes based on this blood
+	var/datum/chimeric_table/used_table
+	/// The vitae richness per unit of blood
+	var/vitae = 0
 
 /datum/blood_type/New()
 	. = ..()
@@ -26,7 +35,38 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
 
 /// Gets data to pass to a reagent
 /datum/blood_type/proc/get_blood_data(mob/living/sampled_from)
-	return null
+	if(!istype(sampled_from))
+		return null
+
+	var/list/blood_data = list()
+
+	blood_data["mind"] = sampled_from.mind
+	blood_data["ckey"] = sampled_from.ckey
+	blood_data["blood_type"] = sampled_from.get_blood_type().type
+	blood_data["gender"] = sampled_from.gender
+	blood_data["real_name"] = sampled_from.real_name
+	blood_data["factions"] = sampled_from.faction
+
+	blood_data["preferences"] = get_blood_prefs(sampled_from)
+	blood_data["vitae"] = vitae
+	if(blood_data["ckey"] && !(sampled_from.mind?.has_antag_datum(/datum/antagonist/vampire))) // double from players, vamps give half vitae though
+		blood_data["vitae"] *= 2
+	return blood_data
+
+/datum/blood_type/proc/get_blood_prefs(mob/living/sampled_from)
+	. = (sampled_from.stat == DEAD ? BLOOD_PREFERENCE_DEAD : BLOOD_PREFERENCE_LIVING)
+	if(sampled_from.has_status_effect(STATUS_EFFECT_SLEEPING))
+		. |= BLOOD_PREFERENCE_SLEEPING
+	if(sampled_from.mind?.has_antag_datum(/datum/antagonist/zombie))
+		. &= ~BLOOD_PREFERENCE_LIVING
+		. |= BLOOD_PREFERENCE_DEAD
+	if(sampled_from.mind?.has_antag_datum(/datum/antagonist/vampire))
+		. |= BLOOD_PREFERENCE_DEAD|BLOOD_PREFERENCE_KIN
+		. &= ~BLOOD_PREFERENCE_LIVING
+	if(HAS_TRAIT(sampled_from, TRAIT_NOBLE_BLOOD))
+		. |= BLOOD_PREFERENCE_FANCY
+	if(HAS_TRAIT(sampled_from, TRAIT_SILVER_BLESSED))
+		. |= BLOOD_PREFERENCE_EUPHORIC
 
 /**
  * Used to handle any unique facets of blood spawned of this blood type
@@ -36,14 +76,16 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
  * * new_splat - whether this is a newly instantiated blood decal, or an existing one this blood is being added to
  */
 /datum/blood_type/proc/set_up_blood(obj/effect/decal/cleanable/blood/blood, new_splat = FALSE)
-	return
-
-
+	blood.color = color
 
 /// A base type for all blood used by humans (NOT humanoids), for organization's sake
 /datum/blood_type/human
+	name = "Human"
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/human
+	vitae = 1500 VITAE
 
-/datum/blood_type/human/get_blood_data(mob/living/carbon/sampled_from)
+/datum/blood_type/human/get_blood_data(mob/living/carbon/human/sampled_from)
 	if(!istype(sampled_from) || isnull(sampled_from.dna))
 		return ..()
 
@@ -56,7 +98,8 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
 		temp_chem[trace_chem.type] = trace_chem.volume
 	blood_data["trace_chem"] = list2params(temp_chem)
 
-	blood_data["mind"] = sampled_from.mind || sampled_from.last_mind
+	var/datum/mind/M = sampled_from.mind || sampled_from.last_mind
+	blood_data["mind"] = M
 	blood_data["ckey"] = sampled_from.ckey || ckey(sampled_from.last_mind?.key)
 	blood_data["cloneable"] = !sampled_from.suiciding
 	blood_data["blood_type"] = sampled_from.dna.human_blood_type
@@ -64,74 +107,145 @@ GLOBAL_LIST_INIT_TYPED(blood_types, /datum/blood_type, init_subtypes_w_path_keys
 	blood_data["real_name"] = sampled_from.real_name
 	blood_data["features"] = sampled_from.dna.features
 	blood_data["factions"] = sampled_from.faction
+
+	blood_data["preferences"] = get_blood_prefs(sampled_from)
+	blood_data["vitae"] = vitae
+	if(blood_data["ckey"] && !(sampled_from.mind?.has_antag_datum(/datum/antagonist/vampire))) // double from players, vamps give half vitae though
+		blood_data["vitae"] *= 2
+
 	return blood_data
 
-
-/datum/blood_type/human/a_minus
-	name = "A-"
-	compatible_types = list(
-		/datum/blood_type/human/o_minus,
-	)
+/datum/blood_type/human/get_blood_prefs(mob/living/carbon/human/sampled_from)
+	. = ..()
+	if(!istype(sampled_from))
+		return
+	if(sampled_from.cleric && istype(sampled_from.patron, /datum/patron/divine))
+		. |= BLOOD_PREFERENCE_HOLY
+	if(sampled_from.virginity)
+		. |= BLOOD_PREFERENCE_VIRGIN
 
 /datum/blood_type/human/tiefling
 	name = "Tiefling"
-	compatible_types = list(
-		/datum/blood_type/human/o_minus,
-	)
 	reagent_type = /datum/reagent/blood/tiefling
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/tiefling
 
-/datum/blood_type/human/a_plus
-	name = "A+"
-	compatible_types = list(
-		/datum/blood_type/human/a_minus,
-		/datum/blood_type/human/a_plus,
-		/datum/blood_type/human/o_minus,
-		/datum/blood_type/human/o_plus,
-	)
+/datum/blood_type/human/kobold
+	name = "Kobold"
+	reagent_type = /datum/reagent/blood
+	contains_lux = FALSE
+	used_table = /datum/chimeric_table/kobold
 
-/datum/blood_type/human/b_minus
-	name = "B-"
-	compatible_types = list(
-		/datum/blood_type/human/b_minus,
-		/datum/blood_type/human/o_minus,
-	)
+/datum/blood_type/human/rakshari
+	name = "Rakshari"
+	reagent_type = /datum/reagent/blood
+	contains_lux = FALSE
+	used_table = /datum/chimeric_table/rakshari
 
-/datum/blood_type/human/b_plus
-	name = "B+"
-	compatible_types = list(
-		/datum/blood_type/human/b_minus,
-		/datum/blood_type/human/b_plus,
-		/datum/blood_type/human/o_minus,
-		/datum/blood_type/human/o_plus,
-	)
+/datum/blood_type/human/demihuman
+	name = "Hollow-Kin"
+	reagent_type = /datum/reagent/blood
+	contains_lux = FALSE
+	used_table = /datum/chimeric_table/demihuman
 
-/datum/blood_type/human/ab_minus
-	name = "AB-"
-	compatible_types = list(
-		/datum/blood_type/human/b_minus,
-		/datum/blood_type/human/ab_minus,
-		/datum/blood_type/human/a_minus,
-		/datum/blood_type/human/o_minus,
-	)
+/datum/blood_type/human/horc
+	name = "Half-Orc"
+	reagent_type = /datum/reagent/blood
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/horc
 
-/datum/blood_type/human/ab_plus
-	name = "AB+"
-	// Universal Recipient
+/datum/blood_type/human/delf
+	name = "Dark Elf"
+	reagent_type = /datum/reagent/blood
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/delf
 
-/datum/blood_type/human/ab_plus/New()
-	. = ..()
-	compatible_types |= subtypesof(/datum/blood_type/human)
+/datum/blood_type/human/cursed_elf
+	name = "Cursed Elf Blood"
+	reagent_type = /datum/reagent/blood
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/cursed_elf
 
-/datum/blood_type/human/o_minus
-	name = "O-"
-	// Universal Donor
+/datum/blood_type/human/triton
+	name = "Triton"
+	reagent_type = /datum/reagent/blood
+	contains_lux = TRUE
+	used_table = /datum/chimeric_table/triton
 
-/datum/blood_type/human/o_plus
-	name = "O+"
-	compatible_types = list(
-		/datum/blood_type/human/o_minus,
-		/datum/blood_type/human/o_plus,
-	)
+/datum/blood_type/human/medicator
+	name = "Medicator"
+	used_table = /datum/chimeric_table/medicator
+
+/datum/blood_type/human/dwarf
+	name = "Dwarf"
+	used_table = /datum/chimeric_table/dwarf
+
+/datum/blood_type/human/dwarf/subterra
+	name = "Jarosite Dwarf"
+	used_table = /datum/chimeric_table/random/subterran_dwarf
+
+/datum/blood_type/human/elf
+	name = "Elf"
+	used_table = /datum/chimeric_table/elf
 
 /datum/blood_type/animal
-	name = "Y-"
+	name = "Animal"
+	used_table = /datum/chimeric_table/animal
+
+/datum/blood_type/troll
+	name = "Troll"
+	used_table = /datum/chimeric_table/troll
+
+/datum/blood_type/fey
+	name = "Fey"
+	used_table = /datum/chimeric_table/fey
+
+/datum/blood_type/lycan
+	name = "Lycan"
+	used_table = /datum/chimeric_table/lycan
+
+/datum/blood_type/human/corrupted
+	contains_lux = TRUE
+	tainted_lux = TRUE
+	reagent_type = /datum/reagent/blood
+
+/datum/blood_type/human/corrupted/goblin
+	name = "Goblin"
+	used_table = /datum/chimeric_table/goblin
+	vitae = 750 VITAE
+
+/datum/blood_type/human/corrupted/orc
+	name = "Orc"
+	used_table = /datum/chimeric_table/orc
+	vitae = 1250 VITAE
+
+/datum/blood_type/human/corrupted/rousman
+	name = "Rousman"
+	used_table = /datum/chimeric_table/rousman
+	contains_lux = FALSE
+	vitae = 750 VITAE
+
+/datum/blood_type/human/corrupted/rousman/get_blood_prefs(mob/living/carbon/human/sampled_from)
+	. = ..()
+	if(!istype(sampled_from))
+		return
+	. |= BLOOD_PREFERENCE_RATS
+
+/datum/blood_type/human/corrupted/zizombie
+	name = "Zizombie"
+	reagent_type = /datum/reagent/blood/putrid
+	vitae = 1000 VITAE
+
+/datum/blood_type/human/corrupted/zizombie/get_blood_prefs(mob/living/carbon/human/sampled_from)
+	. = ..()
+	if(!istype(sampled_from))
+		return
+	. |= BLOOD_PREFERENCE_DEAD
+	. &= ~BLOOD_PREFERENCE_LIVING
+
+/datum/blood_type/putrid
+	name = "Putrid"
+	reagent_type = /datum/reagent/blood/putrid
+	used_table = /datum/chimeric_table/putrid
+
+#undef VITAE

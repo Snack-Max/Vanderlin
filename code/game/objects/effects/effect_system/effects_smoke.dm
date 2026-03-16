@@ -6,9 +6,8 @@
 	name = "smoke"
 	icon = 'icons/effects/96x96.dmi'
 	icon_state = "smoke"
-	pixel_x = -32
-	pixel_y = -32
-	opacity = 1
+	SET_BASE_PIXEL(-32, -32)
+	opacity = TRUE
 	layer = FLY_LAYER
 	plane = GAME_PLANE_UPPER
 	anchored = TRUE
@@ -34,8 +33,9 @@
 /obj/effect/particle_effect/smoke/Initialize()
 	. = ..()
 	create_reagents(500)
+	var/turf/T = get_turf(src)
+	T.ImmediateCalculateAdjacentTurfs()
 	START_PROCESSING(SSobj, src)
-
 
 /obj/effect/particle_effect/smoke/Destroy()
 	STOP_PROCESSING(SSobj, src)
@@ -61,6 +61,8 @@
 	if(lifetime<1)
 		return 0
 	if(C.smoke_delay)
+		return 0
+	if(istype(C.wear_mask, /obj/item/clothing/face/facemask/steel/confessor))
 		return 0
 	C.smoke_delay++
 	addtimer(CALLBACK(src, PROC_REF(remove_smoke_delay), C), 10)
@@ -134,6 +136,31 @@
 
 /datum/effect_system/smoke_spread/bad
 	effect_type = /obj/effect/particle_effect/smoke/bad
+
+
+/////////////////////////////////////////////
+// Poison smoke
+/////////////////////////////////////////////
+
+/obj/effect/particle_effect/smoke/poison
+	color = "#23462d"
+	lifetime = 10
+
+/obj/effect/particle_effect/smoke/poison/smoke_mob(mob/living/carbon/M)
+	if(..())
+		if(!istype(M.wear_mask, /obj/item/clothing/face/phys/plaguebearer))
+			M.adjustToxLoss(5)
+			M.add_nausea(5)
+			M.reagents.add_reagent(/datum/reagent/miasmagas, 1)
+			M.emote("cough")
+			if(prob(5))
+				to_chat(M, span_warning("You feel numbness spreading through your body..."))
+			return 1
+
+
+/datum/effect_system/smoke_spread/poison
+	effect_type = /obj/effect/particle_effect/smoke/poison
+
 
 /////////////////////////////////////////////
 // Sleep smoke

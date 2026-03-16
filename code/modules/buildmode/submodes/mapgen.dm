@@ -13,9 +13,8 @@
 /datum/buildmode_mode/mapgen/change_settings(client/c)
 	var/list/gen_paths = subtypesof(/datum/mapGenerator)
 	var/list/options = list()
-	for(var/path in gen_paths)
-		var/datum/mapGenerator/MP = path
-		options[initial(MP.buildmode_name)] = path
+	for(var/datum/mapGenerator/MP as anything in gen_paths)
+		options[initial(MP.buildmode_name)] = MP
 	var/type = input(c,"Select Generator Type","Type") as null|anything in options
 	if(!type)
 		return
@@ -23,16 +22,16 @@
 	generator_path = options[type]
 	deselect_region()
 
-/datum/buildmode_mode/mapgen/handle_click(client/c, params, obj/object)
+/datum/buildmode_mode/mapgen/handle_click(client/c, list/modifiers, obj/object)
 	if(isnull(generator_path))
 		to_chat(c, "<span class='warning'>Select generator type first.</span>")
 		deselect_region()
 		return
 	..()
 
-/datum/buildmode_mode/mapgen/handle_selected_area(client/c, params)
-	var/list/pa = params2list(params)
-	var/left_click = pa.Find("left")
+/datum/buildmode_mode/mapgen/handle_selected_area(client/c, list/modifiers)
+	var/left_click = LAZYACCESS(modifiers, LEFT_CLICK)
+
 	if(left_click)
 		var/datum/mapGenerator/G = new generator_path
 		G.defineRegion(cornerA, cornerB, 1)

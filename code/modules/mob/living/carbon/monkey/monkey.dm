@@ -14,11 +14,11 @@
 	unique_name = TRUE
 	bodyparts = list(/obj/item/bodypart/chest/monkey, /obj/item/bodypart/head/monkey, /obj/item/bodypart/l_arm/monkey,
 					/obj/item/bodypart/r_arm/monkey, /obj/item/bodypart/r_leg/monkey, /obj/item/bodypart/l_leg/monkey)
-	hud_type = /datum/hud/monkey
+	hud_type = /datum/hud/human
 
 /mob/living/carbon/monkey/Initialize(mapload, cubespawned=FALSE, mob/spawner)
-	// verbs += /mob/living/proc/mob_sleep
-	verbs += /mob/living/proc/lay_down
+	// add_verb(src, /mob/living/proc/mob_sleep)
+	add_verb(src, /mob/living/proc/lay_down)
 
 	if(unique_name) //used to exclude pun pun
 		gender = pick(MALE, FEMALE)
@@ -40,7 +40,7 @@
 
 	create_dna(src)
 	dna.initialize_dna()
-	AddComponent(/datum/component/footstep, FOOTSTEP_MOB_BAREFOOT, 1, 2)
+	AddElement(/datum/element/footstep, FOOTSTEP_MOB_BAREFOOT, 1, -6)
 
 /mob/living/carbon/monkey/Destroy()
 	SSmobs.cubemonkeys -= src
@@ -64,7 +64,7 @@
 	if(amount)
 		add_movespeed_modifier(MOVESPEED_ID_MONKEY_REAGENT_SPEEDMOD, TRUE, 100, override = TRUE, multiplicative_slowdown = amount)
 
-/mob/living/carbon/monkey/updatehealth()
+/mob/living/carbon/monkey/updatehealth(amount)
 	. = ..()
 	var/slow = 0
 	if(!HAS_TRAIT(src, TRAIT_IGNOREDAMAGESLOWDOWN))
@@ -80,15 +80,6 @@
 		slow += ((283.222 - bodytemperature) / 10) * 1.75
 	add_movespeed_modifier(MOVESPEED_ID_MONKEY_TEMPERATURE_SPEEDMOD, TRUE, 100, override = TRUE, multiplicative_slowdown = slow)
 
-/mob/living/carbon/monkey/Stat()
-	..()
-	if(!client)
-		return
-	if(statpanel("Status"))
-		stat(null, "Intent: [a_intent]")
-		stat(null, "Move Mode: [m_intent]")
-	return
-
 /mob/living/carbon/monkey/IsAdvancedToolUser()//Unless its monkey mode monkeys can't use advanced tools
 	if(mind)
 		return TRUE
@@ -96,7 +87,7 @@
 
 /mob/living/carbon/monkey/can_use_guns(obj/item/G)
 	if(G.trigger_guard == TRIGGER_GUARD_NONE)
-		to_chat(src, "<span class='warning'>I are unable to fire this!</span>")
+		to_chat(src, "<span class='warning'>I am unable to fire this!</span>")
 		return FALSE
 	return TRUE
 
@@ -104,6 +95,8 @@
 	return FALSE
 
 /mob/living/carbon/monkey/canBeHandcuffed()
+	if(num_hands < 2)
+		return FALSE
 	return TRUE
 
 /mob/living/carbon/monkey/IsVocal()

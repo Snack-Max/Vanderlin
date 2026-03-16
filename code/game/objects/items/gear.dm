@@ -1,6 +1,6 @@
 /obj/item/gear
 	icon = 'icons/roguetown/items/misc.dmi'
-	name = "cog"
+	name = "gear"
 	desc = ""
 	icon_state = ""
 	w_class = WEIGHT_CLASS_SMALL
@@ -9,19 +9,24 @@
 	grid_width = 32
 
 /obj/item/gear/metal
-	name = "cog"
-	desc = "A cog with teeth meticulously crafted for tight interlocking."
+	desc = "A gear with teeth meticulously crafted for tight interlocking."
 	icon_state = "gear"
+	melt_amount = 25
 
 // To prevent metal transmutation
 /obj/item/gear/metal/bronze
-	smeltresult = /obj/item/ingot/bronze
+	melting_material = /datum/material/bronze
 
 /obj/item/gear/metal/iron
-	smeltresult = /obj/item/ingot/iron
+	icon = 'icons/roguetown/items/new_gears.dmi'
+	icon_state = "iron_gear"
+	melting_material = /datum/material/iron
+	melt_amount = 35
 
 /obj/item/gear/metal/steel
-	smeltresult = /obj/item/ingot/steel
+	icon = 'icons/roguetown/items/new_gears.dmi'
+	icon_state = "steel_gear"
+	melting_material = /datum/material/steel
 
 /obj/item/gear/wood
 	var/cart_capacity = 0
@@ -31,16 +36,17 @@
 	grid_width = 32
 
 /obj/item/gear/wood/basic
-	name = "wooden cog"
-	desc = "A very simple wooden cog. Used in carts and machinery."
+	name = "wooden gear"
+	desc = "A very simple wooden gear. Used in carts and machinery."
 	icon_state = "upgrade"
 	metalizer_result = /obj/item/gear/metal
+	smeltresult = /obj/item/fertilizer/ash
 	cart_capacity = 90
 	misfire_modification = -5
 
 /obj/item/gear/wood/reliable
-	name = "reliable wooden cog"
-	desc = "A cog imbued with a special essence, making it very reliable. Used in carts and machinery."
+	name = "reliable wooden gear"
+	desc = "A gear imbued with a special essence, making it very reliable. Used in carts and machinery."
 	icon_state = "upgrade2"
 	cart_capacity = 120
 	misfire_modification = -50
@@ -51,8 +57,8 @@
 	filters = filter(type="drop_shadow", x=0, y=0, size=0.5, offset=1, color=rgb(32, 196, 218, 200))
 
 /obj/item/gear/wood/unstable
-	name = "unstable wooden cog"
-	desc = "A cog imbued with a special essence, making it prone to breaking at any time. Used in carts and machinery."
+	name = "unstable wooden gear"
+	desc = "A gear imbued with a special essence, making it prone to breaking at any time. Used in carts and machinery."
 	icon_state = "upgrade2"
 	cart_capacity = 140
 	misfire_modification = 50

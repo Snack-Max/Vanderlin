@@ -3,6 +3,7 @@
 // Used on admin testing area only.
 
 GLOBAL_LIST_INIT(IconStates_cache, list())
+GLOBAL_LIST_INIT(has_behind_cache, list()) // cheaty hack to avoid repeated list searches
 
 // 32x32 in-hand helper item
 /obj/item/inhand_tester
@@ -20,7 +21,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	var/extra_index = get_extra_onmob_index()
 	if(extra_index) //WIP, unimplemented
 		used_index += extra_index
-	if(HAS_BLOOD_DNA(src))
+	if(GET_ATOM_BLOOD_DNA_LENGTH(src))
 		used_index += "_b"
 	var/static/list/onmob_sprites = list()
 	var/icon/onmob = onmob_sprites["[tag][behind][mirrored][used_index]"]
@@ -70,38 +71,42 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	var/icon/blended
 	var/skipoverlays = FALSE
 	if(behind)
-		if(!(icon in GLOB.IconStates_cache))
-			var/icon/J = new(icon)
-			var/list/istates = J.IconStates()
-			GLOB.IconStates_cache |= icon
+		if(!GLOB.IconStates_cache[icon])
+			var/list/istates = icon_states(icon)
 			GLOB.IconStates_cache[icon] = istates
+			GLOB.has_behind_cache[icon] = ("[icon_state]_behind" in istates)
 
-		if("[icon_state]_behind" in GLOB.IconStates_cache[icon])
-			blended=icon("icon"=icon, "icon_state"="[icon_state]_behind")
+		if(GLOB.has_behind_cache[icon])
+			blended = icon(icon = icon, icon_state = "[icon_state]_behind")
 			skipoverlays = TRUE
 		else
-			blended=icon("icon"=icon, "icon_state"=icon_state)
+			blended = icon(icon = icon, icon_state = icon_state)
 	else
-		blended=icon("icon"=icon, "icon_state"=icon_state)
+		blended = icon(icon = icon, icon_state = icon_state)
 
 	if(!blended)
-		blended=getFlatIcon(src)
+		blended = getFlatIcon(src)
 
 	if(!blended)
 		return
+
 	if(!skipoverlays)
-		for(var/V in overlays)
-			var/image/IM = V
-			var/icon/image_overlay = new(IM.icon,IM.icon_state)
-			if(IM.color)
-				image_overlay.Blend(IM.color,ICON_MULTIPLY)
-			blended.Blend(image_overlay,ICON_OVERLAY)
+		for(var/mutable_appearance/overlay as anything in overlays)
+			var/static/list/plane_whitelist = list(FLOAT_PLANE, GAME_PLANE, FLOOR_PLANE)
+			if(!(overlay.plane in plane_whitelist))
+				continue
+			var/icon/image_overlay = new(overlay.icon, overlay.icon_state)
+			if(image_overlay)
+				if(overlay.color)
+					image_overlay.Blend(overlay.color, ICON_MULTIPLY)
+				blended.Blend(image_overlay, ICON_OVERLAY)
 
 	var/icon/holder
 	if(blended.Height() == 32)
 		UW = 32
 		UH = 32
 		used_mask = 'icons/roguetown/helpers/inhand.dmi'
+
 	var/icon/masky
 	var/px = 0
 	var/py = 0
@@ -118,13 +123,13 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 			render_this_dir = TRUE
 	if(render_this_dir)
 		holder = icon(blended)
-		masky = icon("icon"=used_mask, "icon_state"="north")
+		masky = icon(icon=used_mask, icon_state="north")
 		holder.Blend(masky, ICON_MULTIPLY)
-		if("nflip" in used_prop)
+		if(!isnull(used_prop["nflip"]))
 			holder.Flip(used_prop["nflip"])
-		if("nturn" in used_prop)
+		if(!isnull(used_prop["nturn"]))
 			holder.Turn(used_prop["nturn"])
-		if("nx" in used_prop)
+		if(!isnull(used_prop["nx"]))
 			if(mirrored)
 				px += used_prop["nx"]*-1
 				var/biggu = FALSE
@@ -136,10 +141,10 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 //				else
 			else
 				px += used_prop["nx"]
-		if("ny" in used_prop)
+		if(!isnull(used_prop["ny"]))
 			py = used_prop["ny"]
 		ax = 0
-		if("shrink" in used_prop)
+		if(!isnull(used_prop["shrink"]))
 			holder.Scale(UW*used_prop["shrink"],UH*used_prop["shrink"])
 			ax = 32-(holder.Width()/2)
 		px += ax
@@ -160,13 +165,13 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 		px = 0
 		py = 0
 		holder = icon(blended)
-		masky = icon("icon"=used_mask, "icon_state"="south")
+		masky = icon(icon=used_mask, icon_state="south")
 		holder.Blend(masky, ICON_MULTIPLY)
-		if("sflip" in used_prop)
+		if(!isnull(used_prop["sflip"]))
 			holder.Flip(used_prop["sflip"])
-		if("sturn" in used_prop)
+		if(!isnull(used_prop["sturn"]))
 			holder.Turn(used_prop["sturn"])
-		if("sx" in used_prop)
+		if(!isnull(used_prop["sx"]))
 			if(mirrored)
 				px += used_prop["sx"]*-1
 				var/biggu = FALSE
@@ -178,10 +183,10 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 //				else
 			else
 				px += used_prop["sx"]
-		if("sy" in used_prop)
+		if(!isnull(used_prop["sy"]))
 			py += used_prop["sy"]
 		ax = 0
-		if("shrink" in used_prop)
+		if(!isnull(used_prop["shrink"]))
 			holder.Scale(UW*used_prop["shrink"],UH*used_prop["shrink"])
 			ax = 32-(holder.Width()/2)
 		px += ax
@@ -208,20 +213,20 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 		px = 0
 		py = 0
 		holder = icon(blended)
-		masky = icon("icon"=used_mask, "icon_state"="east")
+		masky = icon(icon=used_mask, icon_state="east")
 		holder.Blend(masky, ICON_MULTIPLY)
-		if("[usedtag]flip" in used_prop)
+		if(!isnull(used_prop["[usedtag]flip"]))
 			holder.Flip(used_prop["[usedtag]flip"])
-		if("[usedtag]turn" in used_prop)
+		if(!isnull(used_prop["[usedtag]turn"]))
 			holder.Turn(used_prop["[usedtag]turn"])
-		if("[usedtag]x" in used_prop)
+		if(!isnull(used_prop["[usedtag]x"]))
 			px = used_prop["[usedtag]x"]
 			if(mirrored)
 				px = px*-1
-		if("[usedtag]y" in used_prop)
+		if(!isnull(used_prop["[usedtag]y"]))
 			py = used_prop["[usedtag]y"]
 		ax = 0
-		if("shrink" in used_prop)
+		if(!isnull(used_prop["shrink"]))
 			holder.Scale(UW*used_prop["shrink"],UH*used_prop["shrink"])
 			ax = 32-(holder.Width()/2)
 		px += ax
@@ -248,20 +253,20 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 		px = 0
 		py = 0
 		holder = icon(blended)
-		masky = icon("icon"=used_mask, "icon_state"="west")
+		masky = icon(icon=used_mask, icon_state="west")
 		holder.Blend(masky, ICON_MULTIPLY)
-		if("[usedtag]flip" in used_prop)
+		if(!isnull(used_prop["[usedtag]flip"]))
 			holder.Flip(used_prop["[usedtag]flip"])
-		if("[usedtag]turn" in used_prop)
+		if(!isnull(used_prop["[usedtag]turn"]))
 			holder.Turn(used_prop["[usedtag]turn"])
-		if("[usedtag]x" in used_prop)
+		if(!isnull(used_prop["[usedtag]x"]))
 			px = used_prop["[usedtag]x"]
 			if(mirrored)
 				px = px*-1
-		if("[usedtag]y" in used_prop)
+		if(!isnull(used_prop["[usedtag]y"]))
 			py = used_prop["[usedtag]y"]
 		ax = 0
-		if("shrink" in used_prop)
+		if(!isnull(used_prop["shrink"]))
 			holder.Scale(UW*used_prop["shrink"],UH*used_prop["shrink"])
 			ax = 32-(holder.Width()/2)
 		px += ax
@@ -335,7 +340,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -386,7 +391,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -437,7 +442,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -488,7 +493,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -539,7 +544,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -603,7 +608,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -656,7 +661,7 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
@@ -700,21 +705,15 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
 
-		for(var/X in I.onprop)
-			if(X == used_cat)
-				var/list/L = I.onprop[X]
-				if(L.len)
-					if(!needtofind in L)
-						L += needtofind
-					for(var/P in L)
-						if(P == needtofind)
-							L[P] += 0.1
-							to_chat(LI, "[needtofind] = [L[P]]")
+		if(length(I.onprop?[used_cat]))
+			var/list/L = I.onprop[used_cat]
+			L[needtofind] += 0.1
+			to_chat(LI, "[needtofind] = [L[needtofind]]")
 	LI.update_inv_hands()
 	LI.update_inv_belt()
 	LI.update_inv_back()
@@ -744,22 +743,15 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 	if(I)
 		if(!used_cat && I.altgripped)
 			used_cat = "altgrip"
-		if(!used_cat && I.wielded)
+		if(!used_cat && HAS_TRAIT(I, TRAIT_WIELDED))
 			used_cat = "wielded"
 		if(!used_cat)
 			used_cat = "gen"
 
-		for(var/X in I.onprop)
-			if(X == used_cat)
-				var/list/L = I.onprop[X]
-				if(L.len)
-					if(!needtofind in L)
-						L += needtofind
-					for(var/P in L)
-						if(P == needtofind)
-							L[P] -= 0.1
-							to_chat(LI, "[needtofind] = [L[P]]")
-	LI.update_inv_hands()
+		if(length(I.onprop?[used_cat]))
+			var/list/L = I.onprop[used_cat]
+			L[needtofind] -= 0.1
+			to_chat(LI, "[needtofind] = [L[needtofind]]")
 	LI.update_inv_belt()
 	LI.update_inv_back()
 
@@ -805,18 +797,4 @@ GLOBAL_LIST_INIT(IconStates_cache, list())
 			var/list/screens = list(C.hud_used.plane_masters["[FLOOR_PLANE]"], C.hud_used.plane_masters["[GAME_PLANE]"], C.hud_used.plane_masters["[LIGHTING_PLANE]"])
 			for(var/whole_screen in screens)
 				animate(whole_screen, transform = matrix(), time = 5, easing = QUAD_EASING)
-#endif
-
-#ifdef TESTING
-/client/verb/door_test_button()
-	set category = "DEBUGTEST"
-	set name = "door_test_button"
-	if(mob)
-		var/mob/M = mob
-		if(isturf(M.loc))
-			var/turf/T = M.loc
-			for(var/obj/structure/mineral_door/D in T)
-				to_chat(M, "DOOR - [D]")
-				to_chat(M, "LOCKID: [D.lockid]")
-				to_chat(M, "LOCKSTATUS: [D.locked]")
 #endif

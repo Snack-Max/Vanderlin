@@ -1,7 +1,8 @@
 /obj/item/grown/log
 	name = "tower-cap log"
 	desc = ""
-	icon_state = "logs"
+	icon = 'icons/roguetown/items/natural.dmi'
+	icon_state = "log"
 	force = 10
 	throwforce = 10
 	w_class = WEIGHT_CLASS_HUGE
@@ -15,7 +16,7 @@
 	/obj/item/reagent_containers/food/snacks/grown/tea,
 	/obj/item/reagent_containers/food/snacks/grown/ambrosia/vulgaris,
 	/obj/item/reagent_containers/food/snacks/grown/ambrosia/deus,
-	/obj/item/reagent_containers/food/snacks/produce/wheat*/))
+	/obj/item/reagent_containers/food/snacks/produce/grain/wheat*/))
 
 /obj/item/grown/log/proc/CheckAccepted(obj/item/I)
 	return is_type_in_typecache(I, accepted)

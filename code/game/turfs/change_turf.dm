@@ -65,15 +65,14 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	if(!GLOB.use_preloader && path == type && !(flags & CHANGETURF_FORCEOP)) // Don't no-op if the map loader requires it to be reconstructed
 		return src
 	if(flags & CHANGETURF_SKIP)
-		testing("fuck3")
 		return new path(src)
 
-	var/old_opacity = opacity
 	var/old_dynamic_lighting = dynamic_lighting
 	var/old_affecting_lights = affecting_lights
 	var/old_lighting_object = lighting_object
 	var/old_outdoor_effect = outdoor_effect
 	var/old_corners = corners
+	var/old_directional_opacity = directional_opacity
 
 	var/old_exl = explosion_level
 	var/old_exi = explosion_id
@@ -82,23 +81,31 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 
 	var/list/old_baseturfs = baseturfs
 
-	var/list/transferring_comps = list()
-	SEND_SIGNAL(src, COMSIG_TURF_CHANGE, path, new_baseturfs, flags, transferring_comps)
-	for(var/i in transferring_comps)
-		var/datum/component/comp = i
-		comp.RemoveComponent()
+	var/list/post_change_callbacks = list()
+	SEND_SIGNAL(src, COMSIG_TURF_CHANGE, path, new_baseturfs, flags, post_change_callbacks)
 
 	changing_turf = TRUE
 	qdel(src)	//Just get the side effects and call Destroy
+	//We do this here so anything that doesn't want to persist can clear itself
+	var/list/old_comp_lookup = comp_lookup?.Copy()
+	var/list/old_signal_procs = signal_procs?.Copy()
 	var/turf/W = new path(src)
 
-	for(var/i in transferring_comps)
-		W.TakeComponent(i)
+	// WARNING WARNING
+	// Turfs DO NOT lose their signals when they get replaced, REMEMBER THIS
+	// It's possible because turfs are fucked, and if you have one in a list and it's replaced with another one, the list ref points to the new turf
+	if(old_comp_lookup)
+		LAZYOR(W.comp_lookup, old_comp_lookup)
+	if(old_signal_procs)
+		LAZYOR(W.signal_procs, old_signal_procs)
+
+	for(var/datum/callback/callback as anything in post_change_callbacks)
+		callback.InvokeAsync(W)
 
 	if(new_baseturfs)
-		W.baseturfs = new_baseturfs
+		W.baseturfs = baseturfs_string_list(new_baseturfs, W)
 	else
-		W.baseturfs = old_baseturfs
+		W.baseturfs = baseturfs_string_list(old_baseturfs, W) //Just to be safe
 
 
 	W.explosion_id = old_exi
@@ -112,20 +119,24 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	if(SSlighting.initialized)
 		if(SSoutdoor_effects.initialized)
 			outdoor_effect = old_outdoor_effect
-			get_sky_and_weather_states()
+			update_sky_and_weather_states()
 
-		recalc_atom_opacity()
 		lighting_object = old_lighting_object
 		affecting_lights = old_affecting_lights
 		corners = old_corners
-		if (old_opacity != opacity || dynamic_lighting != old_dynamic_lighting)
-			reconsider_lights()
+		directional_opacity = old_directional_opacity
+		recalculate_directional_opacity()
 
 		if (dynamic_lighting != old_dynamic_lighting)
 			if (IS_DYNAMIC_LIGHTING(src))
 				lighting_build_overlay()
 			else
 				lighting_clear_overlay()
+
+	// only queue for smoothing if SSatom initialized us, and we'd be changing smoothing state
+	if(flags_1 & INITIALIZED_1)
+		QUEUE_SMOOTH_NEIGHBORS(src)
+		QUEUE_SMOOTH(src)
 
 	return W
 
@@ -155,8 +166,8 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 		if(new_baseturfs.len == 1)
 			new_baseturfs = new_baseturfs[1]
 
-		if(turf_type == /turf/open/transparent/openspace)
-			var/turf/below = get_step_multiz(src, DOWN)
+		if(turf_type == /turf/open/openspace)
+			var/turf/below = GET_TURF_BELOW(src)
 			if(!below) //We are at the LOWEST z-level.
 				turf_type = /turf/open/floor/naturalstone
 			else
@@ -174,16 +185,16 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 //		else
 //			if(istype(turf_type, /turf/open) && istype(src, /turf/closed))
 //				var/turf/closed/CL = src
-//				var/turf/above = get_step_multiz(src, UP)
+//				var/turf/above = GET_TURF_ABOVE(src)
 //				if(above)
 //					if(istype(above, CL.above_floor))
-//						above.ChangeTurf(/turf/open/transparent/openspace, list(/turf/open/transparent/openspace), flags)
+//						above.ChangeTurf(/turf/open/openspace, list(/turf/open/openspace), flags)
 		return ChangeTurf(turf_type, new_baseturfs, flags)
 
 	var/used_type = baseturfs
 
-	if(baseturfs == /turf/open/transparent/openspace)
-		var/turf/below = get_step_multiz(src, DOWN)
+	if(baseturfs == /turf/open/openspace)
+		var/turf/below = GET_TURF_BELOW(src)
 		if(!below) //We are at the LOWEST z-level.
 			used_type = /turf/open/floor/naturalstone
 		else
@@ -216,8 +227,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 			assemble_baseturfs(fake_turf_type)
 			if(!length(baseturfs))
 				baseturfs = list(baseturfs)
-			baseturfs -= baseturfs & GLOB.blacklisted_automated_baseturfs
-			baseturfs += old_baseturfs
+			baseturfs = baseturfs_string_list((baseturfs - (baseturfs & GLOB.blacklisted_automated_baseturfs)) + old_baseturfs, src)
 			return
 		else if(!length(new_baseturfs))
 			new_baseturfs = list(new_baseturfs, fake_turf_type)
@@ -225,7 +235,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 			new_baseturfs += fake_turf_type
 	if(!length(baseturfs))
 		baseturfs = list(baseturfs)
-	baseturfs.Insert(1, new_baseturfs)
+	baseturfs = baseturfs_string_list(new_baseturfs + baseturfs, src)
 
 // Make a new turf and put it on top
 // The args behave identical to PlaceOnBottom except they go on top
@@ -253,26 +263,25 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 			newT.assemble_baseturfs(initial(fake_turf_type.baseturfs)) // The baseturfs list is created like roundstart
 			if(!length(newT.baseturfs))
 				newT.baseturfs = list(baseturfs)
-			newT.baseturfs -= GLOB.blacklisted_automated_baseturfs
-			newT.baseturfs.Insert(1, old_baseturfs) // The old baseturfs are put underneath
+			// The old baseturfs are put underneath, and we sort out the unwanted ones
+			newT.baseturfs = baseturfs_string_list(old_baseturfs + (newT.baseturfs - GLOB.blacklisted_automated_baseturfs), newT)
 			return newT
 		if(!length(baseturfs))
 			baseturfs = list(baseturfs)
 		if(!istype(src, /turf/closed))
-			baseturfs += type
-		baseturfs += new_baseturfs
-		testing("fuck2")
+			new_baseturfs = list(type) + new_baseturfs
+		baseturfs = baseturfs_string_list(baseturfs + new_baseturfs, src)
 		return ChangeTurf(fake_turf_type, null, flags)
 	if(!length(baseturfs))
 		baseturfs = list(baseturfs)
 	if(!istype(src, /turf/closed))
-		baseturfs += type
+		baseturfs = baseturfs_string_list(baseturfs + type, src)
 	var/turf/change_type
 	if(length(new_baseturfs))
 		change_type = new_baseturfs[new_baseturfs.len]
 		new_baseturfs.len--
 		if(new_baseturfs.len)
-			baseturfs += new_baseturfs
+			baseturfs = baseturfs_string_list(baseturfs + new_baseturfs, src)
 	else
 		change_type = new_baseturfs
 
@@ -306,7 +315,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 			new_baseturfs += target_baseturfs
 
 	var/turf/newT = copytarget.copyTurf(src, copy_air)
-	newT.baseturfs = new_baseturfs
+	newT.baseturfs = baseturfs_string_list(new_baseturfs, newT)
 	return newT
 
 
@@ -318,8 +327,6 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	else
 		CALCULATE_ADJACENT_TURFS(src)
 
-	queue_smooth_neighbors(src)
-
 	HandleTurfChange(src)
 
 /turf/open/AfterChange(flags)
@@ -330,9 +337,11 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 //	new /obj/structure/lattice(locate(x, y, z))
 
 
-/turf/open/proc/try_respawn_mined_chunks(chance = 150, list/weighted_rocks)
+/turf/open/proc/try_respawn_mined_chunks(chance = 100, list/weighted_rocks)
 	if(!prob(chance))
-		return
+		return FALSE
+	if(!istype(src, /turf/open/floor/naturalstone))
+		return FALSE
 
 	var/turf/closed/mineral/random/picked = pickweight(weighted_rocks)
 	GLOB.mined_resource_loc -= src
@@ -345,6 +354,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 			continue
 		if(!(turf in GLOB.mined_resource_loc))
 			continue
-		try_respawn_mined_chunks(chance-25, list(picked = 10))
+		turf.try_respawn_mined_chunks(chance - 25, list(picked = 10))
 		if(!prob(chance))
-			return
+			return TRUE
+	return TRUE

@@ -1,16 +1,27 @@
 
 /obj/item/clothing/cloak/chasuble
 	name = "chasuble"
-	desc = "Pristine white liturgical vestments with a golden psycross adornment."
+	desc = "Pristine white liturgical vestments with a golden Astratan cross adornment."
 	icon_state = "chasuble"
 	body_parts_covered = CHEST|GROIN|ARMS
 	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
 	sleevetype = "shirt"
 	slot_flags = ITEM_SLOT_CLOAK
 	allowed_sex = list(MALE)
-	allowed_race = list("human", "tiefling", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 	nodismemsleeves = TRUE
 
+/obj/item/clothing/cloak/chasuble/psydon
+	name = "chasuble"
+	desc = "Pristine white liturgical vestments with a golden psycross adornment."
+	icon_state = "chasuble_psydon"
+	body_parts_covered = CHEST|GROIN|ARMS
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+	sleevetype = "shirt"
+	slot_flags = ITEM_SLOT_CLOAK
+	allowed_sex = list(MALE)
+	allowed_race = SPECIES_BASE_BODY
+	nodismemsleeves = TRUE
 
 /obj/item/clothing/cloak/stole
 	name = "stole"
@@ -36,9 +47,10 @@
 	sleevetype = "shirt"
 	slot_flags = ITEM_SLOT_CLOAK
 	allowed_sex = list(MALE)
-	allowed_race = list("human", "tiefling", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 	sellprice = 50
 	nodismemsleeves = TRUE
+	min_cold_protection_temperature = -20
 
 /obj/item/clothing/cloak/tribal
 	name = "tribal pelt"
@@ -63,7 +75,7 @@
 	sleevetype = "shirt"
 	slot_flags = ITEM_SLOT_CLOAK
 	allowed_sex = list(MALE)
-	allowed_race = list("human", "tiefling", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 	sellprice = 50
 	nodismemsleeves = TRUE
 
@@ -84,9 +96,9 @@
 	toggle_icon_state = FALSE
 	color = CLOTHING_SOOT_BLACK
 	allowed_sex = list(MALE, FEMALE)
-	allowed_race = list("human", "tiefling", "elf", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 
-/obj/item/clothing/cloak/half/ComponentInitialize()
+/obj/item/clothing/cloak/half/Initialize(mapload, ...)
 	. = ..()
 	AddComponent(/datum/component/storage/concrete/grid/cloak)
 
@@ -103,42 +115,14 @@
 	color = CLOTHING_PLUM_PURPLE
 	icon_state = "guardcloak"
 	allowed_race = ALL_RACES_LIST
-
-/obj/item/clothing/cloak/half/guard/Initialize()
-	. = ..()
-	if(GLOB.lordprimary)
-		lordcolor(GLOB.lordprimary,GLOB.lordsecondary)
-	else
-		GLOB.lordcolor += src
-
-/obj/item/clothing/cloak/half/guard/lordcolor(primary,secondary)
-	if(primary)
-		color = primary
-
-/obj/item/clothing/cloak/half/guard/Destroy()
-	GLOB.lordcolor -= src
-	return ..()
+	uses_lord_coloring = LORD_PRIMARY
 
 /obj/item/clothing/cloak/half/guardsecond
 	name = "guard's half cloak"
 	color = CLOTHING_BLOOD_RED
 	icon_state = "guardcloak"
 	allowed_race = ALL_RACES_LIST
-
-/obj/item/clothing/cloak/half/guardsecond/Initialize()
-	. = ..()
-	if(GLOB.lordprimary)
-		lordcolor(GLOB.lordprimary,GLOB.lordsecondary)
-	else
-		GLOB.lordcolor += src
-
-/obj/item/clothing/cloak/half/guardsecond/lordcolor(primary,secondary)
-	if(secondary)
-		color = secondary
-
-/obj/item/clothing/cloak/half/guardsecond/Destroy()
-	GLOB.lordcolor -= src
-	return ..()
+	uses_lord_coloring = LORD_PRIMARY
 
 /obj/item/clothing/cloak/half/shadowcloak
 	name = "stalker cloak"
@@ -161,10 +145,13 @@
 	body_parts_covered = ARMS|CHEST
 	armor = ARMOR_MAILLE_GOOD
 
-/obj/item/clothing/cloak/half/brown
+/obj/item/clothing/cloak/half/colored
+	misc_flags = CRAFTING_TEST_EXCLUDE
+
+/obj/item/clothing/cloak/half/colored/brown
 	color = CLOTHING_BARK_BROWN
 
-/obj/item/clothing/cloak/half/red
+/obj/item/clothing/cloak/half/colored/red
 	color = CLOTHING_BLOOD_RED
 
 /obj/item/clothing/cloak/half/vet
@@ -172,21 +159,11 @@
 	icon_state = "guardcloak"
 	color = CLOTHING_BLOOD_RED
 	inhand_mod = FALSE
+	uses_lord_coloring = LORD_PRIMARY
 
-/obj/item/clothing/cloak/half/vet/Initialize()
-	. = ..()
-	if(GLOB.lordprimary)
-		lordcolor(GLOB.lordprimary,GLOB.lordsecondary)
-	else
-		GLOB.lordcolor += src
-
-/obj/item/clothing/cloak/half/vet/Destroy()
-	GLOB.lordcolor -= src
-	return ..()
-
-/obj/item/clothing/cloak/half/random/Initialize()
+/obj/item/clothing/cloak/half/colored/random/Initialize()
 	color = pick(CLOTHING_WINESTAIN_RED, CLOTHING_MUSTARD_YELLOW, CLOTHING_SOOT_BLACK, CLOTHING_BARK_BROWN, CLOTHING_FOREST_GREEN, CLOTHING_BERRY_BLUE)
-	..()
+	return ..()
 
 /obj/item/clothing/cloak/matron
 	name = "matron cloak"
@@ -212,10 +189,11 @@
 	alternate_worn_layer = TABARD_LAYER
 	body_parts_covered = CHEST|GROIN
 	slot_flags = ITEM_SLOT_ARMOR|ITEM_SLOT_CLOAK
+
 //.............inquisitor cloaks......... (For inquisitors..)
 /obj/item/clothing/cloak/cape/puritan
 	icon_state = "puritan_cape"
-	allowed_race = list("human", "tiefling", "elf", "dwarf", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 
 /obj/item/clothing/cloak/cape/inquisitor
 	name = "Inquisitors Cloak"
@@ -233,36 +211,11 @@
 	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
 	sleeved = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
 
-/obj/item/clothing/head/helmet/heavy/blkknight
-	name = "blacksteel helmet"
-	desc = "A helmet black as nite, with blue decorations. Instills fear upon those that gaze upon it."
-	icon_state = "bkhelm"
-	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
-	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-
 /obj/item/clothing/cloak/tabard/blkknight
 	name = "blood sash"
 	icon_state = "bksash"
 	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
 	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-
-/obj/item/clothing/pants/platelegs/blk
-	name = "blacksteel legs"
-	icon_state = "bklegs"
-	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
-	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	sleeved = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	anvilrepair = /datum/skill/craft/blacksmithing
-	smeltresult = /obj/item/ingot/blacksteel
-
-/obj/item/clothing/gloves/plate/blk
-	name = "blacksteel gauntlets"
-	icon_state = "bkgloves"
-	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
-	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	sleeved = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	anvilrepair = /datum/skill/craft/blacksmithing
-	smeltresult = /obj/item/ingot/blacksteel
 
 /obj/item/clothing/neck/blkknight
 	name = "dragonscale necklace"
@@ -274,16 +227,6 @@
 	resistance_flags = FIRE_PROOF
 	sellprice = 666
 	static_price = TRUE
-
-/obj/item/clothing/shoes/boots/armor/blkknight
-	name = "blacksteel boots"
-	icon_state = "bkboots"
-	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
-	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	sleeved = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
-	anvilrepair = /datum/skill/craft/blacksmithing
-	smeltresult = /obj/item/ingot/blacksteel
-
 
 /obj/item/clothing/cloak/volfmantle
 	name = "volf mantle"
@@ -308,4 +251,81 @@
 	sleevetype = "shirt"
 	nodismemsleeves = TRUE
 	inhand_mod = TRUE
-	allowed_race = list("human", "tiefling", "elf", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
+
+/obj/item/clothing/cloak/faceless
+	name = "sash"
+	icon_state = "facelesssash" //Credit goes to Cre
+	item_state = "facelesssash"
+	desc = "A limp piece of fabric traditionally used to fasten bags that are too baggy, but in modern days has become more of a fashion statement than anything."
+
+/obj/item/clothing/cloak/half/duelcape
+	name = "duelist cape"
+	desc = "A cape designed for mercenary bands hailing from Valoria."
+	icon_state = "duelistcape"
+	item_state = "duelistcape"
+	color = null
+	nodismemsleeves = TRUE
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+	slot_flags = ITEM_SLOT_BACK_R|ITEM_SLOT_CLOAK
+	allowed_race = SPECIES_BASE_BODY
+	inhand_mod = FALSE
+
+/obj/item/clothing/cloak/graggar
+	name = "vicious cloak"
+	desc = "A cloak with a sinister aura set to bring about violence on the world."
+	icon_state = "graggarcloak"
+	icon_state = "graggarcloak"
+	icon = 'icons/roguetown/clothing/special/evilarmor.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sleeved = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sellprice = 0 // See above comment
+
+/obj/item/clothing/cloak/silktabard
+	name = "fine silk tabard"
+	desc = "A finely crafted long tabard weaved from silk. Fashionable, and a symbol of status and wealth."
+	icon_state = "silktabard"
+	item_state = "silktabard"
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+	allowed_ages = ALL_AGES_LIST //placeholder until younglings have onmob sprites for this item
+
+/obj/item/clothing/cloak/shredded
+	name = "shredded cloak"
+	desc = "A shredded long cloak."
+	icon_state = "shredded"
+	item_state = "shredded"
+	alternate_worn_layer = CLOAK_BEHIND_LAYER
+	slot_flags = ITEM_SLOT_BACK_R|ITEM_SLOT_CLOAK
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+	sleevetype = "shirt"
+	nodismemsleeves = TRUE
+	inhand_mod = TRUE
+	allowed_race = SPECIES_BASE_BODY
+
+/obj/item/clothing/cloak/pegasusknight
+	name = "checkered tabard"
+	desc = "A quilted checkered tabard."
+	icon_state = "lakkaritabard"
+	item_state = "lakkaritabard"
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+	allowed_race = SPECIES_BASE_BODY
+
+/obj/item/clothing/cloak/poncho
+
+	name = "cloth poncho"
+	desc = "A loose garment that is usually draped across ones upper body. No one's quite sure of its cultural origin."
+	icon_state = "poncho"
+	item_state = "poncho"
+	boobed = FALSE
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'
+
+/obj/item/clothing/cloak/poncho/yellow
+	color = CLOTHING_MUSTARD_YELLOW
+
+/obj/item/clothing/cloak/pantheon
+	name = "pantheon cloak"
+	desc = "A divine blue cloak with shimmering gold sewn in, it represents the ten in their whole. Typically worn by High Templars of the Ten"
+	icon_state = "seecloak"
+	item_state = "seecloak"
+	boobed = FALSE
+	sleeved = 'icons/roguetown/clothing/onmob/cloaks.dmi'

@@ -1,5 +1,5 @@
 /datum/ai_controller/volf
-	movement_delay = 0.4 SECONDS
+	movement_delay = 0.3 SECONDS
 
 	ai_movement = /datum/ai_movement/hybrid_pathing
 
@@ -12,7 +12,7 @@
 		/datum/ai_planning_subtree/pet_planning,
 		/datum/ai_planning_subtree/flee_target,
 
-		/datum/ai_planning_subtree/simple_find_target,
+		/datum/ai_planning_subtree/aggro_find_target,
 		/datum/ai_planning_subtree/basic_melee_attack_subtree,
 
 		/datum/ai_planning_subtree/find_dead_bodies,

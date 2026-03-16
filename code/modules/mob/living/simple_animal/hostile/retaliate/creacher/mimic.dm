@@ -31,21 +31,20 @@
 	speak_emote = list("clatters")
 
 	faction = list("mimic", "hostile")
-	stop_automated_movement = 1
 	wander = 0
 	stat_attack = UNCONSCIOUS
 
 	food_type = list(/obj/item/reagent_containers/food/snacks/meat, /obj/item/bodypart, /obj/item/organ)
-	food = 0
+
 	pooptype = null
 
-	TOTALCON = 6
-	TOTALSTR = 6
-	TOTALSPD = 5
+	base_constitution = 6
+	base_strength = 6
+	base_speed = 5
 
 	ai_controller = /datum/ai_controller/mimic
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
+	dendor_taming_chance = DENDOR_TAME_PROB_NONE
+
 
 /mob/living/simple_animal/hostile/retaliate/mimic/Initialize(mapload)
 	. = ..()
@@ -55,34 +54,11 @@
 	icon_state = "mimic"
 	AddComponent(/datum/component/anti_magic, TRUE, TRUE, TRUE, null, null, FALSE)
 
-/mob/living/simple_animal/hostile/retaliate/mimic/find_food()
-	. = ..()
-	if(!.)
-		return eat_bodies()
-
-/mob/living/simple_animal/hostile/retaliate/mimic/Life()
-	..()
-	if(pulledby)
-		Retaliate()
-		GiveTarget(pulledby)
-
-/mob/living/simple_animal/hostile/retaliate/mimic/attack_hand(mob/user)
-	..()
-	Retaliate(user)
-	GiveTarget(user)
-
-/mob/living/simple_animal/hostile/retaliate/mimic/Aggro()
-	..()
-	name = "MIMIC"
-	icon_state = "[initial(icon_state)]"
-	aggressive = 1
-
 /mob/living/simple_animal/hostile/retaliate/mimic/death()
 	icon_state = "[initial(icon_state)]dead"
 	// Drop loot onto tile.
 	for(var/obj/O in src)
 		O.forceMove(loc)
-	QDEL_NULL(proximity_monitor)
 	..()
 
 /mob/living/simple_animal/hostile/retaliate/mimic/get_sound(input)
@@ -91,45 +67,6 @@
 			return pick('sound/vo/mobs/mimic/mimic_death.ogg')
 
 /mob/living/simple_animal/hostile/retaliate/mimic/simple_limb_hit(zone)
-	if(!zone)
-		return ""
-	switch(zone)
-		if(BODY_ZONE_PRECISE_R_EYE)
-			return "head"
-		if(BODY_ZONE_PRECISE_L_EYE)
-			return "head"
-		if(BODY_ZONE_PRECISE_NOSE)
-			return "nose"
-		if(BODY_ZONE_PRECISE_MOUTH)
-			return "mouth"
-		if(BODY_ZONE_PRECISE_SKULL)
-			return "head"
-		if(BODY_ZONE_PRECISE_EARS)
-			return "head"
-		if(BODY_ZONE_PRECISE_NECK)
-			return "neck"
-		if(BODY_ZONE_PRECISE_L_HAND)
-			return "foreleg"
-		if(BODY_ZONE_PRECISE_R_HAND)
-			return "foreleg"
-		if(BODY_ZONE_PRECISE_L_FOOT)
-			return "leg"
-		if(BODY_ZONE_PRECISE_R_FOOT)
-			return "leg"
-		if(BODY_ZONE_PRECISE_STOMACH)
-			return "stomach"
-		if(BODY_ZONE_PRECISE_GROIN)
-			return "tail"
-		if(BODY_ZONE_HEAD)
-			return "head"
-		if(BODY_ZONE_R_LEG)
-			return "leg"
-		if(BODY_ZONE_L_LEG)
-			return "leg"
-		if(BODY_ZONE_R_ARM)
-			return "foreleg"
-		if(BODY_ZONE_L_ARM)
-			return "foreleg"
 	return ..()
 
 //////

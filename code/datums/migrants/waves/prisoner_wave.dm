@@ -1,107 +1,169 @@
 /datum/migrant_role/gaoler
 	name = "Gaoler"
-	greet_text = "The lords of Vanderlins sent you to Heartfelt to rappatriate some prisoners that were in their prison, you are now on your way back."
-	allowed_sexes = list(MALE, FEMALE)
-	grant_lit_torch = TRUE
-	outfit = /datum/outfit/job/gaoler
+	greet_text = "The lords of Vanderlin sent you to repatriate some prisoners that were in a distant prison, you are now on your way back."
+	migrant_job = /datum/job/migrant/gaoler
+
+/datum/attribute_holder/sheet/job/migrant/gaoler
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		STAT_INTELLIGENCE = -2,
+		STAT_ENDURANCE = 2,
+		STAT_CONSTITUTION = 1,
+		STAT_SPEED = -1,
+		STAT_PERCEPTION = -1,
+		/datum/attribute/skill/combat/whipsflails = 30,
+		/datum/attribute/skill/combat/wrestling = 30,
+		/datum/attribute/skill/combat/unarmed = 30,
+		/datum/attribute/skill/combat/swords = 10,
+		/datum/attribute/skill/misc/swimming = 10,
+		/datum/attribute/skill/misc/reading = 10,
+		/datum/attribute/skill/misc/climbing = 10,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/sewing = 10,
+		/datum/attribute/skill/craft/traps = 30,
+	)
+
+
+/datum/job/migrant/gaoler
+	title = "Gaoler"
+	tutorial = "The lords of Vanderlin sent you to repatriate some prisoners that were in a distant prison, you are now on your way back."
+	outfit = /datum/outfit/gaoler
 	is_foreigner = FALSE
 	allowed_races = list(
-		"Humen",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Half-Orc")
+		SPEC_ID_HUMEN,
+		SPEC_ID_ELF,
+		SPEC_ID_HALF_ELF,
+		SPEC_ID_DWARF,
+		SPEC_ID_TIEFLING,
+		SPEC_ID_DROW,
+		SPEC_ID_HALF_DROW,
+		SPEC_ID_AASIMAR,
+		SPEC_ID_HALF_ORC,
+	)
 
+	attribute_sheet = /datum/attribute_holder/sheet/job/migrant/gaoler
 
-/datum/outfit/job/gaoler/pre_equip(mob/living/carbon/human/H)
-	..()
+	cmode_music = 'sound/music/cmode/nobility/CombatDungeoneer.ogg'
+	voicepack_m = /datum/voicepack/male/warrior
+
+/datum/job/migrant/gaoler/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	add_verb(spawned, /mob/living/carbon/human/proc/torture_victim)
+
+/datum/outfit/gaoler
+	name = "Gaoler (Migrant Wave)"
 	head = /obj/item/clothing/head/menacing
 	neck = /obj/item/storage/belt/pouch/coins/poor
 	pants = /obj/item/clothing/pants/trou
-	shoes = /obj/item/clothing/shoes/simpleshoes
+	shoes = /obj/item/clothing/shoes/boots/leather
 	wrists = /obj/item/clothing/wrists/bracers/leather
-	cloak = /obj/item/clothing/cloak/stabard/dungeon
+	cloak = /obj/item/clothing/cloak/stabard/colored/dungeon
+	armor = /obj/item/clothing/armor/cuirass/iron/rust
 	belt = /obj/item/storage/belt/leather
 	beltr = /obj/item/weapon/whip/antique
 	beltl = /obj/item/flashlight/flare/torch/lantern
 	backr = /obj/item/storage/backpack/satchel
-	backpack_contents = list(/obj/item/storage/keyring/dungeoneer = 1, /obj/item/rope/chain = 1)
-	if(H.mind)
-		H.mind?.adjust_skillrank(/datum/skill/combat/whipsflails, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 4, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/swords, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/sewing, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/craft/traps, 3, TRUE)
-		H.change_stat(STATKEY_STR, 2)
-		H.change_stat(STATKEY_INT, -2)
-		H.change_stat(STATKEY_END, 2)
-		H.change_stat(STATKEY_CON, 1)
-		H.change_stat(STATKEY_SPD, -1)
-		H.change_stat(STATKEY_PER, -1)
-	if(H.dna?.species)
-		if(H.dna.species.id == "human")
-			H.dna.species.soundpack_m = new /datum/voicepack/male/warrior()
-	H.cmode_music = 'sound/music/cmode/garrison/CombatJailor.ogg'
-	H.verbs |= /mob/living/carbon/human/proc/torture_victim
+	backpack_contents = list(
+		/obj/item/storage/keyring/dungeoneer = 1,
+		/obj/item/rope/chain = 1,
+	)
 
 /datum/migrant_role/mig_prisoner
 	name = "Prisoner"
-	greet_text = "You had fled Vanderlin, took refuge in Heartfelt yet the lords over there caught you and thus handed you over to those who seeked you before."
-	outfit = /datum/outfit/job/mig_prisoner
-	allowed_races = list(
-		"Humen",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Kobold",
-		"Half-Orc")
+	greet_text = "You fled Vanderlin and took refuge another kingdom, yet the lords over there caught you and thus handed you over to those who sought you before."
+	migrant_job = /datum/job/migrant/mig_prisoner
 
-/datum/outfit/job/mig_prisoner/pre_equip(mob/living/carbon/human/H)
-	..()
-	pants = /obj/item/clothing/pants/loincloth/brown
-	mask = /obj/item/clothing/face/facemask/prisoner
-	if(H.mind)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/knives, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/swords, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 1, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/sneaking, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/lockpicking, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/riding, 1, TRUE)
-		H.change_stat(STATKEY_STR, -1)
-		H.change_stat(STATKEY_PER, 2)
-		H.change_stat(STATKEY_INT, 2)
-		H.change_stat(STATKEY_SPD, -1)
-		H.change_stat(STATKEY_CON, -1)
-		H.change_stat(STATKEY_END, -1)
-	H.cmode_music = 'sound/music/cmode/towner/CombatTowner.ogg'
+/datum/attribute_holder/sheet/job/migrant/mig_prisoner
+	raw_attribute_list = list(
+		STAT_STRENGTH = -1,
+		STAT_PERCEPTION = 2,
+		STAT_INTELLIGENCE = 2,
+		STAT_SPEED = -1,
+		STAT_CONSTITUTION = -1,
+		STAT_ENDURANCE = -1,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/knives = 10,
+		/datum/attribute/skill/combat/swords = 20,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/misc/swimming = 20,
+		/datum/attribute/skill/misc/athletics = 10,
+		/datum/attribute/skill/misc/reading = 20,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/misc/sneaking = 30,
+		/datum/attribute/skill/misc/lockpicking = 20,
+		/datum/attribute/skill/misc/riding = 10,
+	)
 
-/datum/migrant_role/prisoner_guard
-	name = "Guard"
-	greet_text = "You are apart of a convoy returning prisoners to Vanderlin. Obey the gaoler and ensure the prisoners get back to the dungeons."
-	outfit = /datum/outfit/job/mig_guard
-	allowed_races = list("Humen","Dwarf","Aasimar")
-	grant_lit_torch = TRUE
+/datum/job/migrant/mig_prisoner
+	title = "Prisoner (Migrant Wave)"
+	tutorial = "You fled Vanderlin and took refuge another kingdom, yet the lords over there caught you and thus handed you over to those who sought you before."
+	outfit = /datum/outfit/mig_prisoner
 	is_foreigner = FALSE
 
-/datum/outfit/job/mig_guard/pre_equip(mob/living/carbon/human/H)
-	..()
+	attribute_sheet = /datum/attribute_holder/sheet/job/migrant/mig_prisoner
+
+	cmode_music = 'sound/music/cmode/towner/CombatTowner.ogg'
+
+/datum/outfit/mig_prisoner
+	name = "Convoy Prisoner"
+	pants = /obj/item/clothing/pants/loincloth/colored/brown
+	mask = /obj/item/clothing/face/facemask/prisoner
+
+/datum/migrant_role/prisoner_guard
+	name = "Convoy Guard"
+	greet_text = "You are a part of a convoy returning prisoners to Vanderlin. Obey the gaoler and ensure the prisoners get back to the dungeons."
+	migrant_job = /datum/job/migrant/mig_guard
+
+/datum/attribute_holder/sheet/job/migrant/mig_guard
+	raw_attribute_list = list(
+		STAT_STRENGTH = 1,
+		STAT_ENDURANCE = 2,
+		STAT_CONSTITUTION = 1,
+		/datum/attribute/skill/combat/shields = 30,
+		/datum/attribute/skill/combat/axesmaces = 30,
+		/datum/attribute/skill/combat/swords = 30,
+		/datum/attribute/skill/combat/knives = 20,
+		/datum/attribute/skill/combat/wrestling = 20,
+		/datum/attribute/skill/combat/unarmed = 30,
+		/datum/attribute/skill/misc/swimming = 20,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/misc/athletics = 30,
+		/datum/attribute/skill/misc/reading = 10,
+	)
+
+/datum/job/migrant/mig_guard
+	title = "Convoy Guard"
+	tutorial = "You are a part of a convoy returning prisoners to Vanderlin. Obey the gaoler and ensure the prisoners get back to the dungeons."
+	outfit = /datum/outfit/mig_guard
+	is_foreigner = FALSE
+	allowed_races = list(
+		SPEC_ID_HUMEN,
+		SPEC_ID_ELF,
+		SPEC_ID_HALF_ELF,
+		SPEC_ID_DWARF,
+		SPEC_ID_TIEFLING,
+		SPEC_ID_DROW,
+		SPEC_ID_HALF_DROW,
+		SPEC_ID_AASIMAR,
+		SPEC_ID_HALF_ORC,
+	)
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/migrant/mig_guard
+
+	traits = list(
+		TRAIT_MEDIUMARMOR,
+	)
+	mind_traits = list(TRAIT_KNOWBANDITS)
+
+	cmode_music = 'sound/music/cmode/garrison/CombatGarrison.ogg'
+
+/datum/job/migrant/mig_guard/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	add_verb(spawned, /mob/proc/haltyell)
+
+/datum/outfit/mig_guard
+	name = "Convoy Guard"
 	armor = /obj/item/clothing/armor/cuirass
 	shirt = /obj/item/clothing/armor/chainmail
 	neck = /obj/item/clothing/neck/gorget
@@ -113,25 +175,10 @@
 	cloak = /obj/item/clothing/cloak/stabard/guard
 	shoes = /obj/item/clothing/shoes/boots
 	belt = /obj/item/storage/belt/leather
-	backpack_contents = list(/obj/item/storage/keyring/guard, /obj/item/rope/chain = 1)
-	if(H.mind)
-		H.mind?.adjust_skillrank(/datum/skill/combat/shields, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/axesmaces, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/swords, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/knives, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 3, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 1, TRUE)
-		H.change_stat(STATKEY_STR, 1)
-		H.change_stat(STATKEY_END, 2)
-		H.change_stat(STATKEY_CON, 1)
-	ADD_TRAIT(H, TRAIT_MEDIUMARMOR, TRAIT_GENERIC)
-	ADD_TRAIT(H, TRAIT_KNOWBANDITS, TRAIT_GENERIC)
-	H.cmode_music = 'sound/music/cmode/garrison/CombatGarrison.ogg'
-	H.verbs |= /mob/proc/haltyell
+	backpack_contents = list(
+		/obj/item/storage/keyring/guard,
+		/obj/item/rope/chain = 1,
+	)
 
 /datum/migrant_wave/prisoner_convoy
 	name = "The Prisoners' Convoy"
@@ -144,7 +191,7 @@
 		/datum/migrant_role/prisoner_guard = 2,
 		/datum/migrant_role/mig_prisoner = 4,
 	)
-	greet_text = "Nobody escape the rule of Vanderlin's monarchs. Some have fled to the neighbouring kingdom, Heartfelt and got caught, they are now on their way back."
+	greet_text = "Nobody escapes the rule of Vanderlin's monarchs. Some fled to another kingdom and got caught, they are now on their way back."
 
 /datum/migrant_wave/prisoner_convoy_down
 	name = "The Prisoners' Convoy"
@@ -156,7 +203,7 @@
 		/datum/migrant_role/prisoner_guard = 1,
 		/datum/migrant_role/mig_prisoner = 3,
 	)
-	greet_text = "Nobody escape the rule of Vanderlin's monarchs. Some have fled to the neighbouring kingdom, Heartfelt and got caught, they are now on their way back."
+	greet_text = "Nobody escapes the rule of Vanderlin's monarchs. Some fled to another kingdom and got caught, they are now on their way back."
 
 /datum/migrant_wave/prisoner_convoy_down_two
 	name = "The Prisoner Convoy"
@@ -166,4 +213,4 @@
 		/datum/migrant_role/gaoler = 1,
 		/datum/migrant_role/mig_prisoner = 1,
 	)
-	greet_text = "Nobody escape the rule of Vanderlin's monarchs. Some have fled to the neighbouring kingdom, Heartfelt and got caught, they are now on their way back."
+	greet_text = "Nobody escapes the rule of Vanderlin's monarchs. Some fled to another kingdom and got caught, they are now on their way back."

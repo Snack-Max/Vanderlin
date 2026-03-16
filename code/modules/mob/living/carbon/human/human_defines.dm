@@ -2,17 +2,18 @@
 	name = "Unknown"
 	real_name = "Unknown"
 	icon = 'icons/mob/human.dmi'
-	icon_state = "human_basic"
+	// Appearance is built by overlays
+	icon_state = MAP_SWITCH("", "human_basic")
 	appearance_flags = KEEP_TOGETHER|TILE_BOUND|PIXEL_SCALE
 	hud_possible = list(ANTAG_HUD)
 	hud_type = /datum/hud/human
 	base_intents = list(INTENT_HELP, INTENT_DISARM, INTENT_GRAB, INTENT_HARM)
 	possible_mmb_intents = list(INTENT_STEAL, INTENT_JUMP, INTENT_KICK, INTENT_BITE, INTENT_GIVE)
 	can_buckle = TRUE
-	buckle_lying = FALSE
+	buckle_lying = 0
 	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
 
-	ambushable = 1
+	ambushable = TRUE //! DEPRECATED VAR, USE TRAIT_NOAMBUSH
 
 	voice_pitch = 1
 
@@ -20,22 +21,12 @@
 
 	var/last_sound //last emote so we have no doubles
 
-	//Hair colour and style
-	var/hair_color = "000"
-	var/hairstyle = "Bald"
-
-	//Facial hair colour and style
-	var/facial_hair_color = "000"
-	var/facial_hairstyle = "Shaved"
-
-	//Eye colour
-	var/eye_color = "000"
-
 	var/voice_color = "a0a0a0"
 
 	var/detail_color = "000"
 
 	var/skin_tone = "caucasian1"	//Skin tone
+	var/datum/culture/culture = /datum/culture/universal/ambiguous
 
 	var/lip_style = null	//no lipstick by default- arguably misleading, as it could be used for general makeup
 	var/lip_color = "white"
@@ -65,24 +56,21 @@
 	var/obj/item/beltr = null
 	var/obj/item/wear_ring = null
 	var/obj/item/wear_wrists = null
-	var/obj/item/r_store = null
-	var/obj/item/l_store = null
-	var/obj/item/s_store = null
 	var/obj/item/cloak = null
 	var/obj/item/clothing/wear_shirt = null
+
+	var/hygiene = HYGIENE_LEVEL_NORMAL
 
 	///for the intent of dodge this is your armor class that you have worn (its highest worn)
 	var/worn_armor_class = ARMOR_CLASS_NONE
 
 	var/special_voice = "" // For changing our voice. Used by a symptom.
 
-	var/name_override //For temporary visible name changes
-
 	var/datum/physiology/physiology
 
 	var/list/datum/bioware = list()
 
-	var/static/list/can_ride_typecache = typecacheof(list(/mob/living/carbon/human, /mob/living/simple_animal/parrot))
+	var/static/list/can_ride_typecache = typecacheof(list(/mob/living/carbon/human))
 	var/lastpuke = 0
 	var/last_fire_update
 	var/account_id //! DEPRECATED
@@ -93,9 +81,6 @@
 	dodgecd = FALSE
 	dodgetime = 0
 
-//	var/alignment = ALIGNMENT_TN
-
-	var/advjob = null
 	var/canseebandits = FALSE
 
 	//Familytree datum
@@ -104,6 +89,7 @@
 	var/mob/living/carbon/spouse_mob
 	var/image/spouse_indicator
 	var/setspouse
+	var/gender_choice_pref = ANY_GENDER
 	var/familytree_pref = FAMILY_NONE
 	var/datum/heritage/family_datum
 	var/list/temp_ui_list = list()
@@ -115,14 +101,21 @@
 	var/buried = FALSE // Whether the body is buried or not.
 	var/funeral = FALSE // Whether the body has received rites or not.
 
-	var/datum/devotion/cleric_holder/cleric = null // Used for cleric_holder for priests
+	var/datum/devotion/cleric = null // Used for cleric_holder for priests
+	var/datum/inspiration/inspiration = null
+	var/datum/rage/rage_datum = null //teehee
 
 	var/headshot_link = null
 	var/flavortext = null
+	var/flavortext_display = null
+	var/ooc_notes = null
+	var/ooc_notes_display = null
+	var/ooc_extra_link
+	var/ooc_extra
 
 	var/confession_points = 0 // Used to track how many confessions the Inquisitor has gotten signed. Used to buy items at mailboxes.
 	var/purchase_history = null // Used to track what the Inquisitor has bought from the mailbox.
-	var/has_confessed = FALSE // Used to track if they have confessed it was written onto a confession paper
+	var/breathe_tick = 0 // Used for gas mask delays.
 
 	var/merctype = 0 // Used for mercenary backgrounds - check mail.dm
 	var/tokenclaimed = FALSE // Check for one-time tri reward.
@@ -138,6 +131,29 @@
 	/datum/rmb_intent/weak)
 
 	rot_type = /datum/component/rot/corpse
+
+	/// voice type of the mob
+	var/voice_type = null //  defines what sound pack we use. keep this null so mobs resort to their typical gender typing - preferences set this
+
+	blocks_emissive = NONE
+	var/list/datum/quirk/quirks = list()
+
+	/// Assoc list of culinary preferences of the mob
+	var/list/culinary_preferences = list()
+
+	/// List of curses on this mob
+	var/list/curses = list()
+
+	/// List of minions that this mob has control over. Used for things like the Lich's "Command Undead" spell.
+	var/list/mob/minions = list()
+
+	var/mob/stored_mob = null // werewolf bullshit
+
+	var/datum/family_member/family_member_datum
+
+	var/temp_debuff_level = null
+
+	fovangle = FOV_DEFAULT // our fov
 
 //Checking the highest armor class worn
 //Limb armors use the second highest armor class
@@ -160,7 +176,7 @@
 	torso_class = max(shirt_ac, chest_ac)			//Use heaviest Torso Armor Class
 
 	//Get Limb values, use heaviest pair
-	var/list/accessories = list(head, wear_mask, wear_wrists, wear_neck, cloak, wear_pants, gloves, shoes, belt, s_store)
+	var/list/accessories = list(head, wear_mask, wear_wrists, wear_neck, cloak, wear_pants, gloves, shoes, belt)
 	var/acc_class = ARMOR_CLASS_NONE
 	var/heavy_count = 0
 	var/medium_count = 0

@@ -2,26 +2,41 @@
 	. = new_angle - old_angle
 	Turn(.) //BYOND handles cases such as -270, 360, 540 etc. DOES NOT HANDLE 180 TURNS WELL, THEY TWEEN AND LOOK LIKE SHIT
 
-/atom/proc/SpinAnimation(speed = 10, loops = -1, clockwise = 1, segments = 3, parallel = TRUE)
+/**
+ * Proc called when you want the atom to spin around the center of its icon (or where it would be if its transform var is translated)
+ * By default, it makes the atom spin forever and ever at a speed of 60 rpm.
+ *
+ * Arguments:
+ * * speed: how much it takes for the atom to complete one 360° rotation
+ * * loops: how many times do we want the atom to rotate
+ * * clockwise: whether the atom ought to spin clockwise or counter-clockwise
+ * * segments: in how many animate calls the rotation is split. Probably unnecessary, but you shouldn't set it lower than 3 anyway.
+ * * parallel: whether the animation calls have the ANIMATION_PARALLEL flag, necessary for it to run alongside concurrent animations.
+ */
+/atom/proc/SpinAnimation(speed = 1 SECONDS, loops = -1, clockwise = TRUE, segments = 3, parallel = TRUE)
 	if(!segments)
 		return
 	var/segment = 360/segments
 	if(!clockwise)
 		segment = -segment
+	do_spin_animation(speed, loops, segments, segment, parallel)
+
+///Animates source spinning around itself. For docmentation on the args, check atom/proc/SpinAnimation()
+/atom/proc/do_spin_animation(speed = 1 SECONDS, loops = -1, segments = 3, angle = 120, parallel = TRUE)
 	var/list/matrices = list()
 	for(var/i in 1 to segments-1)
-		var/matrix/M = matrix(transform)
-		M.Turn(segment*i)
-		matrices += M
+		var/matrix/segment_matrix = matrix(transform)
+		segment_matrix.Turn(angle*i)
+		matrices += segment_matrix
 	var/matrix/last = matrix(transform)
 	matrices += last
 
 	speed /= segments
 
 	if(parallel)
-		animate(src, transform = matrices[1], time = speed, loops , flags = ANIMATION_PARALLEL)
+		animate(src, transform = matrices[1], time = speed, loop = loops, flags = ANIMATION_PARALLEL)
 	else
-		animate(src, transform = matrices[1], time = speed, loops)
+		animate(src, transform = matrices[1], time = speed, loop = loops)
 	for(var/i in 2 to segments) //2 because 1 is covered above
 		animate(transform = matrices[i], time = speed)
 		//doesn't have an object argument because this is "Stacking" with the animate call above
@@ -176,3 +191,39 @@ round(cos_inv_third+sqrt3_sin, 0.001), round(cos_inv_third-sqrt3_sin, 0.001), ro
 		for(x in 1 to 4)
 			output[offset+x] = round(A[offset+1]*B[x] + A[offset+2]*B[x+4] + A[offset+3]*B[x+8] + A[offset+4]*B[x+12]+(y==5?B[x+16]:0), 0.001)
 	return output
+
+///Converts RGB shorthands into RGBA matrices complete of constants rows (ergo a 20 keys list in byond).
+/proc/color_to_full_rgba_matrix(color)
+	if(istext(color))
+		var/list/L = ReadRGB(color)
+		if(!L)
+			CRASH("Invalid/unsupported color format argument in color_to_full_rgba_matrix()")
+		return list(L[1]/255,0,0,0, 0,L[2]/255,0,0, 0,0,L[3]/255,0, 0,0,0,L.len>3?L[4]/255:1, 0,0,0,0)
+	else if(!islist(color)) //invalid format
+		return color_matrix_identity()
+	var/list/L = color
+	switch(L.len)
+		if(3 to 5) // row-by-row hexadecimals
+			. = list()
+			for(var/a in 1 to L.len)
+				var/list/rgb = ReadRGB(L[a])
+				for(var/b in rgb)
+					. += b/255
+				if(length(rgb) % 4) // RGB has no alpha instruction
+					. += a != 4 ? 0 : 1
+			if(L.len < 4) //missing both alphas and constants rows
+				. += list(0,0,0,1, 0,0,0,0)
+			else if(L.len < 5) //missing constants row
+				. += list(0,0,0,0)
+		if(9 to 12) //RGB
+			. = list(L[1],L[2],L[3],0, L[4],L[5],L[6],0, L[7],L[8],L[9],0, 0,0,0,1)
+			for(var/b in 1 to 3)  //missing constants row
+				. += L.len < 9+b ? 0 : L[9+b]
+			. += 0
+		if(16 to 20) // RGBA
+			. = L.Copy()
+			if(L.len < 20) //missing constants row
+				for(var/b in 1 to 20-L.len)
+					. += 0
+		else
+			CRASH("Invalid/unsupported color format argument in color_to_full_rgba_matrix()")

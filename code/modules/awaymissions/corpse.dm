@@ -36,7 +36,7 @@
 		to_chat(user, "<span class='warning'>This spawner is out of charges!</span>")
 		return
 	if(is_banned_from(user.key, banType))
-		to_chat(user, "<span class='warning'>I are jobanned!</span>")
+		to_chat(user, "<span class='warning'>I am jobbanned!</span>")
 		return
 	if(QDELETED(src) || QDELETED(user))
 		return
@@ -168,19 +168,13 @@
 	H.undershirt = "Nude"
 	H.socks = "Nude"
 	if(hairstyle)
-		H.hairstyle = hairstyle
-	else
-		H.hairstyle = random_hairstyle(H.gender)
+		H.set_hair_style(hairstyle, FALSE)
 	if(facial_hairstyle)
-		H.facial_hairstyle = facial_hairstyle
-	else
-		H.facial_hairstyle = random_facial_hairstyle(H.gender)
+		H.set_facial_hair_style(facial_hairstyle, FALSE)
 	if(skin_tone)
 		H.skin_tone = skin_tone
-	else
-		H.skin_tone = random_skin_tone()
-	H.update_hair()
 	H.update_body()
+	H.update_body_parts()
 	if(outfit)
 		var/static/list/slots = list("uniform", "r_hand", "l_hand", "suit", "shoes", "gloves", "ears", "glasses", "mask", "head", "belt", "r_pocket", "l_pocket", "back", "id", "neck", "backpack_contents", "suit_store")
 		for(var/slot in slots)

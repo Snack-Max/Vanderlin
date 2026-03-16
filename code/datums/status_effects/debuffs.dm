@@ -1,28 +1,21 @@
-#define TRAIT_STATUS_EFFECT(effect_id) "[effect_id]-trait"
-
 //Largely negative status effects go here, even if they have small benificial effects
 //STUN EFFECTS
 /datum/status_effect/incapacitating
 	tick_interval = 0
 	status_type = STATUS_EFFECT_REPLACE
 	alert_type = null
+	remove_on_fullheal = TRUE
+	heal_flag_necessary = HEAL_CC_STATUS
 	var/needs_update_stat = FALSE
 
-/datum/status_effect/incapacitating/on_creation(mob/living/new_owner, set_duration, updating_canmove)
-	if(isnum(set_duration))
-		duration = set_duration
+/datum/status_effect/incapacitating/on_creation(mob/living/new_owner, duration_override, ...)
 	. = ..()
-	if(.)
-		if(updating_canmove)
-			owner.update_mobility()
-			if(needs_update_stat)
-				owner.update_stat()
+	if(. && needs_update_stat)
+		owner.update_stat()
 
 /datum/status_effect/incapacitating/on_remove()
-	if(owner)
-		owner.update_mobility()
-		if(needs_update_stat) //silicons need stat updates in addition to normal canmove updates
-			owner.update_stat()
+	if(needs_update_stat) //silicons need stat updates in addition to normal canmove updates
+		owner.update_stat()
 	return ..()
 
 //STUN
@@ -35,9 +28,11 @@
 	if(!.)
 		return
 	ADD_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
+	ADD_TRAIT(owner, TRAIT_IMMOBILIZED, TRAIT_STATUS_EFFECT(id))
 
 /datum/status_effect/incapacitating/stun/on_remove()
 	REMOVE_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
+	REMOVE_TRAIT(owner, TRAIT_IMMOBILIZED, TRAIT_STATUS_EFFECT(id))
 	return ..()
 
 /atom/movable/screen/alert/status_effect/stun
@@ -49,6 +44,16 @@
 /datum/status_effect/incapacitating/knockdown
 	id = "knockdown"
 	alert_type = /atom/movable/screen/alert/status_effect/knocked_down
+
+/datum/status_effect/incapacitating/knockdown/on_apply()
+	. = ..()
+	if(!.)
+		return
+	ADD_TRAIT(owner, TRAIT_FLOORED, TRAIT_STATUS_EFFECT(id))
+
+/datum/status_effect/incapacitating/knockdown/on_remove()
+	REMOVE_TRAIT(owner, TRAIT_FLOORED, TRAIT_STATUS_EFFECT(id))
+	return ..()
 
 /atom/movable/screen/alert/status_effect/knocked_down
 	name = "Knocked Down"
@@ -75,6 +80,8 @@
 	desc = ""
 	icon_state = "immob"
 
+
+//PARALYZED
 /datum/status_effect/incapacitating/paralyzed
 	id = "paralyzed"
 	alert_type = /atom/movable/screen/alert/status_effect/paralyzed
@@ -85,16 +92,30 @@
 		return
 	ADD_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
 	ADD_TRAIT(owner, TRAIT_IMMOBILIZED, TRAIT_STATUS_EFFECT(id))
+	ADD_TRAIT(owner, TRAIT_FLOORED, TRAIT_STATUS_EFFECT(id))
+	ADD_TRAIT(owner, TRAIT_HANDS_BLOCKED, TRAIT_STATUS_EFFECT(id))
 
 /datum/status_effect/incapacitating/paralyzed/on_remove()
 	REMOVE_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
 	REMOVE_TRAIT(owner, TRAIT_IMMOBILIZED, TRAIT_STATUS_EFFECT(id))
+	REMOVE_TRAIT(owner, TRAIT_FLOORED, TRAIT_STATUS_EFFECT(id))
+	REMOVE_TRAIT(owner, TRAIT_HANDS_BLOCKED, TRAIT_STATUS_EFFECT(id))
 	return ..()
 
 /atom/movable/screen/alert/status_effect/paralyzed
 	name = "Paralyzed"
 	desc = ""
 	icon_state = "paralyze"
+
+/datum/status_effect/shock_recovery
+	id = "shock_recovery"
+	alert_type = /atom/movable/screen/alert/status_effect/paralyzed/recovery
+
+/datum/status_effect/stress/shock_recovery
+
+/atom/movable/screen/alert/status_effect/paralyzed/recovery
+	name = "Shock Recovery"
+	desc = "I have recently been shocked. \n"
 
 //UNCONSCIOUS
 /datum/status_effect/incapacitating/unconscious
@@ -105,10 +126,10 @@
 	. = ..()
 	if(!.)
 		return
-	ADD_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
+	ADD_TRAIT(owner, TRAIT_KNOCKEDOUT, TRAIT_STATUS_EFFECT(id))
 
 /datum/status_effect/incapacitating/unconscious/on_remove()
-	REMOVE_TRAIT(owner, TRAIT_INCAPACITATED, TRAIT_STATUS_EFFECT(id))
+	REMOVE_TRAIT(owner, TRAIT_KNOCKEDOUT, TRAIT_STATUS_EFFECT(id))
 	return ..()
 
 //SLEEPING
@@ -118,28 +139,25 @@
 	needs_update_stat = TRUE
 	var/sleptonground = FALSE
 
-/datum/status_effect/incapacitating/sleeping/on_creation(mob/living/new_owner, updating_canmove)
+/datum/status_effect/incapacitating/sleeping/on_creation(mob/living/new_owner)
 	. = ..()
 	if(!.)
 		return
+	ADD_TRAIT(owner, TRAIT_KNOCKEDOUT, TRAIT_STATUS_EFFECT(id))
 
 	owner.cmode = FALSE
-	SSdroning.kill_droning(owner.client)
-	SSdroning.kill_loop(owner.client)
-	SSdroning.kill_rain(owner.client)
 	owner.set_typing_indicator(FALSE)
 
 /datum/status_effect/incapacitating/sleeping/on_remove()
-	var/area/this_area = get_area(owner)
-	SSdroning.play_area_sound(this_area, owner.client)
-	SSdroning.play_loop(this_area, owner.client)
+	REMOVE_TRAIT(owner, TRAIT_KNOCKEDOUT, TRAIT_STATUS_EFFECT(id))
+	owner.refresh_looping_ambience()
 
 	if(ishuman(owner) && sleptonground)
 		var/mob/living/carbon/human/human_owner = owner
-		if(HAS_TRAIT(human_owner, TRAIT_NOBLE))
-			human_owner.add_stress(/datum/stressevent/sleepfloornoble)
+		if(HAS_TRAIT(human_owner, TRAIT_NOBLE_BLOOD))
+			human_owner.add_stress(/datum/stress_event/sleepfloornoble)
 		else
-			human_owner.add_stress(/datum/stressevent/sleepfloor)
+			human_owner.add_stress(/datum/stress_event/sleepfloor)
 	. = ..()
 
 /datum/status_effect/incapacitating/sleeping/tick()
@@ -149,10 +167,14 @@
 	var/mob/living/carbon/carbon_owner = iscarbon(owner) ? owner : null
 	var/mob/living/carbon/human/human_owner = ishuman(owner) ? owner : null
 
-	if(!(locate(/obj/structure/bed) in owner.loc) && !(locate(/obj/structure/table) in owner.loc))
-		sleptonground = TRUE
-	else if(locate(/obj/structure/bed/sleepingbag) in owner.loc)
-		sleptonground = TRUE
+	if(!sleptonground)
+		if(!(locate(/obj/structure/bed) in owner.loc) && !(locate(/obj/structure/table) in owner.loc))
+			sleptonground = TRUE
+		else
+			for(var/obj/structure/bed/bed in owner.loc)
+				if(bed.type == /obj/structure/bed/sleepingbag)
+					sleptonground = TRUE
+					break
 
 	human_owner?.drunkenness *= 0.997 //reduce drunkenness by 0.3% per tick, 6% per 2 seconds
 	if(prob(20))
@@ -164,6 +186,59 @@
 	name = "Asleep"
 	desc = ""
 	icon_state = "sleeping"
+
+//STASIS
+/datum/status_effect/grouped/stasis
+	id = "stasis"
+	duration = STATUS_EFFECT_PERMANENT
+	alert_type = /atom/movable/screen/alert/status_effect/stasis
+	var/last_dead_time
+
+/datum/status_effect/grouped/stasis/proc/update_time_of_death()
+	if(last_dead_time)
+		var/delta = world.time - last_dead_time
+		var/new_timeofdeath = owner.timeofdeath + delta
+		owner.timeofdeath = new_timeofdeath
+		owner.tod = station_time_timestamp(wtime=new_timeofdeath)
+		last_dead_time = null
+	if(owner.stat == DEAD)
+		last_dead_time = world.time
+
+/datum/status_effect/grouped/stasis/on_creation(mob/living/new_owner, set_duration)
+	. = ..()
+	if(.)
+		update_time_of_death()
+		owner.reagents?.end_metabolization(owner, FALSE)
+
+/datum/status_effect/grouped/stasis/on_apply()
+	. = ..()
+	if(!.)
+		return
+	owner.add_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_STASIS), TRAIT_STATUS_EFFECT(id))
+	owner.add_filter("stasis_status_ripple", 2, list("type" = "ripple", "flags" = WAVE_BOUNDED, "radius" = 0, "size" = 2))
+	var/filter = owner.get_filter("stasis_status_ripple")
+	animate(filter, radius = 0, time = 0.2 SECONDS, size = 2, easing = JUMP_EASING, loop = -1, flags = ANIMATION_PARALLEL)
+	animate(radius = 32, time = 1.5 SECONDS, size = 0)
+	// if(iscarbon(owner))
+	// 	var/mob/living/carbon/carbon_owner = owner
+	// 	carbon_owner.update_bodypart_bleed_overlays()
+
+/datum/status_effect/grouped/stasis/tick()
+	update_time_of_death()
+
+/datum/status_effect/grouped/stasis/on_remove()
+	owner.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED, TRAIT_STASIS), TRAIT_STATUS_EFFECT(id))
+	owner.remove_filter("stasis_status_ripple")
+	update_time_of_death()
+	// if(iscarbon(owner))
+	// 	var/mob/living/carbon/carbon_owner = owner
+	// 	carbon_owner.update_bodypart_bleed_overlays()
+	return ..()
+
+/atom/movable/screen/alert/status_effect/stasis
+	name = "Stasis"
+	desc = "Your biological functions have halted. You could live forever this way, but it's pretty boring."
+	icon_state = "stasis"
 
 //GOLEM GANG
 
@@ -193,20 +268,15 @@
 	if(do_after(mob_viewer, 3.5 SECONDS, mob_viewer))
 		if(isliving(mob_viewer))
 			var/mob/living/L = mob_viewer
-			to_chat(mob_viewer, "<span class='notice'>I succesfuly remove the durathread strand.</span>")
+			to_chat(mob_viewer, "<span class='notice'>I successfully remove the durathread strand.</span>")
 			L.remove_status_effect(STATUS_EFFECT_CHOKINGSTRAND)
-
-
-/datum/status_effect/pacify/on_creation(mob/living/new_owner, set_duration)
-	if(isnum(set_duration))
-		duration = set_duration
-	. = ..()
 
 /datum/status_effect/pacify/on_apply()
 	ADD_TRAIT(owner, TRAIT_PACIFISM, "status_effect")
 	return ..()
 
 /datum/status_effect/pacify/on_remove()
+	. = ..()
 	REMOVE_TRAIT(owner, TRAIT_PACIFISM, "status_effect")
 
 //OTHER DEBUFFS
@@ -217,16 +287,12 @@
 	duration = 100
 	alert_type = null
 
-/datum/status_effect/pacify/on_creation(mob/living/new_owner, set_duration)
-	if(isnum(set_duration))
-		duration = set_duration
-	. = ..()
-
 /datum/status_effect/pacify/on_apply()
 	ADD_TRAIT(owner, TRAIT_PACIFISM, "status_effect")
 	return ..()
 
 /datum/status_effect/pacify/on_remove()
+	. = ..()
 	REMOVE_TRAIT(owner, TRAIT_PACIFISM, "status_effect")
 
 /datum/status_effect/neck_slice
@@ -245,17 +311,11 @@
 /obj/effect/temp_visual/curse
 	icon_state = "curse"
 
-/obj/effect/temp_visual/curse/Initialize()
-	. = ..()
-	deltimer(timerid)
-
-
 /datum/status_effect/trance
 	id = "trance"
 	status_type = STATUS_EFFECT_UNIQUE
 	duration = 300
 	tick_interval = 10
-	examine_text = "<span class='warning'>SUBJECTPRONOUN seems slow and unfocused.</span>"
 	var/stun = TRUE
 	alert_type = /atom/movable/screen/alert/status_effect/trance
 
@@ -264,12 +324,16 @@
 	desc = ""
 	icon_state = "high"
 
+/datum/status_effect/trance/get_examine_text()
+	return span_warning("They seem slow and unfocused.")
+
 /datum/status_effect/trance/tick()
 	if(stun)
-		owner.Stun(60, TRUE, TRUE)
-	owner.dizziness = 20
+		owner.Stun(6 SECONDS, TRUE)
+	owner.set_dizzy(20 SECONDS)
 
 /datum/status_effect/trance/on_apply()
+	. = ..()
 	if(!iscarbon(owner))
 		return FALSE
 	RegisterSignal(owner, COMSIG_MOVABLE_HEAR, PROC_REF(hypnotize))
@@ -279,15 +343,15 @@
 	"<span class='warning'>[pick("You feel my thoughts slow down...", "You suddenly feel extremely dizzy...", "You feel like you're in the middle of a dream...","You feel incredibly relaxed...")]</span>")
 	return TRUE
 
-/datum/status_effect/trance/on_creation(mob/living/new_owner, _duration, _stun = TRUE)
-	duration = _duration
+/datum/status_effect/trance/on_creation(mob/living/new_owner, duration_override, _stun = TRUE)
 	stun = _stun
 	return ..()
 
 /datum/status_effect/trance/on_remove()
+	. = ..()
 	UnregisterSignal(owner, COMSIG_MOVABLE_HEAR)
 	REMOVE_TRAIT(owner, TRAIT_MUTE, "trance")
-	owner.dizziness = 0
+	owner.set_dizzy(0)
 	owner.remove_client_colour(/datum/client_colour/monochrome/trance)
 	to_chat(owner, "<span class='warning'>I snap out of my trance!</span>")
 
@@ -311,11 +375,11 @@
 	if(prob(15))
 		switch(rand(1,5))
 			if(1)
-				if((owner.mobility_flags & MOBILITY_MOVE) && isturf(owner.loc))
+				if(!HAS_TRAIT(owner, TRAIT_IMMOBILIZED) && isturf(owner.loc))
 					to_chat(owner, "<span class='warning'>My leg spasms!</span>")
 					step(owner, pick(GLOB.cardinals))
 			if(2)
-				if(owner.incapacitated())
+				if(owner.incapacitated(IGNORE_GRAB))
 					return
 				var/obj/item/I = owner.get_active_held_item()
 				if(I)
@@ -347,7 +411,7 @@
 				owner.ClickOn(owner)
 				owner.a_intent = prev_intent
 			if(5)
-				if(owner.incapacitated())
+				if(owner.incapacitated(IGNORE_GRAB))
 					return
 				var/obj/item/I = owner.get_active_held_item()
 				var/list/turf/targets = list()
@@ -366,7 +430,7 @@
 	alert_type = /atom/movable/screen/alert/status_effect/go_away
 	var/direction
 
-/datum/status_effect/go_away/on_creation(mob/living/new_owner, set_duration, updating_canmove)
+/datum/status_effect/go_away/on_creation(mob/living/new_owner, duration_override, ...)
 	. = ..()
 	direction = pick(NORTH, SOUTH, EAST, WEST)
 	new_owner.setDir(direction)
@@ -423,4 +487,156 @@
 		to_chat(owner, fake_msg)
 
 	msg_stage++
+
+/// Prevent clicks for the "duration" of the status
+/datum/status_effect/debuff/clickcd
+	id = "clickcd"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/clickcd
+	duration = 3 SECONDS
+
+/datum/status_effect/debuff/clickcd/on_creation(mob/living/new_owner, duration_override, ...)
+	new_owner.changeNext_move(duration)
+	return ..()
+
+/atom/movable/screen/alert/status_effect/debuff/clickcd
+	name = "Action Delayed"
+	desc = "I cannot take another action."
+	icon_state = "clickcd"
+
+/datum/status_effect/stacking/baited
+	id = "bait"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/baited
+	tick_interval = BAIT_COOLDOWN_TIME * 2
+	stack_threshold = 2
+	max_stacks = 2
+
+	COOLDOWN_DECLARE(bait_cooldown)
+
+/datum/status_effect/stacking/baited/on_apply()
+	. = ..()
+	if(!.)
+		return
+
+	var/fatiguemod = 1
+	if(ishuman(owner))
+		var/mob/living/carbon/human/human_owner = owner
+		var/armor_class = human_owner.highest_ac_worn()
+		switch(armor_class)
+			if(ARMOR_CLASS_NONE)
+				fatiguemod = 5
+			if(AC_LIGHT, AC_MEDIUM)
+				fatiguemod = 4
+			if(AC_HEAVY)
+				fatiguemod = 3
+
+	COOLDOWN_START(src, bait_cooldown, BAIT_COOLDOWN_TIME)
+
+	owner.adjust_stamina(owner.maximum_stamina / fatiguemod)
+	owner.emote("huh", forced = TRUE)
+	owner.Slowdown(3)
+	owner.Immobilize(0.5 SECONDS)
+
+/datum/status_effect/stacking/baited/threshold_cross_effect()
+	owner.emote("gasp", forced = TRUE)
+	owner.OffBalance(2 SECONDS)
+	owner.Immobilize(2 SECONDS)
+
+/atom/movable/screen/alert/status_effect/debuff/baited
+	name = "Baited"
+	desc = "I fell for it. I'm exposed. I won't fall for it again. For now."
+	icon_state = "bait"
+
+/datum/status_effect/debuff/baitcd
+	id = "baitcd"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/baitedcd
+	duration = 20 SECONDS
+
+/atom/movable/screen/alert/status_effect/debuff/baitedcd
+	name = "Bait Cooldown"
+	desc = "I used it. I must wait."
+	icon_state = "baitcd"
+
+/datum/status_effect/debuff/clashcd
+	id = "clashcd"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/clashcd
+	duration = 20 SECONDS
+
+/atom/movable/screen/alert/status_effect/debuff/clashcd
+	name = "Riposte / Guard Cooldown"
+	desc = "I used it. I must wait."
+	icon_state = "guardcd"
+
+/datum/status_effect/debuff/exposed
+	id = "exposed"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/exposed
+	duration = 10 SECONDS
+	mob_overlay_icon_state = "eff_exposed"
+
+/atom/movable/screen/alert/status_effect/debuff/exposed
+	name = "Exposed"
+	desc = "My defenses are completely exposed. I can be hit through my parry and dodge to great effect!"
+	icon_state = "exposed"
+
+/datum/status_effect/debuff/vulnerable
+	id = "vulnerable"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/vulnerable
+	duration = 10 SECONDS
+	mob_overlay_icon_state = "eff_vulnerable"
+
+/atom/movable/screen/alert/status_effect/debuff/vulnerable
+	name = "Vulnerable"
+	desc = "A mistake. I can be hit through my parry and dodge to a lighter effect!"
+	icon_state = "vulnerable"
+
+/datum/status_effect/debuff/feinted
+	id = "feinted"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/feinted
+	duration = 20 SECONDS
+
+/atom/movable/screen/alert/status_effect/debuff/feinted
+	name = "Feinted"
+	desc = span_boldwarning("I've been feinted. It won't happen again so soon.")
+	icon_state = "feinted"
+
+/datum/status_effect/debuff/feintcd
+	id = "feintcd"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/feintcd
+	duration = 30 SECONDS
+
+/atom/movable/screen/alert/status_effect/debuff/feintcd
+	name = "Feint Cooldown"
+	desc = span_warning("I have feinted recently, my opponents will be wary.")
+	icon_state = "feinted"
+
+/// Prevents use of weapon special attacks
+/datum/status_effect/debuff/specialcd
+	id = "specialcd"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/specialcd
+	duration = 30 SECONDS
+	status_type = STATUS_EFFECT_UNIQUE
+
+/atom/movable/screen/alert/status_effect/debuff/specialcd
+	name = "Special Manouevre Cooldown"
+	desc = "I used it. I must wait."
+	icon_state = "specialcd"
+
+/// 2 Speed reduction for 8 seconds + slow
+/datum/status_effect/debuff/hobbled
+	id = "hobbled"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/hobbled
+	effectedstats = list(STAT_SPEED = -2)
+	duration = 8 SECONDS
+
+/atom/movable/screen/alert/status_effect/debuff/hobbled
+	name = "Hobbled"
+	desc = "You've been struck in the leg! The force has left you staggered!"
+	icon_state = "dazed"
+
+/datum/status_effect/debuff/hobbled/on_apply()
+	. = ..()
+	owner.add_movespeed_modifier(MOVESPEED_ID_STATUS_EFFECT(id), multiplicative_slowdown = 1.5)
+
+/datum/status_effect/debuff/hobbled/on_remove()
+	. = ..()
+	owner?.remove_movespeed_modifier(MOVESPEED_ID_STATUS_EFFECT(id))
 

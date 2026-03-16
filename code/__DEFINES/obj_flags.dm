@@ -13,6 +13,7 @@
 #define BLOCK_Z_OUT_UP			(1<<9) // Should this object block z uprise from loc?
 #define BLOCK_Z_IN_DOWN			(1<<10) // Should this object block z falling from above?
 #define BLOCK_Z_IN_UP			(1<<11) // Should this object block z uprise from below?
+#define IGNORE_SINK				(1<<12)
 
 // If you add new ones, be sure to add them to /obj/Initialize as well for complete mapping support
 
@@ -31,6 +32,8 @@
 #define IN_STORAGE				(1<<11) //is this item in the storage item, such as backpack? used for tooltips
 #define SURGICAL_TOOL			(1<<12)	//Tool commonly used for surgery: won't attack targets in an active surgical operation on help intent (in case of mistakes)
 #define SHRINK_ENCHANT			(1<<13)
+#define ITEM_ONLY_BREAK 		(1<<14)
+#define HIGH_VALUE (1<<15)
 
 // Flags for the clothing_flags var on /obj/item/clothing
 
@@ -47,3 +50,10 @@
 #define SNUG_FIT               (1<<11) //Prevents knock-off from things like hat-throwing.
 #define ANTI_TINFOIL_MANEUVER   (1<<12) //Hats with negative effects when worn (i.e the tinfoil hat).
 #define CANT_SLEEP_IN			(1<<13) //Makes you unable to sleep with this on
+/// Clothes that block speech (i.e the muzzle). Can be applied to any clothing piece.
+#define BLOCKS_SPEECH (1<<14)
+
+// flags for misc_flags on /obj/item/clothing
+
+/// use on color subtypes for clothes, so the unit test for crafting doesn't scream at you.
+#define CRAFTING_TEST_EXCLUDE	(1<<0)

@@ -1,22 +1,50 @@
 /datum/migrant_role/jestertroupe
 	name = "Buffoon"
 	greet_text = "You were once part of a glorious circus from Heartfelt. Long gone are the days of mirth. The tent having been set ablaze so many years ago, you and your lot have been wandering. Here is the perfect town to start the next act. The circus is in town!"
-	outfit = /datum/outfit/job/jestertroupe
+	migrant_job = /datum/job/migrant/jestertroupe
 
-	allowed_races = list(
-		"Humen",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Kobold",
-		"Half-Orc")
-	grant_lit_torch = TRUE
+/datum/attribute_holder/sheet/job/migrant/jestertroupe
+	attribute_variance = list(
+		/datum/attribute/skill/combat/knives = list(20, 30),
+		/datum/attribute/skill/combat/swords = list(10, 20),
+		/datum/attribute/skill/misc/music = list(40, 60),
+		/datum/attribute/skill/combat/wrestling = list(10, 30),
+		/datum/attribute/skill/combat/unarmed = list(10, 30),
+		/datum/attribute/skill/misc/sneaking = list(20, 50),
+		/datum/attribute/skill/misc/stealing = list(30, 40),
+		/datum/attribute/skill/misc/lockpicking = list(20, 40),
+		/datum/attribute/skill/misc/climbing = list(40, 60)
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = -1,
+		STAT_CONSTITUTION = -1,
+		STAT_SPEED = 1,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/reading = 30,
+	)
 
-/datum/outfit/job/jestertroupe/pre_equip(mob/living/carbon/human/H)
-	..()
+/datum/job/migrant/jestertroupe
+	title = "Buffoon"
+	tutorial =  "You were once part of a glorious circus from Heartfelt. Long gone are the days of mirth. The tent having been set ablaze so many years ago, you and your lot have been wandering. Here is the perfect town to start the next act. The circus is in town!"
+	outfit = /datum/outfit/jestertroupe
+	allowed_races = RACES_PLAYER_ALL
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/migrant/jestertroupe
+
+	traits = list(
+		TRAIT_EMPATH,
+		TRAIT_ZJUMP,
+	)
+
+	spells = list(/datum/action/cooldown/spell/vicious_mockery)
+	cmode_music = 'sound/music/cmode/nobility/CombatJester2.ogg'
+
+/datum/job/migrant/jestertroupe/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	add_verb(spawned, /mob/living/carbon/human/proc/ventriloquate)
+
+/datum/outfit/jestertroupe
+	name = "Buffoon (Migrant Wave)"
 	shoes = /obj/item/clothing/shoes/jester
 	pants = /obj/item/clothing/pants/tights
 	armor = /obj/item/clothing/shirt/jester
@@ -28,27 +56,6 @@
 	head = /obj/item/clothing/head/jester
 	neck = /obj/item/clothing/neck/coif
 	mask = /obj/item/clothing/face/lordmask
-
-	if(H.mind)
-		H.mind?.adjust_skillrank(/datum/skill/combat/knives, pick(2,3), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/swords, pick(1,2), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/music, pick(4,5,5,6), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, pick(1,2,2,2,3), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, pick(1,2,2,2,3), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/sneaking, pick(2,3,4,5), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/stealing, pick(3,4), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/lockpicking, pick(2,2,3,3,4,), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/climbing, pick(4,4,4,4,5), TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 2, TRUE)
-		H.mind?.adjust_skillrank(/datum/skill/misc/reading, 3, TRUE)
-		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/mockery)
-		H.change_stat(STATKEY_STR, -1)
-		H.change_stat(STATKEY_CON, -1)
-		H.change_stat(STATKEY_SPD, 1)
-	H.verbs |= /mob/living/carbon/human/proc/ventriloquate
-	ADD_TRAIT(H, TRAIT_EMPATH, TRAIT_GENERIC)
-	ADD_TRAIT(H, TRAIT_ZJUMP, TRAIT_GENERIC)
-	H.cmode_music = 'sound/music/cmode/nobility/CombatJester2.ogg'
 
 /datum/migrant_wave/jestertroupe
 	name = "The Circus"

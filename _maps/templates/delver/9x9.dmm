@@ -1,0 +1,257 @@
+//MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
+"a" = (
+/obj/structure/door/fancy,
+/turf/open/floor/cobble,
+/area/indoors)
+"c" = (
+/turf/open/openspace,
+/area/template_noop)
+"d" = (
+/obj/structure/fluff/railing/tall,
+/obj/structure/fluff/railing/tall{
+	dir = 4
+	},
+/turf/open/floor/grass,
+/area/template_noop)
+"g" = (
+/obj/structure/sign/property_sign/claim,
+/turf/closed/wall/mineral/underbrick,
+/area/indoors)
+"o" = (
+/obj/structure/stairs{
+	dir = 4
+	},
+/turf/open/floor/wood,
+/area/indoors)
+"p" = (
+/turf/open/floor/cobble,
+/area/indoors)
+"x" = (
+/obj/structure/fluff/railing/tall,
+/turf/open/floor/grass,
+/area/template_noop)
+"B" = (
+/turf/open/floor/rooftop/green,
+/area/template_noop)
+"D" = (
+/turf/open/openspace,
+/area/indoors)
+"N" = (
+/obj/structure/window/stained,
+/turf/open/floor/cobble,
+/area/indoors)
+"P" = (
+/turf/open/floor/wood,
+/area/indoors)
+"Q" = (
+/turf/open/floor/grass,
+/area/template_noop)
+"S" = (
+/obj/structure/fluff/railing/tall{
+	dir = 4
+	},
+/turf/open/floor/grass,
+/area/template_noop)
+"W" = (
+/turf/closed/wall/mineral/underbrick,
+/area/indoors)
+
+(1,1,1) = {"
+W
+W
+W
+W
+W
+W
+W
+W
+W
+"}
+(2,1,1) = {"
+W
+P
+P
+P
+P
+P
+p
+p
+g
+"}
+(3,1,1) = {"
+W
+P
+P
+P
+P
+P
+p
+p
+a
+"}
+(4,1,1) = {"
+W
+P
+P
+P
+P
+P
+p
+p
+W
+"}
+(5,1,1) = {"
+W
+P
+P
+P
+P
+P
+W
+a
+W
+"}
+(6,1,1) = {"
+W
+o
+P
+P
+P
+P
+N
+Q
+x
+"}
+(7,1,1) = {"
+W
+W
+P
+P
+P
+P
+W
+Q
+x
+"}
+(8,1,1) = {"
+W
+W
+P
+P
+P
+P
+N
+Q
+x
+"}
+(9,1,1) = {"
+W
+W
+W
+W
+W
+W
+W
+S
+d
+"}
+
+(1,1,2) = {"
+W
+W
+W
+W
+W
+W
+W
+B
+B
+"}
+(2,1,2) = {"
+W
+P
+P
+P
+P
+P
+W
+B
+B
+"}
+(3,1,2) = {"
+N
+P
+P
+P
+P
+P
+N
+B
+B
+"}
+(4,1,2) = {"
+W
+P
+P
+P
+P
+P
+W
+B
+B
+"}
+(5,1,2) = {"
+W
+P
+P
+P
+P
+P
+W
+B
+B
+"}
+(6,1,2) = {"
+W
+D
+P
+P
+P
+P
+W
+c
+c
+"}
+(7,1,2) = {"
+N
+o
+P
+P
+P
+P
+N
+c
+c
+"}
+(8,1,2) = {"
+W
+P
+P
+P
+P
+P
+W
+c
+c
+"}
+(9,1,2) = {"
+W
+W
+W
+W
+W
+W
+W
+c
+c
+"}

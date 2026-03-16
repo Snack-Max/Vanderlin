@@ -21,6 +21,8 @@
 	var/assembly_weight_class = WEIGHT_CLASS_NORMAL
 	/// Suffix for the assembly name.
 	var/assembly_name_prefix = "incomplete"
+	/// Should the assembly be dense?
+	var/dense_assembly = FALSE
 
 	/// Category this recipe is in the handbook.
 	var/category = SLAP_CAT_MISC
@@ -38,13 +40,15 @@
 	var/show_finish_text = FALSE
 	///Crafting difficulty for finishing recipe
 	var/craftdiff = 1
-	var/datum/skill/skillcraft
+	var/datum/attribute/skill/skillcraft
 	var/anchor_craft = FALSE
 	var/craftsound
 	///Place finished result in front of assembly in user's direction. Mutually exclusive with offset_user.
 	var/offset_forward = FALSE
 	///Place finished result at user's location. Mutually exclusive with offset_forward.
 	var/offset_user = FALSE
+	/// Minimum do_after time when repeating failed crafts
+	var/repeat_perform_time = 0
 
 /datum/slapcraft_recipe/New()
 	. = ..()
@@ -197,17 +201,17 @@
 		prob2craft -= (25*craftdiff)
 	if(skillcraft)
 		if(user.mind)
-			prob2craft += (user.mind.get_skill_level(skillcraft) * 25)
+			prob2craft += (GET_MOB_SKILL_VALUE_OLD(user, skillcraft) * 25)
 	else
 		prob2craft = 100
 	if(isliving(user))
 		var/mob/living/L = user
-		if(L.STALUC > 10)
+		if(GET_MOB_ATTRIBUTE_VALUE(L, STAT_FORTUNE) > 10)
 			prob2fail = 0
-		if(L.STALUC < 10)
-			prob2fail += (10-L.STALUC)
-		if(L.STAINT > 10)
-			prob2craft += ((10-L.STAINT)*-1)*2
+		if(GET_MOB_ATTRIBUTE_VALUE(L, STAT_FORTUNE) < 10)
+			prob2fail += (10-GET_MOB_ATTRIBUTE_VALUE(L, STAT_FORTUNE))
+		if(GET_MOB_ATTRIBUTE_VALUE(L, STAT_INTELLIGENCE) > 10)
+			prob2craft += ((10-GET_MOB_ATTRIBUTE_VALUE(L, STAT_INTELLIGENCE))*-1)*2
 	if(prob2craft < 1)
 		to_chat(user, "<span class='danger'>I lack the skills for this...</span>")
 		breakdown_assembly(assembly)
@@ -221,20 +225,14 @@
 		if(!prob(prob2craft))
 			if(user.client?.prefs.showrolls)
 				to_chat(user, "<span class='danger'>I've failed to complete \the [name]. (Success chance: [prob2craft]%)</span>")
-				assembly.step_states[last_type] = FALSE
-				var/datum/slapcraft_step/next_step = assembly.recipe.next_suitable_step(user, last_item, assembly.step_states)
-				if(!next_step)
-					return
-				// Try and do it
-				next_step.perform(user, last_item, assembly)
-				return
-			to_chat(user, "<span class='danger'>I've failed to complete \the [name].</span>")
+			else
+				to_chat(user, "<span class='danger'>I've failed to complete \the [name].</span>")
 			assembly.step_states[last_type] = FALSE
 			var/datum/slapcraft_step/next_step = assembly.recipe.next_suitable_step(user, last_item, assembly.step_states)
 			if(!next_step)
 				return
 			// Try and do it
-			next_step.perform(user, last_item, assembly)
+			next_step.perform(user, last_item, assembly, minimum_perform_time = repeat_perform_time)
 			return
 
 	if(show_finish_text)
@@ -243,14 +241,14 @@
 	if(user.mind && skillcraft)
 		if(isliving(user))
 			var/mob/living/L = user
-			var/amt2raise = L.STAINT * 2// its different over here
+			var/amt2raise = GET_MOB_ATTRIBUTE_VALUE(L, STAT_INTELLIGENCE) * 2// its different over here
 			if(craftdiff > 0) //difficult recipe
 				amt2raise += (craftdiff * 10)
 			if(amt2raise > 0)
 				user.mind.add_sleep_experience(skillcraft, amt2raise, FALSE)
 
 	if(craftsound)
-		playsound(get_turf(assembly), craftsound, 100, TRUE)
+		playsound(assembly, craftsound, 100, TRUE)
 
 	assembly.being_finished = TRUE
 	var/list/results = list()

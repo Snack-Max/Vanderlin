@@ -1,7 +1,6 @@
 /datum/slapcraft_step/item/cloth
 	desc = "Add some cloth."
 	item_types = list(/obj/item/natural/cloth)
-	blacklist_item_types = list(/obj/item/natural/cloth/bandit)
 
 /datum/slapcraft_step/item/cloth/second
 /datum/slapcraft_step/item/cloth/third
@@ -32,11 +31,11 @@
 
 /datum/slapcraft_step/item/jacksberry
 	desc = "Add some jacksberry."
-	item_types = list(/obj/item/reagent_containers/food/snacks/produce/jacksberry)
+	item_types = list(/obj/item/reagent_containers/food/snacks/produce/fruit/jacksberry)
 
-/datum/slapcraft_step/item/dirtclod
+/datum/slapcraft_step/item/dirt
 	desc = "Add some dirt."
-	item_types = list(/obj/item/natural/dirtclod)
+	item_types = list(/obj/item/natural/clod/dirt)
 
 /datum/slapcraft_step/item/stick
 	desc = "Add a stick."
@@ -86,6 +85,12 @@
 	desc = "Add a riddle of steel."
 	item_types = list(/obj/item/riddleofsteel)
 
+/datum/slapcraft_step/item/steel
+	desc = "Add a steel ingot."
+	item_types = list(/obj/item/ingot/steel)
+
+/datum/slapcraft_step/item/steel/second
+
 /datum/slapcraft_step/item/plank
 	desc = "Add a wooden plank."
 	item_types = list(/obj/item/natural/wood/plank)
@@ -108,11 +113,14 @@
 	desc = "Add a gold ingot."
 	item_types = list(/obj/item/ingot/gold)
 
+/datum/slapcraft_step/item/gold/second
+
 /datum/slapcraft_step/item/glass
 	desc = "Add a pane of glass."
 	item_types = list(/obj/item/natural/glass)
 
 /datum/slapcraft_step/item/glass/second
+/datum/slapcraft_step/item/glass/third
 
 /datum/slapcraft_step/item/silk
 	desc = "Add some silk."
@@ -134,3 +142,23 @@
 /datum/slapcraft_step/item/fur/second
 /datum/slapcraft_step/item/fur/third
 /datum/slapcraft_step/item/fur/fourth
+
+/datum/slapcraft_step/item/stoneblock
+	desc = "Add some stone blocks"
+	item_types = list(/obj/item/natural/stoneblock)
+
+/datum/slapcraft_step/item/stoneblock/second
+/datum/slapcraft_step/item/stoneblock/third
+
+/datum/slapcraft_step/item/candles
+	desc = "Add some candles."
+	item_types = list(/obj/item/candle)
+
+/datum/slapcraft_step/item/thaumic
+	desc = "Add some thaumic iron."
+	item_types = list(/obj/item/ingot/thaumic)
+/datum/slapcraft_step/item/thaumic/second
+
+/datum/slapcraft_step/item/mana_crystal
+	desc = "Add a small mana crystal."
+	item_types = list(/obj/item/mana_battery/mana_crystal)

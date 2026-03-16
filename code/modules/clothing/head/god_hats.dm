@@ -8,7 +8,7 @@
 
 /obj/item/clothing/head/roguehood/nochood
 	name = "moon hood"
-	desc = "The face of the Moon Prince. Worn by the faitful of Noc."
+	desc = "The face of the Moon Prince. Worn by the faithful of Noc."
 	icon_state = "nochood"
 	flags_inv = HIDEEARS|HIDEHAIR
 	default_hidden = HIDEEARS|HIDEHAIR
@@ -16,10 +16,12 @@
 
 	armor = ARMOR_WEAK
 	prevent_crits = MINOR_CRITICALS
+	salvage_amount = 1
+	salvage_result = /obj/item/natural/silk
 
 /obj/item/clothing/head/padded/deathface
 	name = "death shroud"
-	desc = "When inducted into the cult of Necra, the supplicant must make a talisman from the remains of a deceased loved one. Many favor a chin-guard made from a jawbone."
+	desc = "A Veil for those in service to the Veiled Lady. When inducted into the cult of Necra, the supplicant must make a talisman to hold the memory of a loved one since passed."
 	icon_state = "deathface"
 	flags_inv = HIDEEARS | HIDEHAIR | HIDEFACIALHAIR
 
@@ -38,17 +40,13 @@
 	icon_state = "pestrahood"
 	flags_inv = HIDEEARS|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
 
-/obj/item/clothing/head/padded/operavisage
-	name = "opera visage"
-	desc = "A painted wooden opera mask worn by the faithful of Eora, usually during their rituals."
-	icon_state = "eoramask"
-	mob_overlay_icon = 'icons/roguetown/clothing/onmob/64x64/head.dmi'
-	bloody_icon = 'icons/effects/blood64x64.dmi'
-	bloody_icon_state = "helmetblood_big"
-	worn_x_dimension = 64
-	worn_y_dimension = 64
-	dynamic_hair_suffix = ""
-	salvage_result = /obj/item/natural/silk
+/obj/item/clothing/head/padded/abyssor
+	name = "sea hood"
+	desc = "A green hood worn by the faithful of Abyssor."
+	icon_state = "abysshood"
+	icon = 'icons/roguetown/clothing/patron_hoods.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/onmob/patron_robes.dmi'
+	flags_inv = HIDEEARS|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
 
 /obj/item/clothing/head/roguehood/eora
 	name = "opera hood"
@@ -112,10 +110,11 @@
 					var/mob/living/carbon/H = user
 					H.update_inv_head()
 		user.update_fov_angles()
+		user.regenerate_clothes()
 
 /obj/item/clothing/head/roguehood/priest/equipped(mob/user, slot)
 	. = ..()
-	if (slot == SLOT_HEAD && istype(user))
+	if ((slot & ITEM_SLOT_HEAD) && istype(user))
 		ADD_TRAIT(user, TRAIT_ANTIMAGIC,"Anti-Magic")
 	else
 		REMOVE_TRAIT(user, TRAIT_ANTIMAGIC,"Anti-Magic")
@@ -126,7 +125,7 @@
 
 /obj/item/clothing/head/roguehood/priest/pickup(mob/living/user)
 	if((user.job != "Priest") && (user.job != "Priestess"))
-		playsound(user, 'sound/misc/astratascream.ogg', 80,  falloff = 0.2)
+		playsound(user, 'sound/misc/gods/astrata_omen.ogg', 80, extrarange = SHORT_RANGE_SOUND_EXTRARANGE)
 		user.visible_message(span_reallybig("UNWORTHY HANDS TOUCH MY VISAGE, CEASE OR BE PUNISHED"))
 		spawn(30)
 			if(loc == user)
@@ -154,3 +153,4 @@
 		return
 	else
 		. = ..()
+

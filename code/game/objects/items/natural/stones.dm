@@ -117,7 +117,7 @@ GLOBAL_LIST_INIT(stone_personalities, list(
 
 GLOBAL_LIST_INIT(stone_personality_descs, list(
 	"This stone is full of personality!",
-	"They say the intelligent races built their foundations with stones.",
+	"They say the intelligent species built their foundations with stones.",
 	"One must think, where did this stone come from?",
 	"If all stones were like this, then they would be some pretty great stones.",
 	"I wish my personality was like this stone's...",
@@ -130,28 +130,34 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 	name = "stone"
 	desc = "A piece of rough ground stone."
 	icon_state = "stone1"
+	lefthand_file = 'icons/roguetown/onmob/lefthand.dmi'
+	righthand_file = 'icons/roguetown/onmob/righthand.dmi'
+	item_state = "stone"
+	experimental_inhand = FALSE
 	gripped_intents = null
 	dropshrink = 0.75
 	possible_item_intents = list(INTENT_GENERIC)
 	force = 10
 	throwforce = 15
 	slot_flags = ITEM_SLOT_MOUTH
-	w_class = WEIGHT_CLASS_TINY
+	w_class = WEIGHT_CLASS_SMALL
 	/// If our stone is magical, this lets us know -how- magical. Maximum is 15.
 	var/magic_power = 0
 	var/magicstone = FALSE
 	resistance_flags = FIRE_PROOF
 
 /obj/item/natural/stone/Initialize()
+	. = ..()
 	icon_state = "stone[rand(1,4)]"
-	..()
 	stone_lore()
 
 /obj/item/natural/stone/on_consume(mob/living/eater)
 	if(!magic_power)
 		return
-	eater.mana_pool?.adjust_mana(magic_power * 25)
-	to_chat(eater, span_warning("I feel magic flowing from my stomach."))
+	//eater.adjust_spell_points(magic_power * 0.1)
+	//eater.mana_pool?.adjust_mana(magic_power * 25)
+	//to_chat(eater, span_warning("I feel magic flowing from my stomach."))
+
 /*
 	This right here is stone lore,
 	Yakub from BBC lore has inspired me
@@ -250,9 +256,9 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 			extra_intent_list -= cock // Remove it from the prev list
 
 	//Now that we have built the history and lore of this stone, we apply it to the main vars.
-	name = stone_title
+	name = lowertext(stone_title)
 	desc = stone_desc
-	force += bonus_force // This will result in a stone that has only 40 max at a extremely low chance damage at this time of this PR.
+	// force += bonus_force // This will result in a stone that has only 40 max at a extremely low chance damage at this time of this PR.
 	throwforce += bonus_force // It gets added to throw damage too
 	possible_item_intents = given_intent_list // And heres ur new extra intents too
 
@@ -262,26 +268,43 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 		to_chat(user, span_info("The [src] slips through dead fingers..."))
 		user.dropItemToGround(src, TRUE)
 
-/obj/item/natural/stone/pre_attack_right(atom/A, mob/living/user, params)
-	user.changeNext_move(CLICK_CD_MELEE)
-	if(istype(A, /obj/item/natural/stone))
-		playsound(src.loc, pick('sound/items/stonestone.ogg'), 100)
-		user.visible_message(span_info("[user] strikes the stones together."))
+/obj/item/natural/stone/attackby_secondary(obj/item/weapon, mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
+	if(istype(weapon, /obj/item/natural/stone))
+		playsound(src, pick('sound/items/stonestone.ogg'), 100)
 		if(prob(10))
+			user.visible_message(span_info("[user] strikes the stones together."))
 			var/datum/effect_system/spark_spread/S = new()
-			var/turf/front = get_step(user,user.dir)
+			var/turf/front = get_step(user, user.dir)
 			S.set_up(1, 1, front)
 			S.start()
-		return
-	if(istype(A, /obj/item/natural/rock))
-		user.visible_message(span_info("[user] strikes the stone against the rock.</span>"))
-		playsound(src.loc, 'sound/items/stonestone.ogg', 100)
-		if(prob(35))
-			var/datum/effect_system/spark_spread/S = new()
-			var/turf/front = get_step(user,user.dir)
-			S.set_up(1, 1, front)
-			S.start()
-		return
+		user.changeNext_move(CLICK_CD_FAST)
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+
+/obj/item/natural/stone/attackby(obj/item/W, mob/living/user, list/modifiers)
+	var/list/offhand_types = typecacheof(list(/obj/item/weapon/hammer, /obj/item/natural/stone, /obj/item/natural/stoneblock))
+	var/item = user.get_inactive_held_item()
+	if(user.used_intent.type == /datum/intent/chisel && is_type_in_typecache(item, offhand_types))
+		user.changeNext_move(CLICK_CD_MELEE)
+		var/skill_level = GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/masonry)
+		var/work_time = (4 SECONDS - (skill_level * 5))
+		if(istype(W, /obj/item/weapon/chisel))
+			var/obj/item/weapon/chisel/chisel = W
+			work_time *= chisel.time_multiplier
+		playsound(src, pick('sound/combat/hits/onrock/onrock (1).ogg', 'sound/combat/hits/onrock/onrock (2).ogg', 'sound/combat/hits/onrock/onrock (3).ogg', 'sound/combat/hits/onrock/onrock (4).ogg'), 100)
+		user.visible_message("<span class='info'>[user] begins chiseling [src] into blocks.</span>")
+		var/stone_amount = rand(1, max(round(skill_level)/2, 1))
+		if(do_after(user, work_time))
+			for(var/i in 1 to stone_amount)
+				new /obj/item/natural/stoneblock(get_turf(src.loc))
+			if(prob(10))
+				new /obj/effect/decal/cleanable/debris/stone(get_turf(src))
+			playsound(src, 'sound/foley/smash_rock.ogg', 100)
+			qdel(src)
+			user.mind.add_sleep_experience(/datum/attribute/skill/craft/masonry, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE)*0.2))
+		return TRUE
 	. = ..()
 
 /obj/item/natural/rock
@@ -297,7 +320,6 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 	force_wielded = 15
 	gripped_intents = list(INTENT_GENERIC)
 	w_class = WEIGHT_CLASS_HUGE
-	twohands_required = TRUE
 	var/obj/item/ore/mineralType = null
 	var/mineralAmt = 1
 	blade_dulling = DULLING_BASH
@@ -305,14 +327,15 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 	destroy_sound = 'sound/foley/smash_rock.ogg'
 	attacked_sound = 'sound/foley/hit_rock.ogg'
 
+/obj/item/natural/rock/apply_components()
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
 
 /obj/item/natural/rock/Initialize()
+	. = ..()
 	if(!isnull(mineralType))
 		icon_state = "stonebigshiny[rand(1,2)]"
 	else
 		icon_state = "stonebig[rand(1,2)]"
-	..()
-
 
 /obj/item/natural/rock/Crossed(mob/living/L)
 	if(istype(L) && !L.throwing)
@@ -322,14 +345,22 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 			L.consider_ambush()
 	..()
 
+/obj/item/natural/rock/attacked_by(obj/item/I, mob/living/user)
+	. = ..()
+	if(atom_integrity <= 0)
+		record_featured_stat(FEATURED_STATS_MINERS, user)
+
 /obj/item/natural/rock/deconstruct(disassembled = FALSE)
 	if(!disassembled)
 		if(mineralType && mineralAmt)
+			if(has_world_trait(/datum/world_trait/malum_diligence))
+				mineralAmt += is_ascendant(MALUM) ? rand (2,3) : rand(1,2)
 			new mineralType(src.loc, mineralAmt)
 		for(var/i in 1 to rand(1,3))
 			var/obj/item/S = new /obj/item/natural/stone(src.loc)
-			S.pixel_x = rand(25,-25)
-			S.pixel_y = rand(25,-25)
+			S.pixel_x = S.base_pixel_x + rand(25,-25)
+			S.pixel_y = S.base_pixel_y + rand(25,-25)
+		record_round_statistic(STATS_ROCKS_MINED)
 	qdel(src)
 
 /obj/item/natural/rock/take_damage(damage_amount, damage_type = BRUTE, damage_flag = 0, sound_effect = 1, attack_dir)
@@ -342,17 +373,48 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 				S.set_up(1, 1, front)
 				S.start()
 
-/obj/item/natural/rock/pre_attack_right(atom/A, mob/living/user, params)
+/obj/item/natural/rock/attackby_secondary(obj/item/weapon, mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	if(istype(A, /obj/item/natural/rock))
-		playsound(src.loc, pick('sound/items/stonestone.ogg'), 100)
-		user.visible_message(span_info("[user] strikes the rocks together."))
+	if(istype(weapon, /obj/item/natural/stone))
+		playsound(src, 'sound/items/stonestone.ogg', 100)
+		if(prob(35))
+			user.visible_message(span_info("[user] strikes the stone against the rock.</span>"))
+			var/datum/effect_system/spark_spread/S = new()
+			var/turf/front = get_step(user, user.dir)
+			S.set_up(1, 1, front)
+			S.start()
+		user.changeNext_move(CLICK_CD_FAST)
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+	if(istype(weapon, /obj/item/natural/rock))
+		playsound(src, pick('sound/items/stonestone.ogg'), 100)
 		if(prob(10))
+			user.visible_message(span_info("[user] strikes the rocks together."))
 			var/datum/effect_system/spark_spread/S = new()
 			var/turf/front = get_step(user,user.dir)
 			S.set_up(1, 1, front)
 			S.start()
-		return
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+
+/obj/item/natural/rock/attackby(obj/item/W, mob/living/user, list/modifiers)
+	user.changeNext_move(CLICK_CD_MELEE)
+	var/list/offhand_types = typecacheof(list(/obj/item/weapon/hammer, /obj/item/natural/stone, /obj/item/natural/stoneblock))
+	var/item = user.get_inactive_held_item()
+	if(user.used_intent.type == /datum/intent/chisel && is_type_in_typecache(item, offhand_types))
+		var/skill_level = GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/masonry)
+		var/work_time = (10 SECONDS - (skill_level * 5))
+		if(istype(W, /obj/item/weapon/chisel))
+			var/obj/item/weapon/chisel/chisel = W
+			work_time *= chisel.time_multiplier
+		playsound(src, pick('sound/combat/hits/onrock/onrock (1).ogg', 'sound/combat/hits/onrock/onrock (2).ogg', 'sound/combat/hits/onrock/onrock (3).ogg', 'sound/combat/hits/onrock/onrock (4).ogg'), 100)
+		user.visible_message("<span class='info'>[user] begins chiseling a part of [src] off.</span>")
+		if(do_after(user, work_time))
+			new /obj/item/natural/stoneblock(get_turf(src.loc))
+			take_damage(max_integrity/2)
+			user.mind.add_sleep_experience(/datum/attribute/skill/craft/masonry, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE)*0.2))
+		return TRUE
 	. = ..()
 
 //begin ore loot rocks
@@ -399,3 +461,51 @@ GLOBAL_LIST_INIT(stone_personality_descs, list(
 	))
 	new theboi(get_turf(src))
 	return INITIALIZE_HINT_QDEL
+
+//................	Stone blocks	............... //
+/obj/item/natural/stoneblock
+	name = "stone block"
+	desc = "A rectangular stone block for building."
+	icon = 'icons/roguetown/items/natural.dmi'
+	icon_state = "stoneblock"
+	lefthand_file = 'icons/roguetown/onmob/lefthand.dmi'
+	righthand_file = 'icons/roguetown/onmob/righthand.dmi'
+	item_state = "block"
+	experimental_inhand = FALSE
+	drop_sound = 'sound/foley/dropsound/brick_drop.ogg'
+	hitsound = 'sound/foley/dropsound/brick_drop.ogg'
+	possible_item_intents = list(INTENT_GENERIC)
+	force = 10
+	throwforce = 18 //brick is valid weapon
+	w_class = WEIGHT_CLASS_SMALL
+	bundletype = /obj/item/natural/bundle/stoneblock
+	sellprice = 2
+
+//................ Stone block stack	............... //
+/obj/item/natural/bundle/stoneblock
+	name = "stack of stone blocks"
+	desc = "A stack of stone blocks."
+	icon_state = "stoneblockbundle1"
+	icon = 'icons/roguetown/items/natural.dmi'
+	lefthand_file = 'icons/roguetown/onmob/lefthand.dmi'
+	righthand_file = 'icons/roguetown/onmob/righthand.dmi'
+	item_state = "block"
+	experimental_inhand = FALSE
+	grid_width = 64
+	grid_height = 64
+	base_width = 64
+	base_height = 64
+	drop_sound = 'sound/foley/dropsound/brick_drop.ogg'
+	pickup_sound = 'sound/foley/dropsound/brick_drop.ogg'
+	possible_item_intents = list(/datum/intent/use)
+	force = 2
+	throwforce = 0	// useless for throwing unless solo
+	throw_range = 2
+	w_class = WEIGHT_CLASS_NORMAL
+	stackname = "stone blocks"
+	stacktype = /obj/item/natural/stoneblock
+	maxamount = 4
+	icon1 = "stoneblockbundle2"
+	icon1step = 3
+	icon2 = "stoneblockbundle3"
+	icon2step = 4

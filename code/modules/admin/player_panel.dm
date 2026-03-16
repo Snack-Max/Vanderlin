@@ -4,6 +4,10 @@
 	log_admin("[key_name(usr)] checked the player panel.")
 	var/dat = "<html><head><meta http-equiv='X-UA-Compatible' content='IE=edge'/><title>Player Panel</title></head>"
 
+	var/client/user = usr.client
+
+	dat += user.prefs.get_ui_theme_stylesheet()
+
 	//javascript, the part that does most of the work~
 	dat += {"
 
@@ -199,6 +203,12 @@
 
 	"}
 
+
+	var/ui_mode = user.prefs.ui_theme
+	var/dark_ui = FALSE
+	if(ui_mode == UI_PREFERENCE_DARK_MODE)
+		dark_ui = TRUE
+
 	//player table header
 	dat += {"
 		<span id='maintable_data_archive'>
@@ -209,9 +219,9 @@
 	for(var/mob/M in mobs)
 		if(M.ckey)
 
-			var/color = "#e6e6e6"
+			var/color = dark_ui ? "#2a2a2a" : "#e6e6e6"
 			if(i%2 == 0)
-				color = "#f2f2f2"
+				color = dark_ui ? "#1e1d1d" : "#f2f2f2"
 			var/is_antagonist = is_special_character(M)
 
 			var/M_job = ""
@@ -220,7 +230,10 @@
 
 				if(iscarbon(M)) //Carbon stuff
 					if(ishuman(M))
-						M_job = M.job
+						if(M.mind?.assigned_role.parent_job)
+							M_job = M.mind.assigned_role.parent_job.title
+						else
+							M_job = M.job
 					else if(ismonkey(M))
 						M_job = "Monkey"
 					else

@@ -13,16 +13,13 @@
 /world
 	mob = /mob/dead/new_player
 	turf = /turf/closed/basic
-	area = /area/rogue
+	area = /area
 	view = "15x15"
 	hub = "Exadv1.spacestation13"
 	hub_password = "zX1svaLpIhl70uii"
-#ifdef ROGUEWORLD
 	name = "VANDERLIN"
-#else
-	name = "VANDERLIN"
-#endif
 	fps = 20
+	cache_lifespan = 0
 #ifdef FIND_REF_NO_CHECK_TICK
 	loop_checks = FALSE
 #endif

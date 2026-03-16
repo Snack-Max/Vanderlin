@@ -6,46 +6,36 @@
 	gold is the great hypocritical lubricant in life, founding empires, driving brothers to kill one another. \
 	\n\n\
 	You care not. Another day, another mammon."
-	flag = GRAVETENDER
-	department_flag = PEASANTS
+	department_flag = OUTSIDERS
 	job_flags = (JOB_ANNOUNCE_ARRIVAL | JOB_SHOW_IN_CREDITS | JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE)
 	display_order = JDO_MERCENARY
-	faction = FACTION_STATION
+	faction = FACTION_TOWN
 	total_positions = 4
 	spawn_positions = 4
-	min_pq = 5
 	bypass_lastclass = TRUE
 
-	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list(
-		"Humen",
-		"Rakshari",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Half-Orc",
-		"Kobold",
-	)
+	allowed_races = RACES_PLAYER_ALL
+	blacklisted_species = list(SPEC_ID_HALFLING, SPEC_ID_DWARF_SUBTERRAN)
 
 	outfit = null
 	outfit_female = null
 	give_bank_account = 3
 	advclass_cat_rolls = list(CTAG_MERCENARY = 20)
 	is_foreigner = TRUE
+	is_recognized = TRUE
 
-/datum/job/mercenary/after_spawn(mob/living/spawned, client/player_client)
-	..()
-	var/mob/living/carbon/human/H = spawned
-	H.advsetup = TRUE
-	H.invisibility = INVISIBILITY_MAXIMUM
-	H.become_blind("advsetup")
+	exp_type = list(EXP_TYPE_LIVING)
+	exp_types_granted = list(EXP_TYPE_MERCENARY, EXP_TYPE_COMBAT)
+	exp_requirements = list(
+		EXP_TYPE_LIVING = 600
+	)
 
-/datum/outfit/job/mercenary // Reminder message
-	var/tutorial = "<br><br><font color='#855b14'><span class='bold'>Your sponsor, the Merchant, representing the MGE guild, might have work for you todae, go find out.</span></font><br><br>"
+/datum/job/mercenary/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	to_chat(spawned, "<br><br><font color='#855b14'><span class='bold'>The Gaffer, who feeds and houses you may have work for you todae, go see him at the office outside your lodgings.</span></font><br><br>")
 
-/datum/outfit/job/mercenary/post_equip(mob/living/carbon/human/H)
-	..()
-	to_chat(H, tutorial)
+/datum/job/advclass/mercenary
+	abstract_type = /datum/job/advclass/mercenary
+	blacklisted_species = list(SPEC_ID_HALFLING, SPEC_ID_DWARF_SUBTERRAN)
+	category_tags = list(CTAG_MERCENARY)
+	exp_types_granted = list(EXP_TYPE_MERCENARY, EXP_TYPE_COMBAT)

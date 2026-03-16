@@ -7,7 +7,7 @@
 	anchored = TRUE
 	alpha = 80
 	//shhh
-	nomouseover = TRUE
+	no_over_text = TRUE
 	///What to say when antimagic'd
 	var/flare_message
 	///What to say when found
@@ -21,7 +21,7 @@
 	///see on_active_perception
 	var/perception_dc = 6
 
-	var/list/static/ignore_typecache
+	var/static/list/ignore_typecache
 	var/list/mob/immune_minds = list()
 
 	var/sparks = TRUE
@@ -37,7 +37,7 @@
 	spark_system.set_up(4,1,src)
 	spark_system.attach(src)
 
-	if(!ignore_typecache)
+	if(isnull(ignore_typecache))
 		ignore_typecache = typecacheof(list(
 			/obj/effect,
 			/mob/dead))
@@ -56,16 +56,16 @@
 	var/mob/living/luser = user
 	if(user.mind && (user.mind in immune_minds))
 		return
-	if(get_dist(user, src) <= FLOOR((luser.STAPER-4)/4,1))
+	if(get_dist(user, src) <= FLOOR((GET_MOB_ATTRIBUTE_VALUE(luser, STAT_PERCEPTION)-4)/4,1))
 		to_chat(user,span_notice("I reveal and temporarily disarm \the [src]"))
 		flare()
 
 /obj/structure/trap/proc/on_active_perception(datum/controller/subsystem/processing/dcs/unused,mob/living/percepter)
 	SIGNAL_HANDLER
-	if(!(percepter in view(FLOOR(percepter.STAPER/3,1),src)))
+	if(!(percepter in view(FLOOR(GET_MOB_ATTRIBUTE_VALUE(percepter, STAT_PERCEPTION)/3,1),src)))
 		return
 	//10% chance to see over DC
-	if(percepter.stat_roll(STATKEY_PER,10,perception_dc))
+	if(percepter.stat_roll(STAT_PERCEPTION,10,perception_dc))
 		alpha = 200
 		found_ping(get_turf(src),percepter.client,"trap")
 		animate(src, alpha = initial(alpha), time = 4.5 SECONDS)
@@ -78,14 +78,14 @@
 		visible_message(found_message)
 	if(sparks)
 		spark_system.start()
-	nomouseover = FALSE
+	no_over_text = FALSE
 	alpha = 200
 	last_trigger = world.time
 	animate(src, alpha = initial(alpha), time = time_between_triggers)
 	addtimer(CALLBACK(src, PROC_REF(unflare)), time_between_triggers, (TIMER_UNIQUE|TIMER_CLIENT_TIME))
 
 /obj/structure/trap/proc/unflare()
-	nomouseover = TRUE
+	no_over_text = TRUE
 
 /obj/structure/trap/Crossed(atom/movable/AM)
 	if(is_type_in_typecache(AM, ignore_typecache))
@@ -116,6 +116,8 @@
 ///Common checks to make sure we can trigger the trap.
 /// True == Yep we good.
 /obj/structure/trap/proc/trap_check(mob/living/victim)
+	if(istype(get_area(loc), /area/overlord_lair) && ("overlord" in victim.faction))
+		return FALSE
 	if(last_trigger + time_between_triggers > world.time)
 		return FALSE
 	if(victim.controller_mind)
@@ -124,7 +126,7 @@
 		return FALSE
 	if(victim.mind in immune_minds)
 		return FALSE
-	if(checks_antimagic && victim.anti_magic_check())
+	if(checks_antimagic && victim.can_block_magic(MAGIC_RESISTANCE))
 		flare(TRUE)
 		return FALSE
 	return TRUE
@@ -205,6 +207,16 @@
 /obj/structure/trap/bomb/trigger_step_off(mob/living/victim)
 	..()
 	explosion(src, light_impact_range = 1, hotspot_range = 2, smoke = TRUE, soundin = pick('sound/misc/explode/bottlebomb (1).ogg','sound/misc/explode/bottlebomb (2).ogg'))
+	post_triggered()
+
+/obj/structure/trap/mine
+	name = "mine plate trap"
+	icon_state = "bomb_trap_plate"
+	charges = 1
+
+/obj/structure/trap/mine/trigger_step_off(mob/living/victim)
+	..()
+	explosion(src, heavy_impact_range = 2, light_impact_range = 3, flash_range = 2, smoke = TRUE, soundin = pick('sound/misc/explode/bottlebomb (1).ogg','sound/misc/explode/bottlebomb (2).ogg'))
 	post_triggered()
 
 /obj/structure/trap/saw_blades

@@ -37,8 +37,6 @@
 	return sellprice
 
 /atom/movable/proc/get_real_price()
-	if(sellprice == initial(sellprice))
-		randomize_price()
 	return sellprice
 
 /atom/movable/proc/pre_sell()
@@ -60,8 +58,7 @@
 
 	var/newbudget = 0
 	// We go backwards, so it'll be innermost objects sold first
-	for(var/i in reverseRange(contents))
-		var/atom/movable/thing = i
+	for(var/atom/movable/thing as anything in reverseRange(contents))
 		var/sold = FALSE
 		if(QDELETED(thing))
 			continue

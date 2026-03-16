@@ -25,6 +25,10 @@ GLOBAL_PROTECT(href_token)
 
 	var/deadmined
 	var/datum/role_ban_panel/role_ban_panel
+	var/datum/whitelist_panel/WP
+	var/datum/job_boost_panel/BP
+	var/datum/pathfind_debug/path_debug
+	var/datum/create_wave/create_wave
 
 /datum/admins/New(datum/admin_rank/R, ckey, force_active = FALSE, protected)
 	if(IsAdminAdvancedProcCall())
@@ -47,6 +51,8 @@ GLOBAL_PROTECT(href_token)
 	admin_signature = "Nanotrasen Officer #[rand(0,9)][rand(0,9)][rand(0,9)]"
 	href_token = GenerateToken()
 	role_ban_panel = new /datum/role_ban_panel(src)
+	WP = new /datum/whitelist_panel(src)
+	BP = new /datum/job_boost_panel(src)
 	if(R.rights & R_DEBUG) //grant profile access
 		world.SetConfig("APP/admin", ckey, "role=admin")
 	//only admins with +ADMIN start admined
@@ -56,6 +62,8 @@ GLOBAL_PROTECT(href_token)
 		activate()
 	else
 		deactivate()
+	create_wave = new
+	create_wave.admin_holder = src
 
 /datum/admins/Destroy()
 	if(IsAdminAdvancedProcCall())
@@ -63,6 +71,7 @@ GLOBAL_PROTECT(href_token)
 		message_admins("[key_name_admin(usr)][msg]")
 		log_admin("[key_name(usr)][msg]")
 		return QDEL_HINT_LETMELIVE
+	QDEL_NULL(path_debug)
 	. = ..()
 
 /datum/admins/proc/activate()
@@ -77,7 +86,6 @@ GLOBAL_PROTECT(href_token)
 	if (GLOB.directory[target])
 		associate(GLOB.directory[target])	//find the client for a ckey if they are connected and associate them with us
 
-
 /datum/admins/proc/deactivate()
 	if(IsAdminAdvancedProcCall())
 		var/msg = " has tried to elevate permissions!"
@@ -90,7 +98,9 @@ GLOBAL_PROTECT(href_token)
 	var/client/C
 	if ((C = owner) || (C = GLOB.directory[target]))
 		disassociate()
-		C.verbs += /client/proc/readmin
+		add_verb(C, /client/proc/readmin)
+	QDEL_NULL(path_debug)
+	C?.native_say?.refresh_channels()
 
 /datum/admins/proc/associate(client/C)
 	if(IsAdminAdvancedProcCall())
@@ -110,8 +120,11 @@ GLOBAL_PROTECT(href_token)
 		owner = C
 		owner.holder = src
 		owner.add_admin_verbs()	//TODO <--- todo what? the proc clearly exists and works since its the backbone to our entire admin system
-		owner.verbs -= /client/proc/readmin
+		remove_verb(owner, /client/proc/readmin)
+		add_verb(owner, /client/proc/deadmin)
 		GLOB.admins |= C
+		if(!deadmined)
+			C?.native_say?.refresh_channels()
 
 /datum/admins/proc/disassociate()
 	if(IsAdminAdvancedProcCall())
@@ -145,25 +158,6 @@ GLOBAL_PROTECT(href_token)
 
 /datum/admins/vv_edit_var(var_name, var_value)
 	return FALSE //nice try trialmin
-
-/datum/admins/proc/admin_command(command, target)
-	var/mob/resolved = locate(target)
-	if(QDELETED(resolved))
-		return
-
-	switch(command)
-		if(FLAG_GIB)
-			resolved.gib()
-		if(FLAG_PP)
-			show_player_panel(resolved)
-		if(FLAG_VV)
-			owner.debug_variables(resolved)
-		if(FLAG_JUMP)
-			owner.jumptomob(resolved)
-		if(FLAG_JUMP_GHOST)
-			if(!isobserver(owner))
-				owner.admin_ghost()
-			owner.jumptomob(resolved)
 /*
 checks if usr is an admin with at least ONE of the flags in rights_required. (Note, they don't need all the flags)
 if rights_required == 0, then it simply checks if they are an admin.
@@ -224,33 +218,11 @@ you will have to do something like if(client.rights & R_ADMIN) myself.
 /proc/HrefTokenFormField(forceGlobal = FALSE)
 	return "<input type='hidden' name='admin_token' value='[RawHrefToken(forceGlobal)]'>"
 
-/atom
-	var/list/message_flags = list(FLAG_JUMP, FLAG_JUMP_GHOST, FLAG_PP, FLAG_VV)
-
-/atom/proc/get_message_flags()
-	var/built_string = "\["
-	var/first = TRUE
-	for(var/flag in message_flags)
-		if(first)
-			built_string += {""[flag]""}
-			first = FALSE
-		else
-			built_string += {","[flag]""}
-	built_string += "\]"
-	return built_string
-
-/atom/proc/get_admin_flags()
-	return "\[\]"
-
-/mob/get_admin_flags()
-	var/built_string = "\["
-	if(client?.holder)
-		var/first = TRUE
-		for(var/flag in client?.holder?.rank?.admin_flags)
-			if(first)
-				built_string += {""[flag]""}
-				first = FALSE
-			else
-				built_string += {","[flag]""}
-	built_string += "\]"
-	return built_string
+/datum/admins/proc/get_message_prefix()
+	if(CONFIG_GET(flag/asay_simple_titles))
+		return rank?.name
+	if(ckey(rank.name) in GLOB.admin_categories[ADMIN_CATEGORY_ADMIN])
+		return "ADMIN"
+	if(ckey(rank.name) in GLOB.admin_categories[ADMIN_CATEGORY_MAINT])
+		return "MAINT"
+	return "STAFF"

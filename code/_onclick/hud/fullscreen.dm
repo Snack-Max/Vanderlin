@@ -12,7 +12,7 @@
 	screen.icon_state = "[initial(screen.icon_state)][severity]"
 	screen.severity = severity
 	if (client && screen.should_show_to(src))
-		screen.update_for_view(client.view)
+		screen.update_for_view(client.view, src)
 		client.screen += screen
 
 	return screen
@@ -32,6 +32,15 @@
 	flick(state,screen)
 	return screen
 
+/mob/proc/update_fullscreen_alpha(category, alpha = 255, time = 1 SECONDS)
+	var/atom/movable/screen/fullscreen/screen = screens[category]
+	if(!screen)
+		screens -= category
+		return
+	if (client)
+		client.screen -= screen
+		animate(screen, alpha = alpha, time = time)
+		client.screen += screen
 
 /mob/proc/clear_fullscreen(category, animated = 10)
 	var/atom/movable/screen/fullscreen/screen = screens[category]
@@ -84,7 +93,7 @@
 	var/severity = 0
 	var/show_when_dead = FALSE
 
-/atom/movable/screen/fullscreen/proc/update_for_view(client_view)
+/atom/movable/screen/fullscreen/proc/update_for_view(client_view, mob/mob)
 	if (screen_loc == "CENTER-7,CENTER-7" && view != client_view)
 		var/list/actualview = getviewsize(client_view)
 		view = client_view
@@ -120,7 +129,7 @@
 	plane = FULLSCREEN_PLANE
 	alpha = 0
 
-/atom/movable/screen/fullscreen/love/New(client/C)
+/atom/movable/screen/fullscreen/love/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
 	animate(src, alpha = 255, time = 30)
 
@@ -146,8 +155,8 @@
 //	layer = 20.09
 	layer = 20.512
 	plane = ABOVE_HUD_PLANE
-	mouse_opacity = 1
-	nomouseover = FALSE
+	mouse_opacity = MOUSE_OPACITY_ICON
+	no_over_text = FALSE
 
 /atom/movable/screen/fullscreen/crit/dying/Click()
 	if(isliving(usr))
@@ -170,6 +179,10 @@
 	icon_state = "oxydamageoverlay"
 	layer = BLIND_LAYER
 
+/atom/movable/screen/fullscreen/inqvision
+	icon_state = "inqvision"
+	layer = BLIND_LAYER
+
 /atom/movable/screen/fullscreen/blackimageoverlay
 	icon_state = "blackimageoverlay"
 	layer = BLIND_LAYER
@@ -178,6 +191,11 @@
 /atom/movable/screen/fullscreen/blind
 	icon_state = "blind"
 	layer = BLIND_LAYER
+	plane = FULLSCREEN_PLANE
+
+/atom/movable/screen/fullscreen/zezuspsyst
+	icon_state = "hey"
+	layer = CRIT_LAYER
 	plane = FULLSCREEN_PLANE
 
 /atom/movable/screen/fullscreen/curse
@@ -251,16 +269,61 @@
 	invisibility = INVISIBILITY_LIGHTING
 	layer = BACKGROUND_LAYER+21
 	color = "#000"
-	show_when_dead = TRUE
 
 //Provides whiteness in case you don't see lights so everything is still visible
 /atom/movable/screen/fullscreen/lighting_backdrop/unlit
 	layer = BACKGROUND_LAYER+20
-	show_when_dead = TRUE
 
 /atom/movable/screen/fullscreen/see_through_darkness
 	icon_state = "nightvision"
 	plane = LIGHTING_PLANE
-	layer = LIGHTING_LAYER
 	blend_mode = BLEND_ADD
-	show_when_dead = TRUE
+
+/// Our sunlight planemaster mashes all of our sunlight overlays together into one
+/// The fullscreen then grabs the plane_master with a layer filter, and colours it
+/// We do this so the sunlight fullscreen acts as a big lighting object, in our lighting plane
+/atom/movable/screen/fullscreen/lighting_backdrop/sunlight
+	icon_state  = ""
+	screen_loc = "CENTER-2:-16, CENTER"
+	transform = null
+	blend_mode = BLEND_ADD
+
+/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/Initialize()
+	. = ..()
+	add_filter("sunlight", 1, layering_filter(render_source = SUNLIGHTING_RENDER_TARGET))
+	SSoutdoor_effects.sunlighting_planes |= src
+	SSoutdoor_effects.transition_sunlight_color(src)
+	//color = SSoutdoor_effects.last_color
+
+/atom/movable/screen/fullscreen/lighting_backdrop/sunlight/Destroy()
+	. = ..()
+	SSoutdoor_effects.sunlighting_planes -= src
+
+/atom/movable/screen/fullscreen/astral_border
+	icon = 'icons/mob/screens/vampire.dmi'
+	icon_state = "astraloverlay"
+	alpha = 0
+
+/atom/movable/screen/fullscreen/deafmute_border
+	icon = 'icons/mob/screens/vampire.dmi'
+	icon_state = "conversionoverlay"
+	alpha = 0
+
+/atom/movable/screen/fullscreen/confusion_border
+	icon = 'icons/mob/screens/vampire.dmi'
+	icon_state = "conversionoverlay"
+	alpha = 0
+
+/atom/movable/screen/fullscreen/black
+	icon = 'icons/mob/screens/vampire.dmi'
+	screen_loc = "WEST, SOUTH to EAST, NORTH"
+	icon_state = "black"
+	layer = BLIND_LAYER
+	alpha = 0
+
+/atom/movable/screen/fullscreen/white
+	icon = 'icons/mob/screens/vampire.dmi'
+	screen_loc = "WEST, SOUTH to EAST, NORTH"
+	icon_state = "white"
+	layer = BLIND_LAYER
+	alpha = 0

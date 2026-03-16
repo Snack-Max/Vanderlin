@@ -3,8 +3,7 @@
 /proc/TopicHandlers()
 	. = list()
 	var/list/all_handlers = subtypesof(/datum/world_topic)
-	for(var/I in all_handlers)
-		var/datum/world_topic/WT = I
+	for(var/datum/world_topic/WT as anything in all_handlers)
 		var/keyword = initial(WT.keyword)
 		if(!keyword)
 			warning("[WT] has no keyword! Ignoring...")
@@ -163,7 +162,7 @@
 		.["active_players"] = get_active_player_count()
 		if(SSticker.HasRoundStarted())
 			.["real_mode"] = "Storytellers"
-			// Key-authed callers may know the truth behind the "secret"
+			// Key-authed requesters may know the truth behind the "secret"
 
 	.["round_duration"] = SSticker ? round((world.time-SSticker.round_start_time)/10) : 0
 	// Amount of world's ticks in seconds, useful for calculating round duration

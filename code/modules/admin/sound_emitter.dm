@@ -45,7 +45,7 @@
 		return
 	edit_emitter(user)
 
-/obj/effect/sound_emitter/AltClick(mob/user)
+/obj/effect/sound_emitter/AltClick(mob/user, list/modifiers)
 	if(check_rights_for(user.client, R_SOUND))
 		activate(user)
 		to_chat(user, "<span class='notice'>Sound emitter activated.</span>")
@@ -75,7 +75,7 @@
 		var/new_label = stripped_input(user, "Choose a new label.", "Sound Emitter")
 		if(!new_label)
 			return
-		maptext = new_label
+		maptext = MAPTEXT(new_label)
 		to_chat(user, "<span class='notice'>Label set to [maptext].</span>")
 	if(href_list["edit_sound_file"])
 		var/new_file = input(user, "Choose a sound file.", "Sound Emitter") as null|sound

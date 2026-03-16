@@ -8,22 +8,13 @@
 
 	var/fire_burn_start //make us not burn that long
 	var/obj_flags = CAN_BE_HIT
-	/// This Var ensures the object ignores all object flags, which is extremely important for contraptions (which are supposed ot interact with all objects even if it does not produce a result)
+	/// This Var ensures the object ignores all object flags when attacking another object, which is extremely important for contraptions (which are supposed ot interact with all objects even if it does not produce a result)
 	var/obj_flags_ignore = FALSE
 
 	var/damtype = BRUTE
 	var/force = 0
 
-	var/datum/armor/armor
-	var/obj_integrity	//defaults to max_integrity
-	var/max_integrity = 500
-	var/integrity_failure = 0 //0 if we have no special broken behavior, otherwise is a percentage of at what point the obj breaks. 0.5 being 50%
-	///Damage under this value will be completely ignored
-	var/damage_deflection = 0
 	var/obj_broken = FALSE
-	var/obj_destroyed = FALSE
-
-	var/resistance_flags = NONE // INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | ON_FIRE | UNACIDABLE | ACID_PROOF
 
 	var/acid_level = 0 //how much acid is on that obj
 
@@ -35,18 +26,52 @@
 
 	var/drag_slowdown // Amont of multiplicative slowdown applied if pulled. >1 makes you slower, <1 makes you faster.
 
-	var/blade_dulling = DULLING_BASHCHOP
+	blade_dulling = DULLING_BASHCHOP
 
 	var/debris = null
 	var/static_debris = null
-	var/break_sound = null
-	var/break_message = null
 	var/destroy_sound = 'sound/foley/breaksound.ogg'
 	var/destroy_message = null
 
 	var/animate_dmg = TRUE
 
+	var/object_slowdown = 0
+	var/weatherproof = FALSE
+	var/weather = FALSE
+	var/list/temperature_affected_turfs
+
+	var/component_block = FALSE
+
+	/// Uses colours defined by the monarch roundstart see [lordcolor.dm]
+	var/uses_lord_coloring = FALSE
+
+	///this is a whole number converted into a multiplier
+	var/rarity_mod = 0
+
 	vis_flags = VIS_INHERIT_PLANE
+	uses_integrity = TRUE
+
+	// See /code/datums/locks
+	// Additional vars may be found in items.dm for things solely related to lock access
+
+	/**
+	 * A list of lockids for keys and locks
+	 * If something has a lock it's used to set access of the lock then nulled
+	 */
+	var/list/lockids
+	/// A lock datum that handles access and lockpicking
+	var/datum/lock/lock
+	/// If we don't have a lock datum, can we add one?
+	var/can_add_lock = FALSE
+	/// This is depreciated but I don't want to replace it yet
+	var/lockid
+
+	var/lock_sound = 'sound/foley/doors/woodlock.ogg'
+	var/unlock_sound = 'sound/foley/doors/woodlock.ogg'
+	/// Sound we play when a key fails to unlock
+	var/rattle_sound = 'sound/foley/lockrattle.ogg'
+	/// If this is currently being lockpicked
+	var/being_picked = FALSE
 
 /obj/vv_edit_var(vname, vval)
 	switch(vname)
@@ -63,16 +88,22 @@
 	return ..()
 
 /obj/Initialize(mapload, ...)
-	if (islist(armor))
+	if(islist(armor))
 		armor = getArmor(arglist(armor))
-	else if (!armor)
+	else if(!armor)
 		armor = getArmor()
-	else if (!istype(armor, /datum/armor))
+	else if(!istype(armor, /datum/armor))
 		stack_trace("Invalid type [armor.type] found in .armor during /obj Initialize()")
 	if(main_material)
 		set_material_information()
-	if(obj_integrity == null)
-		obj_integrity = max_integrity
+	if(lockid)
+		//log_mapping("[src] ([type]) at [AREACOORD(src)] has a depreciated lockid varedit.")
+		if(!lockids)
+			lockids = list(lockid)
+			lockid = null
+	if(lock)
+		lock = new lock(src, lockids)
+		lockids = null
 
 	. = ..() //Do this after, else mat datums is mad.
 
@@ -84,6 +115,8 @@
 	set_material_information()
 
 /obj/Destroy(force=FALSE)
+	if(lock)
+		QDEL_NULL(lock)
 	if(!ismachinery(src))
 		STOP_PROCESSING(SSobj, src) // TODO: Have a processing bitflag to reduce on unnecessary loops through the processing lists
 	SStgui.close_uis(src)
@@ -93,7 +126,7 @@
 	SEND_SIGNAL(src, COMSIG_OBJ_SETANCHORED, anchorvalue)
 	anchored = anchorvalue
 
-/obj/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0, datum/callback/callback, force)
+/obj/throw_at(atom/target, range, speed, mob/thrower, spin = TRUE, diagonals_first = 0, datum/callback/callback, force, gentle = FALSE)
 	..()
 	if(obj_flags & FROZEN)
 		visible_message("<span class='danger'>[src] shatters into a million pieces!</span>")
@@ -168,7 +201,11 @@
 /obj/get_dumping_location(datum/component/storage/source,mob/user)
 	return get_turf(src)
 
-/obj/proc/CanAStarPass(ID, to_dir, caller)
+/obj/proc/CanAStarPass(ID, to_dir, requester)
+	if(ismovable(requester))
+		var/atom/movable/AM = requester
+		if(AM.pass_flags & pass_flags_self)
+			return TRUE
 	. = !density
 
 /obj/proc/check_uplink_validity()
@@ -232,9 +269,9 @@
 	if(unique_reskin && !current_skin)
 		. += "<span class='notice'>Alt-click it to reskin it.</span>"
 
-/obj/AltClick(mob/user)
+/obj/AltClick(mob/user, list/modifiers)
 	. = ..()
-	if(unique_reskin && !current_skin && user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY))
+	if(unique_reskin && !current_skin && user.can_perform_action(src, FORBID_TELEKINESIS_REACH))
 		reskin_obj(user)
 
 /obj/proc/reskin_obj(mob/M)
@@ -246,7 +283,7 @@
 		to_chat(M, "[V]: <span class='reallybig'>[output]</span>")
 
 	var/choice = input(M,"Warning, you can only reskin [src] once!","Reskin Object") as null|anything in sortList(unique_reskin)
-	if(!QDELETED(src) && choice && !current_skin && !M.incapacitated() && in_range(M,src))
+	if(!QDELETED(src) && choice && !current_skin && !M.incapacitated(IGNORE_GRAB) && in_range(M,src))
 		if(!unique_reskin[choice])
 			return
 		current_skin = choice

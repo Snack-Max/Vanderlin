@@ -1,6 +1,7 @@
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/Initialize()
 	. = ..()
-	beam = new(src)
+	AddComponent(/datum/component/ai_aggro_system)
+	beam = new
 	beam.Grant(src)
 	ai_controller.set_blackboard_key(BB_TARGETED_ACTION, beam)
 
@@ -14,32 +15,25 @@
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/simple_add_wound(datum/wound/wound, silent = FALSE, crit_message = FALSE)	//no wounding the obelisk
 	return
 
-/mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/Life()
-	..()
-	if(pulledby)
-		Retaliate()
-		GiveTarget(pulledby)
-
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk
 	icon = 'icons/mob/summonable/32x32.dmi'
 	name = "voidstone obelisk"
-	desc = "A construct from another age. It is marked by glowing sigils and it's material seems to absorb magic!"
+	desc = "A construct from another age. It is marked by glowing sigils, and its material seems to absorb magic!"
 	icon_state = "obelisk-combined"
 	icon_living = "obelisk-combined"
 	icon_dead = "obelisk-combined"
 	summon_primer = "You are ancient. A construct built in an age before men, a time of dragons. Your builders don't seem to be around anymore, and time has past with you in standby. How you respond, is up to you."
 	tier = 3
 
-	faction = list("abberant")
+	faction = list("aberrant")
 	emote_hear = null
 	emote_see = null
-	turns_per_move = 6
 	speed = 5
 	see_in_dark = 9
 	move_to_delay = 12
 	vision_range = 9
 	aggro_vision_range = 9
-	movement_type = FLYING
+	is_flying_animal = TRUE
 
 	butcher_results = list()
 
@@ -51,10 +45,10 @@
 	attack_sound = list('sound/combat/hits/onstone/wallhit.ogg')
 	melee_damage_lower = 30
 	melee_damage_upper = 30
-	STAEND = 20
-	STACON = 20
-	STASTR = 12
-	STASPD = 8
+	base_endurance = 20
+	base_constitution = 20
+	base_strength = 12
+	base_speed = 8
 
 	simple_detect_bonus = 60
 	retreat_distance = 0
@@ -63,13 +57,14 @@
 	defprob = 35
 	defdrain = 5
 	retreat_health = 0.2
-	food = 0
+
 	dodgetime = 17
 	aggressive = 1
+	food_max = 0
 
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
 	ai_controller = /datum/ai_controller/void_obelisk
+	dendor_taming_chance = DENDOR_TAME_PROB_NONE
+	del_on_death = TRUE
 
 	var/datum/action/cooldown/mob_cooldown/voidblast/beam
 
@@ -88,19 +83,16 @@
 	item_damage_type = "blunt"
 
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/death(gibbed)
-	..()
 	var/turf/deathspot = get_turf(src)
 	new /obj/item/natural/voidstone(deathspot)
 	new /obj/item/natural/artifact(deathspot)
-	update_icon()
-	sleep(1)
-	qdel(src)
+	return ..()
 
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/Destroy()
-	. = ..()
 	QDEL_NULL(beam)
+	return ..()
 
-/mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/RangedAttack(atom/target, modifiers)
+/mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/RangedAttack(atom/target, list/modifiers)
 	beam.Activate(target = target)
 
 /mob/living/simple_animal/hostile/retaliate/voidstoneobelisk/get_sound(input)
@@ -110,7 +102,7 @@
 
 /// Segments of the actual beam, these hurt if you stand in them
 /obj/effect/obeliskbeam
-	name = "abberant beam"
+	name = "aberrant beam"
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "obeliskbeam_mid"
 	layer = ABOVE_MOB_LAYER

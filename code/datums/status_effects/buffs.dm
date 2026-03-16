@@ -20,10 +20,10 @@
 	owner.adjustFireLoss(-15)
 
 /datum/status_effect/shadow_mend/on_remove()
+	. = ..()
 	owner.visible_message("<span class='warning'>The violet light around [owner] glows black!</span>", "<span class='warning'>The tendrils around you cinch tightly and reap their toll...</span>")
 	playsound(owner, 'sound/blank.ogg', 50, TRUE)
 	owner.apply_status_effect(STATUS_EFFECT_VOID_PRICE)
-
 
 /datum/status_effect/void_price
 	id = "void_price"
@@ -47,7 +47,7 @@
 	alert_type = /atom/movable/screen/alert/status_effect/power_regen
 	var/power_to_give = 0 //how much power is gained each tick
 
-/datum/status_effect/cyborg_power_regen/on_creation(mob/living/new_owner, new_power_per_tick)
+/datum/status_effect/cyborg_power_regen/on_creation(mob/living/new_owner, duration_override, new_power_per_tick)
 	. = ..()
 	if(. && isnum(new_power_per_tick))
 		power_to_give = new_power_per_tick
@@ -68,9 +68,9 @@
 	return ..()
 
 /datum/status_effect/wish_granters_gift/on_remove()
-	owner.revive(full_heal = TRUE, admin_revive = TRUE)
+	. = ..()
+	owner.revive(ADMIN_HEAL_ALL)
 	owner.visible_message("<span class='warning'>[owner] appears to wake from the dead, having healed all wounds!</span>", "<span class='notice'>I have regenerated.</span>")
-	owner.update_mobility()
 
 /atom/movable/screen/alert/status_effect/wish_granters_gift
 	name = "Wish Granter's Immortality"
@@ -104,8 +104,8 @@
 		slashy.attack(M, owner)
 
 /datum/status_effect/sword_spin/on_remove()
+	. = ..()
 	owner.visible_message("<span class='warning'>[owner]'s inhuman strength dissipates and the sword's runes grow cold!</span>")
-
 
 //Used by changelings to rapidly heal
 //Heals 10 brute and oxygen damage every second, and 5 fire
@@ -135,7 +135,7 @@
 	duration = 1200
 	alert_type = null
 
-/datum/status_effect/exercised/on_creation(mob/living/new_owner, ...)
+/datum/status_effect/exercised/on_creation(mob/living/new_owner, duration_override, ...)
 	. = ..()
 	STOP_PROCESSING(SSfastprocess, src)
 	START_PROCESSING(SSprocessing, src) //this lasts 20 minutes, so SSfastprocess isn't needed.
@@ -153,10 +153,10 @@
 
 /datum/status_effect/good_music/tick()
 	if(owner.can_hear())
-		owner.dizziness = max(0, owner.dizziness - 2)
-		owner.jitteriness = max(0, owner.jitteriness - 2)
-		owner.confused = max(0, owner.confused - 1)
-		SEND_SIGNAL(owner, COMSIG_ADD_MOOD_EVENT, "goodmusic", /datum/mood_event/goodmusic)
+		owner.adjust_dizzy(-4 SECONDS)
+		owner.adjust_jitter(-4 SECONDS)
+		owner.adjust_confusion(-1 SECONDS)
+		owner.add_stress(/datum/stress_event/goodmusic)
 
 /atom/movable/screen/alert/status_effect/regenerative_core
 	name = "Regenerative Core Tendrils"
@@ -170,28 +170,31 @@
 	alert_type = /atom/movable/screen/alert/status_effect/regenerative_core
 
 /datum/status_effect/regenerative_core/on_apply()
+	. = ..()
 	ADD_TRAIT(owner, TRAIT_IGNOREDAMAGESLOWDOWN, id)
 	owner.adjustBruteLoss(-25)
 	owner.adjustFireLoss(-25)
-	owner.remove_CC()
+	owner.fully_heal(HEAL_CC_STATUS|HEAL_TEMP)
 	owner.bodytemperature = BODYTEMP_NORMAL
 	return TRUE
 
 /datum/status_effect/regenerative_core/on_remove()
+	. = ..()
 	REMOVE_TRAIT(owner, TRAIT_IGNOREDAMAGESLOWDOWN, id)
 
 /datum/status_effect/antimagic
 	id = "antimagic"
 	duration = 10 SECONDS
-	examine_text = "<span class='notice'>They seem to be covered in a dull, grey aura.</span>"
+	examine_text = span_notice("SUBJECTPRONOUN seem to be covered in a dull, grey aura.")
 
 /datum/status_effect/antimagic/on_apply()
 	owner.visible_message("<span class='notice'>[owner] is coated with a dull aura!</span>")
-	ADD_TRAIT(owner, TRAIT_ANTIMAGIC, MAGIC_TRAIT)
+	ADD_TRAIT(owner, TRAIT_ANTIMAGIC, TRAIT_STATUS_EFFECT(id))
 	//glowing wings overlay
 	playsound(owner, 'sound/blank.ogg', 75, FALSE)
 	return ..()
 
 /datum/status_effect/antimagic/on_remove()
-	REMOVE_TRAIT(owner, TRAIT_ANTIMAGIC, MAGIC_TRAIT)
+	. = ..()
+	REMOVE_TRAIT(owner, TRAIT_ANTIMAGIC, TRAIT_STATUS_EFFECT(id))
 	owner.visible_message("<span class='warning'>[owner]'s dull aura fades away...</span>")

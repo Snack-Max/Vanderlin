@@ -5,6 +5,7 @@
 	icon = 'icons/obj/candle.dmi'
 	icon_state = "candle1"
 	item_state = "candle1"
+	base_icon_state = "candle"
 	w_class = WEIGHT_CLASS_TINY
 	light_color = LIGHT_COLOR_FIRE
 	dropshrink = 0.8
@@ -23,10 +24,14 @@
 	if(start_lit)
 		light()
 
-/obj/item/candle/update_icon()
-	icon_state = "candle[(wax > 400) ? ((wax > 750) ? 1 : 2) : 3][lit ? "_lit" : ""]"
+/obj/item/candle/update_icon_state()
+	. = ..()
+	if(!infinite)
+		icon_state = "[base_icon_state][(wax > 400) ? ((wax > 750) ? 1 : 2) : 3][lit ? "_lit" : ""]"
+	else
+		icon_state = "[base_icon_state][lit ? "_lit" : ""]"
 
-/obj/item/candle/afterattack(atom/movable/A, mob/user, proximity)
+/obj/item/candle/afterattack(atom/movable/A, mob/user, proximity, list/modifiers)
 	. = ..()
 	if(!proximity)
 		return
@@ -58,13 +63,13 @@
 			usr.visible_message(show_message)
 		set_light(CANDLE_LUMINOSITY)
 		START_PROCESSING(SSobj, src)
-		update_icon()
+		update_appearance(UPDATE_ICON_STATE)
 
 /obj/item/candle/proc/put_out_candle()
 	if(!lit)
 		return
 	lit = FALSE
-	update_icon()
+	update_appearance(UPDATE_ICON_STATE)
 	set_light(0)
 	return TRUE
 
@@ -86,10 +91,10 @@
 			candle.forceMove(loc)
 
 		qdel(src)
-	update_icon()
+	update_appearance(UPDATE_ICON_STATE)
 	open_flame()
 
-/obj/item/candle/attack_self(mob/user)
+/obj/item/candle/attack_self(mob/user, list/modifiers)
 	if(put_out_candle())
 		user.visible_message("<span class='notice'>[user] snuffs [src].</span>")
 
@@ -107,14 +112,36 @@
 /obj/item/candle/skull
 	icon = 'icons/roguetown/items/lighting.dmi'
 	icon_state = "skullcandle"
+	base_icon_state = "skullcandle"
 	infinite = TRUE
-
-/obj/item/candle/skull/update_icon()
-	icon_state = "skullcandle[lit ? "_lit" : ""]"
+	light_color = "#670086"
 
 /obj/item/candle/skull/lit
 	start_lit = TRUE
 	icon_state = "skullcandle_lit"
+
+/obj/item/candle/skull/darkskull
+	icon_state = "darkskullcandle"
+	base_icon_state = "darkskullcandle"
+	infinite = TRUE
+	light_color = LIGHT_COLOR_LAVENDER
+
+/obj/item/candle/skull/darkskull/lit
+	start_lit = TRUE
+	icon_state = "darkskullcandle_lit"
+
+/obj/item/candle/eora
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "eora's candle"
+	desc = ""
+	color = "#f858b5ff"
+	light_color = "#ff13d8ff"
+	infinite = TRUE
+	base_icon_state = "eora's candle"
+
+/obj/item/candle/eora/lit
+	start_lit = TRUE
+	icon_state = "candle1_lit"
 
 /obj/item/candle/yellow/lit/infinite
 	light_power = 1
@@ -127,9 +154,110 @@
 /obj/item/candle/yellow/lit/infinite/strong
 	light_power = 2
 	light_outer_range =  4
-	pixel_x = 4
 
 /obj/item/candle/yellow/lit/infinite/strong/skull
 	icon_state = "skullcandle_lit"
+
+/obj/item/candle/scandelabra
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "silver candelabra"
+	desc = ""
+	infinite = TRUE
+	icon_state = "scandelabra"
+	base_icon_state = "scandelabra"
+	sellprice = M_SILVER*2
+
+/obj/item/candle/scandelabra/lit
+	start_lit = TRUE
+	icon_state = "scandelabra_lit"
+
+/obj/item/candle/scandelabrasingle
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "silver candelabra"
+	desc = ""
+	infinite = TRUE
+	icon_state = "singlescandelabra"
+	base_icon_state = "singlescandelabra"
+	sellprice = M_SILVER
+
+/obj/item/candle/scandelabrasingle/lit
+	start_lit = TRUE
+	icon_state = "singlescandelabra_lit"
+
+/obj/item/candle/gcandelabra
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "gold candelabra"
+	desc = ""
+	infinite = TRUE
+	icon_state = "gcandelabra"
+	base_icon_state = "gcandelabra"
+	sellprice = M_GOLD*2
+
+/obj/item/candle/gcandelabra/lit
+	start_lit = TRUE
+	icon_state = "gcandelabra_lit"
+
+/obj/item/candle/gcandelabrasingle
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "gold candelabra"
+	desc = ""
+	infinite = TRUE
+	icon_state = "singlegcandelabra"
+	base_icon_state = "singlegcandelabra"
+	sellprice = M_GOLD
+
+/obj/item/candle/gcandelabrasingle/lit
+	start_lit = TRUE
+	icon_state = "singlegcandelabra_lit"
+
+/obj/item/candle/scandle
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "silver candle"
+	desc = ""
+	infinite = TRUE
+	icon_state = "scandle"
+	base_icon_state = "scandle"
+	sellprice = M_SILVER/2
+
+/obj/item/candle/scandle/lit
+	start_lit = TRUE
+	icon_state = "scandle_lit"
+
+/obj/item/candle/gcandle
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "gold candle"
+	desc = ""
+	infinite = TRUE
+	icon_state = "gcandle"
+	base_icon_state = "gcandle"
+	sellprice = M_GOLD/2
+
+/obj/item/candle/gcandle/lit
+	start_lit = TRUE
+	icon_state = "gcandle_lit"
+
+/obj/item/candle/floorcandle0
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "candles"
+	desc = ""
+	infinite = TRUE
+	icon_state = "floorcandle0"
+	base_icon_state = "floorcandle0"
+
+/obj/item/candle/floorcandle0/lit
+	start_lit = TRUE
+	icon_state = "floorcandle0_lit"
+
+/obj/item/candle/floorcandle1
+	icon = 'icons/roguetown/items/lighting.dmi'
+	name = "candles"
+	desc = ""
+	infinite = TRUE
+	icon_state = "floorcandle1"
+	base_icon_state = "floorcandle1"
+
+/obj/item/candle/floorcandle1/lit
+	start_lit = TRUE
+	icon_state = "floorcandle1_lit"
 
 #undef CANDLE_LUMINOSITY

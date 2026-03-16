@@ -3,55 +3,32 @@
 //////////////////////////
 
 /proc/make_datum_references_lists()
-	//hair
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/hair, GLOB.hairstyles_list, GLOB.hairstyles_male_list, GLOB.hairstyles_female_list)
-	//facial hair
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/facial_hair, GLOB.facial_hairstyles_list, GLOB.facial_hairstyles_male_list, GLOB.facial_hairstyles_female_list, female_same = TRUE)
+	init_quirk_registry()
 	//underwear
 	init_sprite_accessory_subtypes(/datum/sprite_accessory/underwear, GLOB.underwear_list, GLOB.underwear_m, GLOB.underwear_f)
 	//undershirt
 	init_sprite_accessory_subtypes(/datum/sprite_accessory/undershirt, GLOB.undershirt_list, GLOB.undershirt_m, GLOB.undershirt_f)
-	//socks
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/socks, GLOB.socks_list)
-	//jewelry
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/accessories, GLOB.accessories_list, GLOB.accessories_m, GLOB.accessories_f)
-	//snowflake
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/detail, GLOB.detail_list, GLOB.detail_m, GLOB.detail_f)
-
-
-	//bodypart accessories (blizzard intensifies)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/body_markings, GLOB.body_markings_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/lizard, GLOB.tails_list_lizard)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/tails_animated/lizard, GLOB.animated_tails_list_lizard)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/human, GLOB.tails_list_human)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/tails_animated/human, GLOB.animated_tails_list_human)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/snouts, GLOB.snouts_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/horns,GLOB.horns_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/ears, GLOB.ears_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/wings, GLOB.wings_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/wings_open, GLOB.wings_open_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/frills, GLOB.frills_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/spines, GLOB.spines_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/spines_animated, GLOB.animated_spines_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/legs, GLOB.legs_list)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/wings, GLOB.r_wings_list,roundstart = TRUE)
-	init_sprite_accessory_subtypes(/datum/sprite_accessory/caps, GLOB.caps_list)
 
 	//Species
-	for(var/spath in subtypesof(/datum/species))
-		var/datum/species/S = new spath()
-		GLOB.species_list[S.name] = spath
-	sortList(GLOB.species_list, GLOBAL_PROC_REF(cmp_typepaths_asc))
+	for(var/datum/species/species as anything in subtypesof(/datum/species))
+		species = new species()
+		GLOB.species_list[species.id] = species.type
+
+		if(species.check_roundstart_eligible())
+			GLOB.roundstart_species += species.id
+
+	sortTim(GLOB.species_list, GLOBAL_PROC_REF(cmp_text_dsc))
+	sortTim(GLOB.roundstart_species, GLOBAL_PROC_REF(cmp_text_dsc))
 
 	//Surgery steps
 	for(var/path in subtypesof(/datum/surgery_step))
 		GLOB.surgery_steps += new path()
-	sortList(GLOB.surgery_steps, GLOBAL_PROC_REF(cmp_typepaths_asc))
+	sortTim(GLOB.surgery_steps, GLOBAL_PROC_REF(cmp_typepaths_asc))
 
 	//Surgeries
 	for(var/path in subtypesof(/datum/surgery))
 		GLOB.surgeries_list += new path()
-	sortList(GLOB.surgeries_list, GLOBAL_PROC_REF(cmp_typepaths_asc))
+	sortTim(GLOB.surgeries_list, GLOBAL_PROC_REF(cmp_typepaths_asc))
 
 	// Keybindings
 	init_keybindings()
@@ -61,39 +38,34 @@
 	init_slapcraft_recipes()
 	init_curse_names()
 
-	init_orderless_slapcraft_recipes()
-	init_crafting_repeatable_recipes()
-	setup_particles()
-
 	GLOB.emote_list = init_emote_list()
 
-	init_subtypes(/datum/crafting_recipe, GLOB.crafting_recipes)
-
-	init_subtypes(/datum/anvil_recipe, GLOB.anvil_recipes)
-
-	init_subtypes(/datum/artificer_recipe, GLOB.artificer_recipes)
-
-	init_subtypes(/datum/alch_grind_recipe, GLOB.alch_grind_recipes)
-
-	init_subtypes(/datum/alch_cauldron_recipe,GLOB.alch_cauldron_recipes)
-
 	// Faiths
-	for(var/path in subtypesof(/datum/faith))
-		var/datum/faith/faith = new path()
-		GLOB.faithlist[path] = faith
-		if(faith.preference_accessible)
-			GLOB.preference_faiths[path] = faith
+	for(var/datum/faith/faith as anything in subtypesof(/datum/faith))
+		if(IS_ABSTRACT(faith))
+			continue
+
+		faith = new faith()
+		GLOB.faith_list[faith.type] = faith
+
+	// Inquisition Hermes list
+	for(var/path in subtypesof(/datum/inqports)) // Why is this here
+		var/datum/inqports/inqports = new path()
+		GLOB.inqsupplies[path] = inqports
 
 	// Patron Gods
-	for(var/path in subtypesof(/datum/patron))
-		var/datum/patron/patron = new path()
-		if(patron.non_faith)
+	for(var/datum/patron/patron as anything in subtypesof(/datum/patron))
+		if(IS_ABSTRACT(patron))
 			continue
-		GLOB.patronlist[path] = patron
+
+		patron = new patron()
+
+		GLOB.patrons_by_type[patron.type] = patron
+		GLOB.patrons_by_name[patron.name] = patron
+
 		LAZYINITLIST(GLOB.patrons_by_faith[patron.associated_faith])
-		GLOB.patrons_by_faith[patron.associated_faith][path] = patron
-		if(patron.preference_accessible)
-			GLOB.preference_patrons[path] = patron
+
+		GLOB.patrons_by_faith[patron.associated_faith][patron.type] = patron
 
 //creates every subtype of prototype (excluding prototype) and adds it to list L.
 //if no list/L is provided, one is created.
@@ -124,7 +96,7 @@
 /proc/init_curse_names()
 	GLOB.curse_names = list()
 	for(var/datum/curse/curse_type as anything in subtypesof(/datum/curse))
-		if(is_abstract(curse_type))
+		if(IS_ABSTRACT(curse_type))
 			continue
 		GLOB.curse_names |= initial(curse_type.name)
 		GLOB.curse_names[initial(curse_type.name)] = new curse_type

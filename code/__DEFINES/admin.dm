@@ -50,6 +50,7 @@
 #define ADMIN_PP(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];adminplayeropts=[REF(user)]'>PP</a>)"
 #define ADMIN_VV(atom) "(<a href='?_src_=vars;[HrefToken(TRUE)];Vars=[REF(atom)]'>VV</a>)"
 #define ADMIN_SM(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];subtlemessage=[REF(user)]'>SM</a>)"
+#define ADMIN_NRT(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];narrateto=[REF(user)]'>NRT</a>)"
 #define ADMIN_TP(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];traitor=[REF(user)]'>TP</a>)"
 #define ADMIN_KICK(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];boot2=[REF(user)]'>KICK</a>)"
 #define ADMIN_CENTCOM_REPLY(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];CentComReply=[REF(user)]'>RPLY</a>)"
@@ -57,19 +58,41 @@
 #define ADMIN_SMITE(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];adminsmite=[REF(user)]'>SMITE</a>)"
 #define ADMIN_LOOKUP(user) "[key_name_admin(user)][ADMIN_QUE(user)]"
 #define ADMIN_LOOKUPFLW(user) "[key_name_admin(user)][ADMIN_QUE(user)] [ADMIN_FLW(user)]"
+#define ADMIN_LOOKUPFLW_PP(user) "[key_name_admin(user)][ADMIN_QUE(user)] [ADMIN_PP(user)] [ADMIN_FLW(user)]"
 #define ADMIN_SET_SD_CODE "(<a href='?_src_=holder;[HrefToken(TRUE)];set_selfdestruct_code=1'>SETCODE</a>)"
 #define ADMIN_FULLMONTY_NONAME(user) "[ADMIN_QUE(user)] [ADMIN_PP(user)] [ADMIN_VV(user)] [ADMIN_SM(user)] [ADMIN_FLW(user)] [ADMIN_TP(user)] [ADMIN_INDIVIDUALLOG(user)] [ADMIN_SMITE(user)]"
-#define ADMIN_FULLMONTY(user) "[key_name_admin(user)] [ADMIN_FULLMONTY_NONAME(user)]"
+#define ADMIN_FULLMONTY(user) "[ADMIN_QUE(user)] [key_name_admin(user)] [ADMIN_FULLMONTY_NONAME(user)]"
+#define ADMIN_MONTY_LIMITED(user) "[ADMIN_PP(user)] [ADMIN_FLW(user)]"
 #define ADMIN_JMP(src) "(<a href='?_src_=holder;[HrefToken(TRUE)];adminplayerobservecoodjump=1;X=[src.x];Y=[src.y];Z=[src.z]'>JMP</a>)"
-#define COORD(src) "[src ? "([src.x],[src.y],[src.z])" : "nonexistent location"]"
-#define AREACOORD(src) "[src ? "[get_area_name(src, TRUE)] ([src.x], [src.y], [src.z])" : "nonexistent location"]"
-#define ADMIN_COORDJMP(src) "[src ? "[COORD(src)] [ADMIN_JMP(src)]" : "nonexistent location"]"
-#define ADMIN_VERBOSEJMP(src) "[src ? "[AREACOORD(src)] [ADMIN_JMP(src)]" : "nonexistent location"]"
+#define COORD(src) "[src ? src.Admin_Coordinates_Readable() : "nonexistent location"]"
+#define AREACOORD(src) "[src ? src.Admin_Coordinates_Readable(TRUE) : "nonexistent location"]"
+#define ADMIN_COORDJMP(src) "[src ? src.Admin_Coordinates_Readable(FALSE, TRUE) : "nonexistent location"]"
+#define ADMIN_VERBOSEJMP(src) "[src ? src.Admin_Coordinates_Readable(TRUE, TRUE) : "nonexistent location"]"
 #define ADMIN_INDIVIDUALLOG(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];individuallog=[REF(user)]'>LOGS</a>)"
+#define ADMIN_BIRD_LETTER(user) "(<a href='?_src_=holder;[HrefToken(TRUE)];adminbirdletter=[REF(user)]'>LETTER</a>)"
+
+/atom/proc/Admin_Coordinates_Readable(area_name, admin_jump_ref)
+	var/turf/turf_at_coords = Safe_COORD_Location()
+	return turf_at_coords ? "[area_name ? "[get_area_name(turf_at_coords, TRUE)] " : " "]([turf_at_coords.x],[turf_at_coords.y],[turf_at_coords.z])[admin_jump_ref ? " [ADMIN_JMP(turf_at_coords)]" : ""]" : "nonexistent location"
+
+/atom/proc/Safe_COORD_Location()
+	var/atom/drop_atom = drop_location()
+	if(!drop_atom)
+		return //not a valid atom.
+	var/turf/drop_turf = get_step(drop_atom, 0) //resolve where the thing is.
+	if(!drop_turf) //incase it's inside a valid drop container, inside another container. ie if a mech picked up a closet and has it inside its internal storage.
+		var/atom/last_try = drop_atom.loc?.drop_location() //one last try, otherwise fuck it.
+		if(last_try)
+			drop_turf = get_step(last_try, 0)
+	return drop_turf
+
+/turf/Safe_COORD_Location()
+	return src
 
 #define ADMIN_PUNISHMENT_LIGHTNING "Lightning bolt"
 #define ADMIN_PUNISHMENT_BRAINDAMAGE "Brain damage"
 #define ADMIN_PUNISHMENT_GIB "Gib"
+#define ADMIN_PUNISHMENT_PSYDON "Zesus Psyst"
 #define ADMIN_PUNISHMENT_BSA "Bluespace Artillery Device"
 #define ADMIN_PUNISHMENT_FIREBALL "Fireball"
 #define ADMIN_PUNISHMENT_ROD "Immovable Rod"
@@ -80,6 +103,8 @@
 #define ADMIN_PUNISHMENT_NECKSNAP "Snap Neck"
 #define ADMIN_PUNISHMENT_HUNTED "Mark for Assassins"
 #define ADMIN_PUNISHMENT_MEATPIE "Pie-ify"
+#define ADMIN_PUNISHMENT_GODHAND "God Hand"
+#define ADMIN_PUNISHMENT_FORCECOLLAR "Force Collar"
 
 #define AHELP_ACTIVE 1
 #define AHELP_CLOSED 2
@@ -101,11 +126,8 @@
 #define MAX_KEYS_PER_KEYBIND 3
 ///Max amount of keypress messages per second over two seconds before client is autokicked
 #define MAX_KEYPRESS_AUTOKICK 50
-///Length of held key rolling buffer
-#define HELD_KEY_BUFFER_LENGTH 15
-
-#define STICKYBAN_DB_CACHE_TIME 10 SECONDS
-#define STICKYBAN_ROGUE_CHECK_TIME 5
+/// Max keys that can be held down at once by a client
+#define MAX_HELD_KEYS 15
 
 
 /// Shown to vicitm of staff of change and related effects.
@@ -115,3 +137,43 @@
 
 //How many things you can spawn at once with spawn verb/create panel
 #define ADMIN_SPAWN_CAP 100
+
+/// for [/proc/check_asay_links], if there are any actionable refs in the asay message, this index in the return list contains the new message text to be printed
+#define ASAY_LINK_NEW_MESSAGE_INDEX "!asay_new_message"
+/// for [/proc/check_asay_links], if there are any admin pings in the asay message, this index in the return list contains a list of admins to ping
+#define ASAY_LINK_PINGED_ADMINS_INDEX "!pinged_admins"
+
+GLOBAL_LIST_INIT(admin_categories, build_admin_categories())
+
+#define ADMIN_CATEGORY_ADMIN "ADMIN"
+#define ADMIN_CATEGORY_MAINT "MAINT"
+
+/proc/build_admin_categories()
+	var/list/final_build = list()
+
+	var/list/lines = file2list("config/rank_categories.txt")
+	for(var/line in lines)
+		if(!length(line))
+			continue
+		if(copytext(line,1,2) == "#")
+			continue
+
+		//Split the line at every "-"
+		var/list/List = splittext(line, "-")
+		if(!length(List))
+			continue
+
+		var/rank = List[1]
+		var/list/categories = List.Copy(2)
+		for(var/category in categories)
+			var/clean_cat = uppertext(ckey(category))
+
+			if(!(clean_cat in final_build))
+				final_build[clean_cat] = list()
+
+			final_build[clean_cat] += ckey(rank)
+
+	return final_build
+
+GLOBAL_VAR(join_motd)
+GLOBAL_VAR(current_tms)

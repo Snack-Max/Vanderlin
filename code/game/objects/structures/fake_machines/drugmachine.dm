@@ -1,4 +1,4 @@
-/obj/item/roguemachine/drugtrade
+/obj/item/fake_machine/drugtrade
 	name = "NARCOS"
 	desc = "A machine that exports drugs throughout a network of pneumatic pipes."
 	icon = 'icons/roguetown/misc/machines.dmi'
@@ -7,7 +7,6 @@
 	blade_dulling = DULLING_BASH
 	var/next_canister
 	var/accepted_items
-	max_integrity = 0
 	anchored = TRUE
 	w_class = WEIGHT_CLASS_GIGANTIC
 
@@ -20,7 +19,7 @@
 	layer = BELOW_OBJ_LAYER
 	anchored = TRUE
 
-/obj/item/roguemachine/drugtrade/attack_hand(mob/living/user)
+/obj/item/fake_machine/drugtrade/attack_hand(mob/living/user)
 	if(!anchored)
 		return ..()
 	user.changeNext_move(CLICK_CD_MELEE)
@@ -38,31 +37,23 @@
 	popup.set_content(contents)
 	popup.open()
 
-/obj/item/roguemachine/drugtrade/update_icon()
-	if(!anchored)
-		w_class = WEIGHT_CLASS_BULKY
-		set_light(0)
-		return
-	w_class = WEIGHT_CLASS_GIGANTIC
-	set_light(2, 2, 2, l_color =  "#9C37B5")
-
-/obj/item/roguemachine/drugtrade/Initialize()
+/obj/item/fake_machine/drugtrade/Initialize()
 	. = ..()
 	if(anchored)
 		START_PROCESSING(SSroguemachine, src)
-	update_icon()
+	set_light(2, 2, 2, l_color =  "#9C37B5")
 	for(var/X in GLOB.alldirs)
 		var/T = get_step(src, X)
 		if(!T)
 			continue
 		new /obj/structure/fake_machine/drug_chute(T)
 
-/obj/item/roguemachine/drugtrade/Destroy()
+/obj/item/fake_machine/drugtrade/Destroy()
 	STOP_PROCESSING(SSroguemachine, src)
 	set_light(0)
 	return ..()
 
-/obj/item/roguemachine/drugtrade/process()
+/obj/item/fake_machine/drugtrade/process()
 	if(!anchored)
 		return TRUE
 	if(world.time > next_canister)
@@ -99,7 +90,7 @@
 				E.budget2change(budgie)
 				budgie = 0
 		if(play_sound)
-			playsound(src.loc, 'sound/misc/hiss.ogg', 100, FALSE, -1)
+			playsound(src, 'sound/misc/hiss.ogg', 100, FALSE, -1)
 
 
 ///PURITY 2.0///
@@ -113,69 +104,58 @@
 	icon_state = "goldvendor"
 	density = TRUE
 	blade_dulling = DULLING_BASH
-	max_integrity = 0
 	anchored = TRUE
 	layer = BELOW_OBJ_LAYER
+	lock = /datum/lock/key/purity
 	var/list/held_items = list()
-	var/locked = TRUE
 	var/budget = 0
 	var/upgrade_flags
-	var/current_cat = "1"
+	var/current_cat
+	var/list/available_categories = list("Narcotics", "Instruments")
 
 /obj/structure/fake_machine/drugmachine/Initialize()
 	. = ..()
-	update_icon()
-
-/obj/structure/fake_machine/drugmachine/update_icon()
-	cut_overlays()
-	if(obj_broken)
-		set_light(0)
-		return
 	set_light(1, 1, 1, l_color =  "#8f06b5")
-	add_overlay(mutable_appearance(icon, "vendor-merch"))
 
+/obj/structure/fake_machine/drugmachine/atom_break(damage_flag)
+	. = ..()
+	budget2change(budget)
+	set_light(0)
 
-/obj/structure/fake_machine/drugmachine/attackby(obj/item/P, mob/user, params)
-	if(istype(P, /obj/item/key))
-		var/obj/item/key/K = P
-		if(K.lockid == "nightman")
-			locked = !locked
-			playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
-			update_icon()
-			return attack_hand(user)
-		else
-			playsound(src, 'sound/misc/machineno.ogg', 100, FALSE, -1)
-			to_chat(user, "<span class='warning'>Wrong key.</span>")
-			return
-	if(istype(P, /obj/item/storage/keyring))
-		var/obj/item/storage/keyring/K = P
-		for(var/obj/item/key/KE in K.contents)
-			if(KE.lockid == "nightman")
-				locked = !locked
-				playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
-				update_icon()
-				return attack_hand(user)
-	if(istype(P, /obj/item/coin))
-		budget += P.get_real_price()
-		qdel(P)
-		update_icon()
-		playsound(loc, 'sound/misc/machinevomit.ogg', 100, TRUE, -1)
+/obj/structure/fake_machine/drugmachine/atom_fix()
+	. = ..()
+	set_light(1, 1, 1, l_color =  "#8f06b5")
+
+/obj/structure/fake_machine/drugmachine/Destroy()
+	. = ..()
+	budget2change(budget)
+	set_light(0)
+
+/obj/structure/fake_machine/drugmachine/attackby(obj/item/I, mob/user, list/modifiers)
+	. = ..()
+	if(istype(I, /obj/item/coin/inqcoin))
+		return
+	if(istype(I, /obj/item/coin))
+		var/money = I.get_real_price()
+		budget += money
+		qdel(I)
+		to_chat(user, span_info("I put [money] mammon in [src]."))
+		playsound(src, 'sound/misc/machinevomit.ogg', 100, TRUE, -1)
 		return attack_hand(user)
-	..()
 
 /obj/structure/fake_machine/drugmachine/Topic(href, href_list)
 	. = ..()
 	if(!ishuman(usr))
 		return
-	if(!usr.canUseTopic(src, BE_CLOSE) || locked)
+	if(!usr.can_perform_action(src, NEED_DEXTERITY|FORBID_TELEKINESIS_REACH) || locked())
 		return
+	var/mob/living/carbon/human/human_mob = usr
 	if(href_list["buy"])
-		var/mob/M = usr
 		var/path = text2path(href_list["buy"])
 		if(!ispath(path, /datum/supply_pack))
 			message_admins("APOTHECARY [usr.key] IS TRYING TO BUY A [path] WITH THE GOLDFACE. THIS IS AN EXPLOIT.")
 			return
-		var/datum/supply_pack/PA = new path
+		var/datum/supply_pack/PA = SSmerchant.supply_packs[path]
 		var/cost = PA.cost
 		var/tax_amt=round(SStreasury.tax_value * cost)
 		cost=cost+tax_amt
@@ -183,21 +163,31 @@
 			cost = PA.cost
 		if(budget >= cost)
 			budget -= cost
+			record_round_statistic(STATS_PURITY_VALUE_SPENT, cost)
 			if(!(upgrade_flags & UPGRADE_NOTAX))
 				SStreasury.give_money_treasury(tax_amt, "goldface import tax")
+				record_featured_stat(FEATURED_STATS_TAX_PAYERS, human_mob, tax_amt)
+				record_round_statistic(STATS_TAXES_COLLECTED, tax_amt)
+			else
+				record_round_statistic(STATS_TAXES_EVADED, tax_amt)
 		else
 			say("Not enough!")
 			return
 		var/pathi = pick(PA.contains)
 		var/obj/item/I = new pathi(get_turf(src))
-		M.put_in_hands(I)
+		human_mob.put_in_hands(I)
 		qdel(PA)
 	if(href_list["change"])
 		if(budget > 0)
 			budget2change(budget, usr)
 			budget = 0
 	if(href_list["changecat"])
-		current_cat = href_list["changecat"]
+		var/selected_category = href_list["changecat"]
+
+		if (selected_category in available_categories)
+			current_cat = selected_category
+		else
+			current_cat = null
 	if(href_list["secrets"])
 		var/list/options = list()
 		if(upgrade_flags & UPGRADE_NOTAX)
@@ -207,15 +197,15 @@
 		var/select = input(usr, "Please select an option.", "", null) as null|anything in options
 		if(!select)
 			return
-		if(!usr.canUseTopic(src, BE_CLOSE) || locked)
+		if(!usr.can_perform_action(src, NEED_DEXTERITY|FORBID_TELEKINESIS_REACH) || locked())
 			return
 		switch(select)
 			if("Enable Paying Taxes")
 				upgrade_flags &= ~UPGRADE_NOTAX
-				playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+				playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 			if("Stop Paying Taxes")
 				upgrade_flags |= UPGRADE_NOTAX
-				playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+				playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	return attack_hand(usr)
 
 /obj/structure/fake_machine/drugmachine/attack_hand(mob/living/user)
@@ -224,11 +214,11 @@
 		return
 	if(!ishuman(user))
 		return
-	if(locked)
+	if(locked())
 		to_chat(user, "<span class='warning'>It's locked. Of course.</span>")
 		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+	playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	var/canread = user.can_read(src, TRUE)
 	var/contents
 	contents = "<center>PURITY - In the pursuit of pleasure.<BR>"
@@ -243,15 +233,14 @@
 
 	contents += "</center><BR>"
 
-	var/list/unlocked_cats = list("Narcotics","Instruments")
-	if(current_cat == "1")
+	if(isnull(current_cat))
 		contents += "<center>"
-		for(var/X in unlocked_cats)
-			contents += "<a href='byond://?src=[REF(src)];changecat=[X]'>[X]</a><BR>"
+		for(var/category in available_categories)
+			contents += "<a href='byond://?src=[REF(src)];changecat=[category]'>[category]</a><BR>"
 		contents += "</center>"
 	else
 		contents += "<center>[current_cat]<BR></center>"
-		contents += "<center><a href='byond://?src=[REF(src)];changecat=1'>\[RETURN\]</a><BR><BR></center>"
+		contents += "<center><a href='byond://?src=[REF(src)];changecat=0'>\[RETURN\]</a><BR><BR></center>"
 		var/list/pax = list()
 		for(var/pack in SSmerchant.supply_packs)
 			var/datum/supply_pack/PA = SSmerchant.supply_packs[pack]
@@ -269,20 +258,5 @@
 	var/datum/browser/popup = new(user, "VENDORTHING", "", 370, 400)
 	popup.set_content(contents)
 	popup.open()
-
-/obj/structure/fake_machine/drugmachine/obj_break(damage_flag)
-	..()
-	budget2change(budget)
-	set_light(0)
-	update_icon()
-	icon_state = "goldvendor0"
-
-/obj/structure/fake_machine/drugmachine/Destroy()
-	set_light(0)
-	return ..()
-
-/obj/structure/fake_machine/drugmachine/Initialize()
-	. = ..()
-	update_icon()
 
 #undef UPGRADE_NOTAX

@@ -1,0 +1,575 @@
+/datum/job/town_elder
+	title = "Town Elder"
+	tutorial = "You were once a wanderer, an unremarkable soul who, alongside your old adventuring party, carved your name into history.\
+	Now, the days of adventure are long past. You sit as the town's beloved elder; while the crown may rule from afar, the people\
+	look to you to settle disputes, mend rifts, and keep the true peace in town. Not every conflict must end in bloodshed,\
+	but when it must, you will do what is necessary, as you always have."
+	department_flag = GARRISON
+	job_flags = (JOB_ANNOUNCE_ARRIVAL | JOB_SHOW_IN_CREDITS | JOB_EQUIP_RANK | JOB_NEW_PLAYER_JOINABLE)
+	display_order = JDO_CHIEF
+	faction = FACTION_TOWN
+	total_positions = 1
+	spawn_positions = 1
+	bypass_lastclass = TRUE
+	honorary = "Elder"
+
+	allowed_ages = list(AGE_MIDDLEAGED, AGE_OLD, AGE_IMMORTAL)
+	allowed_races = RACES_PLAYER_NONHERETICAL
+	blacklisted_species = list(SPEC_ID_HALFLING)
+	cmode_music = "sound/music/cmode/towner/CombatElder.ogg"
+	advclass_cat_rolls = list(CTAG_TOWN_ELDER = 20)
+	give_bank_account = 50
+	can_have_apprentices = FALSE
+
+	exp_type = list(EXP_TYPE_BARD, EXP_TYPE_LIVING)
+	exp_types_granted = list(EXP_TYPE_LEADERSHIP, EXP_TYPE_BARD)
+	exp_requirements = list(
+		EXP_TYPE_LIVING = 1200,
+		EXP_TYPE_BARD = 300
+	)
+
+	traits = list(
+		TRAIT_OLDPARTY
+	)
+
+	spells = list(
+		/datum/action/cooldown/spell/undirected/list_target/convert_role/militia
+	)
+
+/datum/job/town_elder/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	add_verb(spawned, /mob/living/carbon/human/proc/townannouncement)
+	var/instruments = list(
+		"Harp" = /obj/item/instrument/harp,
+		"Lute" = /obj/item/instrument/lute,
+		"Accordion" = /obj/item/instrument/accord,
+		"Guitar" = /obj/item/instrument/guitar,
+		"Flute" = /obj/item/instrument/flute,
+		"Drum" = /obj/item/instrument/drum,
+		"Hurdy-Gurdy" = /obj/item/instrument/hurdygurdy,
+		"Viola" = /obj/item/instrument/viola)
+
+	var/instrument_choice = input(spawned, "Choose your instrument.", "XYLIX") as anything in instruments
+	var/spawn_instrument = instruments[instrument_choice]
+	if(!spawn_instrument)
+		spawn_instrument = /obj/item/instrument/lute
+	spawned.equip_to_slot_or_del(new spawn_instrument(spawned), ITEM_SLOT_BACK_R, TRUE)
+	spawned.add_quirk(/datum/quirk/boon/folk_hero)
+
+/mob/living/carbon/human/proc/townannouncement()
+	set name = "Elder Announcement"
+	set category = "RoleUnique.Elder"
+	if(stat)
+		return
+
+	var/static/last_announcement_time = 0
+
+	if(world.time < last_announcement_time + 1 MINUTES)
+		var/time_left = round((last_announcement_time + 1 MINUTES - world.time) / 10)
+		to_chat(src, "<span class='warning'>You must wait [time_left] more seconds before making another announcement.</span>")
+		return
+
+	var/inputty = input("Make an announcement", "VANDERLIN") as text|null
+	if(inputty)
+		if(!istype(get_area(src), /area/indoors/town/tavern))
+			to_chat(src, "<span class='warning'>I need to do this from the tavern.</span>")
+			return FALSE
+		priority_announce("[inputty]", title = "[src.real_name], The Town Elder Speaks", sound = 'sound/misc/bell.ogg')
+		src.log_talk("[TIMETOTEXT4LOGS] [inputty]", LOG_SAY, tag="Town Elder announcement")
+
+		last_announcement_time = world.time
+
+/datum/job/advclass/town_elder
+	exp_types_granted = list(EXP_TYPE_LEADERSHIP, EXP_TYPE_BARD)
+
+/datum/attribute_holder/sheet/job/town_elder/mayor
+	raw_attribute_list = list(
+		STAT_STRENGTH = -1,
+		STAT_ENDURANCE = 1,
+		STAT_PERCEPTION = 2,
+		STAT_INTELLIGENCE = 2,
+		/datum/attribute/skill/craft/crafting = 20,
+		/datum/attribute/skill/misc/reading = 40,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/riding = 30,
+		/datum/attribute/skill/labor/mathematics = 40,
+		/datum/attribute/skill/combat/polearms = 20,
+		/datum/attribute/skill/misc/music = 50
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/mayor/old
+	raw_attribute_list = list(
+		STAT_STRENGTH = -2,
+		STAT_ENDURANCE = 1,
+		STAT_PERCEPTION = 3,
+		STAT_INTELLIGENCE = 3,
+		/datum/attribute/skill/craft/crafting = 30,
+		/datum/attribute/skill/misc/reading = 50,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/riding = 40,
+		/datum/attribute/skill/labor/mathematics = 50,
+		/datum/attribute/skill/combat/polearms = 30,
+		/datum/attribute/skill/misc/music = 50
+	)
+
+/datum/job/advclass/town_elder/mayor
+	title = "Mayor"
+	allowed_races = RACES_PLAYER_NONDISCRIMINATED
+	tutorial = "Before politics, you were a bard, your voice stirred hearts, your tales traveled farther than your feet ever could. You carved your name in history not with steel, but with stories that moved kings and commoners alike. In time, your charisma became counsel, your songs gave way to speeches. Decades later, your skill in diplomacy and trade earned you nobility, and with it, the title of Mayor. Now, you lead not from a stage, but from the heart of the people you once sang for."
+	outfit = /datum/outfit/town_elder/mayor
+	category_tags = list(CTAG_TOWN_ELDER)
+
+	spells = list(
+		/datum/action/cooldown/spell/vicious_mockery,
+		// /datum/action/cooldown/spell/bardic_inspiration
+	)
+	honorary = "Mayor"
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/town_elder/mayor
+	attribute_sheet_old = /datum/attribute_holder/sheet/job/town_elder/mayor/old
+
+	traits = list(
+		TRAIT_NOBLE_POWER,
+		TRAIT_SEEPRICES,
+		TRAIT_BARDIC_TRAINING
+	)
+
+/datum/job/advclass/town_elder/mayor/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	spawned.inspiration = new /datum/inspiration(spawned)
+
+/datum/outfit/town_elder/mayor
+	name = "Mayor (Town Elder)"
+	head = /obj/item/clothing/head/tophat
+	armor = /obj/item/clothing/armor/leather/vest/winterjacket
+	shirt = /obj/item/clothing/shirt/undershirt/fancy
+	pants = /obj/item/clothing/pants/trou/leather
+	shoes = /obj/item/clothing/shoes/boots
+	gloves = /obj/item/clothing/gloves/leather/black
+	ring = /obj/item/clothing/ring/gold/toper
+	cloak = /obj/item/clothing/cloak/raincloak/furcloak/colored/black
+	neck = /obj/item/storage/belt/pouch/coins/veryrich
+	belt = /obj/item/storage/belt/leather/plaquesilver
+	beltr = /obj/item/storage/keyring/elder
+	beltl = /obj/item/flashlight/flare/torch/lantern
+	backl = /obj/item/storage/backpack/satchel
+	r_hand = /obj/item/weapon/polearm/woodstaff/quarterstaff
+
+/datum/attribute_holder/sheet/job/town_elder/master_of_crafts_and_labor
+	attribute_variance = list(
+		/datum/attribute/skill/labor/mining = list(20, 40),
+		/datum/attribute/skill/labor/lumberjacking = list(20, 40),
+		/datum/attribute/skill/craft/masonry = list(20, 40),
+		/datum/attribute/skill/craft/crafting = list(20, 40),
+		/datum/attribute/skill/craft/carpentry = list(20, 40),
+		/datum/attribute/skill/craft/engineering = list(20, 40),
+		/datum/attribute/skill/craft/smelting = list(20, 40),
+		/datum/attribute/skill/misc/sewing = list(20, 40),
+		/datum/attribute/skill/labor/farming = list(20, 40),
+		/datum/attribute/skill/misc/medicine = list(20, 40),
+		/datum/attribute/skill/craft/tanning = list(20, 40),
+		/datum/attribute/skill/labor/butchering = list(20, 40),
+		/datum/attribute/skill/labor/taming = list(20, 40),
+		/datum/attribute/skill/craft/alchemy = list(20, 40),
+		/datum/attribute/skill/craft/blacksmithing = list(20, 40),
+		/datum/attribute/skill/craft/armorsmithing = list(20, 40),
+		/datum/attribute/skill/craft/weaponsmithing = list(20, 40),
+		/datum/attribute/skill/craft/cooking = list(20, 40),
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = 1,
+		STAT_ENDURANCE = 2,
+		STAT_INTELLIGENCE = 2,
+		/datum/attribute/skill/misc/reading = 10,
+		/datum/attribute/skill/labor/mathematics = 10,
+		/datum/attribute/skill/misc/athletics = 30,
+		/datum/attribute/skill/combat/axesmaces = 20,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/misc/swimming = 30,
+		/datum/attribute/skill/misc/climbing = 30,
+		/datum/attribute/skill/misc/music = 30
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/master_of_crafts_and_labor/old
+	attribute_variance = list(
+		/datum/attribute/skill/labor/mining = list(20, 50),
+		/datum/attribute/skill/labor/lumberjacking = list(20, 50),
+		/datum/attribute/skill/craft/masonry = list(20, 50),
+		/datum/attribute/skill/craft/crafting = list(20, 50),
+		/datum/attribute/skill/craft/carpentry = list(20, 50),
+		/datum/attribute/skill/craft/engineering = list(20, 50),
+		/datum/attribute/skill/craft/smelting = list(20, 50),
+		/datum/attribute/skill/misc/sewing = list(20, 50),
+		/datum/attribute/skill/labor/farming = list(20, 50),
+		/datum/attribute/skill/misc/medicine = list(20, 50),
+		/datum/attribute/skill/craft/tanning = list(20, 50),
+		/datum/attribute/skill/labor/butchering = list(20, 50),
+		/datum/attribute/skill/labor/taming = list(20, 50),
+		/datum/attribute/skill/craft/alchemy = list(20, 50),
+		/datum/attribute/skill/craft/blacksmithing = list(20, 50),
+		/datum/attribute/skill/craft/armorsmithing = list(20, 50),
+		/datum/attribute/skill/craft/weaponsmithing = list(20, 50),
+		/datum/attribute/skill/craft/cooking = list(20, 50),
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = 1,
+		STAT_ENDURANCE = 3,
+		STAT_INTELLIGENCE = 3,
+		/datum/attribute/skill/misc/reading = 10,
+		/datum/attribute/skill/labor/mathematics = 10,
+		/datum/attribute/skill/misc/athletics = 30,
+		/datum/attribute/skill/combat/axesmaces = 20,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/misc/swimming = 30,
+		/datum/attribute/skill/misc/climbing = 30,
+		/datum/attribute/skill/misc/music = 30
+	)
+
+/datum/job/advclass/town_elder/master_of_crafts_and_labor //A Job meant to guide and help new players in multiple areas heavy RNG so it can range from Average to Master.
+	title = "Master of Crafts and Labor"
+	tutorial = "You were one of the hardest-working individuals in the city, there isn't a single job you haven't done. From farming and butchery to alchemy, blacksmithing, cooking, and even medicine, your vast knowledge made you a guiding light for the people. Yet amid your labors, it was your songs that bound the workers together: rhythmic chants in the forge, lullabies in the sick wards, ballads hummed in the fields. Your voice became a beacon of focus and unity. Recognizing both your wisdom and your spirit, the townsfolk turned to you for guidance. Now, as the Master of Crafts and Labor, you oversee and uplift all who contribute to the city's survival. Lead them well."
+	outfit = /datum/outfit/town_elder/master_of_crafts_and_labor
+	category_tags = list(CTAG_TOWN_ELDER)
+
+	honorary = "Foreman"
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/town_elder/master_of_crafts_and_labor
+	attribute_sheet_old = /datum/attribute_holder/sheet/job/town_elder/master_of_crafts_and_labor/old
+
+	traits = list(
+		TRAIT_DEADNOSE,
+		TRAIT_SEEDKNOW,
+		TRAIT_MALUMFIRE
+	)
+
+/datum/outfit/town_elder/master_of_crafts_and_labor
+	name = "Master of Crafts and Labor (Town Elder)"
+	head = /obj/item/clothing/head/hatblu
+	armor = /obj/item/clothing/armor/leather/vest/colored/random
+	shirt = /obj/item/clothing/shirt/undershirt/colored/random
+	pants = /obj/item/clothing/pants/trou
+	shoes = /obj/item/clothing/shoes/boots/leather
+	belt = /obj/item/storage/belt/leather
+	beltr = /obj/item/weapon/pick/paxe
+	beltl = /obj/item/flashlight/flare/torch/lantern
+	backl = /obj/item/storage/backpack/backpack
+	backpack_contents = list(
+		/obj/item/storage/belt/pouch/coins/mid = 1,
+		/obj/item/weapon/knife/hunting = 1,
+		/obj/item/storage/keyring/master_of_crafts_and_labor = 1,
+		/obj/item/weapon/hammer/steel = 1
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		STAT_INTELLIGENCE = 1,
+		STAT_ENDURANCE = 2,
+		/datum/attribute/skill/misc/sewing = 20,
+		/datum/attribute/skill/misc/medicine = 30,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/combat/wrestling = 20,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/reading = 30,
+		/datum/attribute/skill/magic/holy = 30,
+		/datum/attribute/skill/misc/music = 40
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/old
+	raw_attribute_list = list(
+		STAT_STRENGTH = 2,
+		STAT_INTELLIGENCE = 1,
+		STAT_ENDURANCE = 3,
+		/datum/attribute/skill/misc/sewing = 20,
+		/datum/attribute/skill/misc/medicine = 30,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/combat/wrestling = 20,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/reading = 30,
+		/datum/attribute/skill/magic/holy = 50,
+		/datum/attribute/skill/misc/music = 40
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/eora
+	raw_attribute_list = list(
+		/datum/attribute/skill/misc/music = 20
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/noc
+	raw_attribute_list = list(
+		/datum/attribute/skill/labor/mathematics = 20
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/pestra
+	raw_attribute_list = list(
+		/datum/attribute/skill/misc/medicine = 10,
+		/datum/attribute/skill/craft/alchemy = 10
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/dendor
+	raw_attribute_list = list(
+		/datum/attribute/skill/labor/farming = 20,
+		/datum/attribute/skill/labor/taming = 10
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/abyssor
+	raw_attribute_list = list(
+		/datum/attribute/skill/labor/fishing = 20,
+		/datum/attribute/skill/misc/swimming = 20
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/ravox
+	raw_attribute_list = list(
+		/datum/attribute/skill/combat/polearms = 10
+	)
+	attribute_variance = list(
+		/datum/attribute/skill/combat/swords = list(10, 20),
+		/datum/attribute/skill/combat/whipsflails = list(10, 20),
+		/datum/attribute/skill/combat/axesmaces = list(0, 10)
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/xylix
+	raw_attribute_list = list(
+		/datum/attribute/skill/misc/stealing = 20,
+		/datum/attribute/skill/misc/music = 30
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/malum
+	raw_attribute_list = list(
+		/datum/attribute/skill/craft/blacksmithing = 20,
+		/datum/attribute/skill/craft/smelting = 20,
+		/datum/attribute/skill/craft/armorsmithing = 10,
+		/datum/attribute/skill/craft/weaponsmithing = 10,
+		/datum/attribute/skill/craft/engineering = 10,
+		/datum/attribute/skill/craft/carpentry = 10,
+		/datum/attribute/skill/craft/masonry = 10,
+		/datum/attribute/skill/craft/crafting = 10
+	)
+
+/datum/job/advclass/town_elder/hearth_acolyte //An acolyte that left the church and now serve and help the town people.
+	title = "Hearth Acolyte"
+	tutorial = "As an Acolyte, you dedicated your life to faith and service, expecting nothing in return. When you saved a noble, they repaid you with a home and gold, but you accepted it as the will of the Ten. Though you stepped away from the Church, you found a new purpose, not in grand temples, but in the rhythm of the streets. Your voice, once raised in hymns and prayers, now carries through alleyways and taverns, offering solace in melody and verse. Whether through healing, wisdom, or song, your faith endures. Only now, your congregation is the town itself."
+	outfit = /datum/outfit/town_elder/hearth_acolyte
+	category_tags = list(CTAG_TOWN_ELDER)
+	allowed_patrons = ALL_TEMPLE_PATRONS
+	//honorary = "STUPID DUMB CLASS WHICH I HATE"
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/town_elder/hearth_acolyte
+	attribute_sheet_old = /datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/old
+
+	traits = list(
+		TRAIT_OLDPARTY
+	)
+
+	languages = list(/datum/language/celestial)
+
+/datum/job/advclass/town_elder/hearth_acolyte/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+
+	spawned.virginity = TRUE
+	switch(spawned.patron?.type)
+		if(/datum/patron/divine/astrata)
+			spawned.cmode_music = 'sound/music/cmode/adventurer/CombatMonk.ogg'
+		if(/datum/patron/divine/necra)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatGravekeeper.ogg'
+			ADD_TRAIT(spawned, TRAIT_DEADNOSE, TRAIT_GENERIC)
+		if(/datum/patron/divine/eora)
+			ADD_TRAIT(spawned, TRAIT_BEAUTIFUL, TRAIT_GENERIC)
+			ADD_TRAIT(spawned, TRAIT_EMPATH, TRAIT_GENERIC)
+			spawned.virginity = FALSE
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/eora)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatEora.ogg'
+		if(/datum/patron/divine/noc)
+			spawned.adjust_skill_level(/datum/attribute/skill/labor/mathematics, 20)
+			var/language = pickweight(list("Dwarvish" = 1, "Elvish" = 1, "Hellspeak" = 1, "Zaladin" = 1, "Orcish" = 1,))
+			switch(language)
+				if("Dwarvish")
+					spawned.grant_language(/datum/language/dwarvish)
+					to_chat(spawned,span_info("\
+					I learned the tongue of the mountain dwellers.")
+					)
+				if("Elvish")
+					spawned.grant_language(/datum/language/elvish)
+					to_chat(spawned,span_info("\
+					I learned the tongue of the primordial species.")
+					)
+				if("Hellspeak")
+					spawned.grant_language(/datum/language/hellspeak)
+					to_chat(spawned,span_info("\
+					I learned the tongue of the hellspawn.")
+					)
+				if("Zaladin")
+					spawned.grant_language(/datum/language/zalad)
+					to_chat(spawned,span_info("\
+					I learned the tongue of Zaladin.")
+					)
+				if("Orcish")
+					spawned.grant_language(/datum/language/orcish)
+					to_chat(spawned,span_info("\
+					I learned the tongue of the savages in my time.")
+					)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatNoc.ogg'
+		if(/datum/patron/divine/pestra)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/pestra)
+			spawned.cmode_music = 'sound/music/cmode/adventurer/CombatMonk.ogg'
+		if(/datum/patron/divine/dendor)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/dendor)
+			ADD_TRAIT(spawned, TRAIT_SEEDKNOW, TRAIT_GENERIC)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatDendor.ogg'
+		if(/datum/patron/divine/abyssor)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/abyssor)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatAbyssor.ogg'
+		if(/datum/patron/divine/ravox)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/ravox)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatRavox.ogg'
+		if(/datum/patron/divine/xylix)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/xylix)
+			spawned.cmode_music = 'sound/music/cmode/church/CombatXylix.ogg'
+		if(/datum/patron/divine/malum)
+			spawned.attributes?.add_sheet(/datum/attribute_holder/sheet/job/town_elder/hearth_acolyte/patron/malum)
+			ADD_TRAIT(spawned, TRAIT_MALUMFIRE, TRAIT_GENERIC)
+			spawned.cmode_music = 'sound/music/cmode/adventurer/CombatMonk.ogg'
+
+	if(spawned.age == AGE_OLD)
+		spawned.adjust_skill_level(/datum/attribute/skill/magic/holy, 20)
+		spawned.adjust_stat_modifier(STATMOD_JOB, STAT_ENDURANCE, 1)
+
+	var/holder = spawned.patron?.devotion_holder
+	if(holder)
+		var/datum/devotion/devotion = new holder()
+		devotion.make_acolyte()
+		devotion.grant_to(spawned)
+
+/datum/outfit/town_elder/hearth_acolyte
+	name = "Hearth Acolyte (Town Elder)"
+	head = /obj/item/clothing/head/roguehood/colored/random
+	armor = /obj/item/clothing/shirt/robe
+	shoes = /obj/item/clothing/shoes/sandals
+	belt = /obj/item/storage/belt/leather/rope
+	beltr = /obj/item/storage/keyring/elder
+	beltl = /obj/item/flashlight/flare/torch/lantern
+	backl = /obj/item/storage/backpack/satchel
+	backpack_contents = list(
+		/obj/item/storage/belt/pouch/coins/mid = 1,
+		/obj/item/needle = 1
+	)
+
+/datum/outfit/town_elder/hearth_acolyte/pre_equip(mob/living/carbon/human/equipped_human, visuals_only)
+	. = ..()
+	switch(equipped_human.patron?.type)
+		if(/datum/patron/divine/astrata)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/astrata
+		if(/datum/patron/divine/necra)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/necra
+		if(/datum/patron/divine/eora)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/eora
+		if(/datum/patron/divine/noc)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/noc
+		if(/datum/patron/divine/pestra)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/pestra
+			backpack_contents += /obj/item/needle/blessed
+		if(/datum/patron/divine/dendor)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/dendor
+		if(/datum/patron/divine/abyssor)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/abyssor
+		if(/datum/patron/divine/ravox)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/ravox
+		if(/datum/patron/divine/xylix)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/xylix
+		if(/datum/patron/divine/malum)
+			neck = /obj/item/clothing/neck/psycross/silver/divine/malum
+			backpack_contents += /obj/item/weapon/hammer/iron
+		else
+			neck = /obj/item/clothing/neck/psycross/silver
+
+/datum/attribute_holder/sheet/job/town_elder/lorekeeper
+	raw_attribute_list = list(
+		STAT_INTELLIGENCE = 2,
+		STAT_SPEED = 1,
+		STAT_STRENGTH = 1,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/swords = 20,
+		/datum/attribute/skill/craft/crafting = 20,
+		/datum/attribute/skill/misc/swimming = 30,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/misc/riding = 40,
+		/datum/attribute/skill/misc/sewing = 10,
+		/datum/attribute/skill/misc/reading = 40,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/music = 60,
+		/datum/attribute/skill/misc/athletics = 20
+	)
+
+/datum/attribute_holder/sheet/job/town_elder/lorekeeper/old
+	raw_attribute_list = list(
+		STAT_INTELLIGENCE = 3,
+		STAT_SPEED = 1,
+		STAT_STRENGTH = 1,
+		STAT_ENDURANCE = 1,
+		/datum/attribute/skill/combat/unarmed = 10,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/swords = 20,
+		/datum/attribute/skill/craft/crafting = 30,
+		/datum/attribute/skill/misc/swimming = 30,
+		/datum/attribute/skill/misc/climbing = 20,
+		/datum/attribute/skill/misc/riding = 40,
+		/datum/attribute/skill/misc/sewing = 10,
+		/datum/attribute/skill/misc/reading = 50,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/music = 60,
+		/datum/attribute/skill/misc/athletics = 20
+	)
+
+/datum/job/advclass/town_elder/lorekeeper
+	title = "Lorekeeper"
+	tutorial = "Your tales once lit up taverns, your ballads echoed through cities, and your curiosity led you across kingdoms. But the stage grows quiet, and your thirst for stories has shifted. Now, you collect history instead of applause, recording the town's past, preserving its legends, and guiding the present with the wisdom of ages. In a world where memory is power, you are its guardian."
+	outfit = /datum/outfit/town_elder/lorekeeper
+	category_tags = list(CTAG_TOWN_ELDER)
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/town_elder/lorekeeper
+	attribute_sheet_old = /datum/attribute_holder/sheet/job/town_elder/lorekeeper/old
+
+	traits = list(
+		TRAIT_DODGEEXPERT,
+		TRAIT_BARDIC_TRAINING
+	)
+
+	spells = list(
+		/datum/action/cooldown/spell/vicious_mockery,
+		// /datum/action/cooldown/spell/bardic_inspiration
+	)
+
+/datum/job/advclass/town_elder/lorekeeper/after_spawn(mob/living/carbon/human/spawned, client/player_client)
+	. = ..()
+	spawned.inspiration = new /datum/inspiration(spawned)
+
+/datum/outfit/town_elder/lorekeeper
+	name = "Lorekeeper (Town Elder)"
+	head = /obj/item/clothing/head/bardhat
+	armor = /obj/item/clothing/armor/leather/jacket/silk_coat
+	shirt = /obj/item/clothing/shirt/tunic/noblecoat
+	pants = /obj/item/clothing/pants/trou/leather
+	shoes = /obj/item/clothing/shoes/boots
+	gloves = /obj/item/clothing/gloves/leather
+	wrists = /obj/item/clothing/wrists/bracers/leather
+	cloak = /obj/item/clothing/cloak/half
+	belt = /obj/item/storage/belt/leather
+	beltr = /obj/item/weapon/sword/arming
+	beltl = /obj/item/flashlight/flare/torch/lantern
+	scabbards = list(/obj/item/weapon/scabbard/sword)
+	backl = /obj/item/storage/backpack/satchel
+	backpack_contents = list(
+		/obj/item/storage/belt/pouch/coins/mid = 1,
+		/obj/item/storage/keyring/elder = 1,
+		/obj/item/paper/scroll = 5,
+		/obj/item/natural/feather = 1
+	)

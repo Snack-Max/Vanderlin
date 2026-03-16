@@ -18,7 +18,7 @@
 	base_icon_state = "closet3"
 	icon_state = "closet3"
 	dir = SOUTH
-	pixel_y = 16
+	SET_BASE_PIXEL(0, 16)
 
 /obj/structure/closet/crate/crafted_closet/inn
 	base_icon_state = "closet3"
@@ -33,8 +33,16 @@
 	icon_state = "closetdark"
 
 /obj/structure/closet/crate/crafted_closet/lord
-	keylock = TRUE
-	lockid = "lord"
-	locked = TRUE
+	lock = /datum/lock/key/lord
 	base_icon_state = "closetlord"
 	icon_state = "closetlord"
+
+/obj/structure/closet/crate/crafted_closet/atarms
+	lock = /datum/lock/key/atarms
+	base_icon_state = "closetdark"
+	icon_state = "closetdark"
+
+/obj/structure/closet/crate/crafted_closet/steward
+	lock = /datum/lock/key/steward
+	base_icon_state = "closetdark"
+	icon_state = "closetdark"

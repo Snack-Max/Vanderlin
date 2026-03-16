@@ -64,8 +64,7 @@
 	soulowner = owner
 	soulsharers = sharers
 	LAZYADD(owner.ownedSoullinks, src)
-	for(var/l in sharers)
-		var/mob/living/L = l
+	for(var/mob/living/L as anything in sharers)
 		LAZYADD(L.sharedSoullinks, src)
 	return TRUE
 
@@ -128,11 +127,10 @@
 /datum/soullink/multisharer/replacementpool/ownerDies(gibbed, mob/living/owner)
 	if(LAZYLEN(soulsharers) && !gibbed) //let's not put them in some gibs
 		var/list/souls = shuffle(soulsharers.Copy())
-		for(var/l in souls)
-			var/mob/living/L = l
+		for(var/mob/living/L as anything in souls)
 			if(L.stat != DEAD && L.mind)
 				L.mind.transfer_to(soulowner)
-				soulowner.revive(full_heal = TRUE, admin_revive = TRUE)
+				soulowner.revive(ADMIN_HEAL_ALL)
 				L.death(FALSE)
 
 //Lose your claim to the throne!

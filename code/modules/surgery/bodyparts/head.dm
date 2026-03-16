@@ -19,36 +19,25 @@
 	var/mob/living/brain/brainmob = null //The current occupant.
 	var/obj/item/organ/brain/brain = null //The brain organ
 	var/obj/item/organ/eyes/eyes
-	var/obj/item/organ/eyes/eyesl
 	var/obj/item/organ/ears/ears
 	var/obj/item/organ/tongue/tongue
 
 	//Limb appearance info:
 	var/real_name = "" //Replacement name
-	//Hair colour and style
-	var/hair_color = "000"
-	var/hairstyle = "Bald"
-	var/hair_alpha = 255
-	//Facial hair colour and style
-	var/facial_hair_color = "000"
-	var/facial_hairstyle = "Shaved"
 	//Eye Colouring
 
 	var/lip_style = null
 	var/lip_color = "white"
 
 	offset = OFFSET_HEAD
-	offset_f = OFFSET_HEAD_F
+
 	//subtargets for crits
 	subtargets = list(BODY_ZONE_PRECISE_R_EYE, BODY_ZONE_PRECISE_L_EYE, BODY_ZONE_PRECISE_NOSE, BODY_ZONE_PRECISE_MOUTH, BODY_ZONE_PRECISE_SKULL, BODY_ZONE_PRECISE_EARS, BODY_ZONE_PRECISE_NECK)
 	//grabtargets for grabs
 	grabtargets = list(BODY_ZONE_HEAD, BODY_ZONE_PRECISE_R_EYE, BODY_ZONE_PRECISE_L_EYE, BODY_ZONE_PRECISE_NOSE, BODY_ZONE_PRECISE_MOUTH, BODY_ZONE_PRECISE_SKULL, BODY_ZONE_PRECISE_EARS, BODY_ZONE_PRECISE_NECK)
 	resistance_flags = FLAMMABLE
 
-	/// Brainkill means that this head is considered dead and revival is impossible
-	var/brainkill = FALSE
-
-/obj/item/bodypart/head/grabbedintents(mob/living/user, precise)
+/obj/item/bodypart/head/grabbedintents(mob/living/user, atom/grabbed, precise)
 	var/used_limb = precise
 	switch(used_limb)
 		if(BODY_ZONE_HEAD)
@@ -66,7 +55,10 @@
 		if(BODY_ZONE_PRECISE_MOUTH)
 			return list(/datum/intent/grab/move, /datum/intent/grab/twist, /datum/intent/grab/smash)
 		if(BODY_ZONE_PRECISE_NECK)
-			return list(/datum/intent/grab/move, /datum/intent/grab/choke, /datum/intent/grab/hostage)
+			if(user == grabbed)
+				return list(/datum/intent/grab/move, /datum/intent/grab/choke)
+			else
+				return list(/datum/intent/grab/move, /datum/intent/grab/choke, /datum/intent/grab/hostage)
 
 /obj/item/bodypart/head/Destroy()
 	QDEL_NULL(brainmob) //order is sensitive, see warning in handle_atom_del() below
@@ -128,8 +120,6 @@
 	real_name = C.real_name
 	if(HAS_TRAIT(C, TRAIT_HUSK))
 		real_name = "Unknown"
-		hairstyle = "Bald"
-		facial_hairstyle = "Shaved"
 		lip_style = null
 
 	else if(!animal_origin)
@@ -137,37 +127,6 @@
 		if(!H.dna || !H.dna.species)
 			return ..()
 		var/datum/species/S = H.dna.species
-
-		//Facial hair
-		if(H.facial_hairstyle && (FACEHAIR in S.species_traits))
-			facial_hairstyle = H.facial_hairstyle
-			if(S.hair_color)
-				if(S.hair_color == "mutcolor")
-					facial_hair_color = H.dna.features["mcolor"]
-				else
-					facial_hair_color = S.hair_color
-			else
-				facial_hair_color = H.facial_hair_color
-			hair_alpha = S.hair_alpha
-		else
-			facial_hairstyle = "Shaved"
-			facial_hair_color = "000"
-			hair_alpha = 255
-		//Hair
-		if(H.hairstyle && (HAIR in S.species_traits))
-			hairstyle = H.hairstyle
-			if(S.hair_color)
-				if(S.hair_color == "mutcolor")
-					hair_color = H.dna.features["mcolor"]
-				else
-					hair_color = S.hair_color
-			else
-				hair_color = H.hair_color
-			hair_alpha = S.hair_alpha
-		else
-			hairstyle = "Bald"
-			hair_color = "000"
-			hair_alpha = initial(hair_alpha)
 		// lipstick
 		if(H.lip_style && (LIPS in S.species_traits))
 			lip_style = H.lip_style
@@ -193,15 +152,6 @@
 	if(dropped) //certain overlays only appear when the limb is being detached from its owner.
 
 		if(status != BODYPART_ROBOTIC) //having a robotic head hides certain features.
-			//facial hair
-			if(facial_hairstyle)
-				var/datum/sprite_accessory/S = GLOB.facial_hairstyles_list[facial_hairstyle]
-				if(S)
-					var/image/facial_overlay = image(S.icon, "[S.icon_state]", -HAIR_LAYER, SOUTH)
-					facial_overlay.color = "#" + facial_hair_color
-					facial_overlay.alpha = hair_alpha
-					. += facial_overlay
-
 			//Applies the debrained overlay if there is no brain
 			if(!brain)
 				var/image/debrain_overlay = image(layer = -HAIR_LAYER, dir = SOUTH)
@@ -209,13 +159,6 @@
 					debrain_overlay.icon = 'icons/mob/human_face.dmi'
 					debrain_overlay.icon_state = "debrained"
 				. += debrain_overlay
-			else
-				var/datum/sprite_accessory/S2 = GLOB.hairstyles_list[hairstyle]
-				if(S2)
-					var/image/hair_overlay = image(S2.icon, "[S2.icon_state]", -HAIR_LAYER, SOUTH)
-					hair_overlay.color = "#" + hair_color
-					hair_overlay.alpha = hair_alpha
-					. += hair_overlay
 			//ROGTODO add accessories (earrings, piercings) here
 
 		// lipstick
@@ -231,14 +174,9 @@
 			eyes_overlay.icon_state = eyes.eye_icon_state
 
 			if(eyes.eye_color)
-				eyes_overlay.color = "#" + eyes.eye_color
+				eyes_overlay.color = eyes.eye_color
 
 /obj/item/bodypart/head/monkey
 	icon = 'icons/mob/animal_parts.dmi'
 	icon_state = "default_monkey_head"
 	animal_origin = MONKEY_BODYPART
-
-/obj/item/bodypart/head/devil
-	dismemberable = 0
-	max_damage = 5000
-	animal_origin = DEVIL_BODYPART

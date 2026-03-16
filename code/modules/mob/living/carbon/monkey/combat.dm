@@ -30,7 +30,7 @@
 		return 0
 
 	if(myPath.len <= 0)
-		myPath = get_path_to(src, get_turf(target), /turf/proc/Distance3D, MAX_RANGE_FIND + 1, 250,1)
+		myPath = get_path_to(src, get_turf(target), TYPE_PROC_REF(/turf, Heuristic_cardinal_3d), MAX_RANGE_FIND + 1, 250,1)
 
 	if(myPath)
 		if(myPath.len > 0)
@@ -50,13 +50,11 @@
 
 // taken from /mob/living/carbon/human/interactive/
 /mob/living/carbon/monkey/proc/IsDeadOrIncap(checkDead = TRUE)
-	if(!(mobility_flags & MOBILITY_FLAGS_INTERACTION))
-		return 1
+	// if(!(mobility_flags & MOBILITY_FLAGS_INTERACTION))
+	// 	return 1
 	if(health <= 0 && checkDead)
 		return 1
-	if(IsUnconscious())
-		return 1
-	if(IsStun() || IsParalyzed())
+	if(HAS_TRAIT(src, TRAIT_INCAPACITATED))
 		return 1
 	if(stat)
 		return 1
@@ -105,7 +103,7 @@
 		monkeyDrop(get_item_by_slot(C)) // remove the existing item if worn
 		addtimer(CALLBACK(src, PROC_REF(equip_to_appropriate_slot), C), 5)
 
-/mob/living/carbon/monkey/resist_restraints()
+/mob/living/carbon/monkey/resist_restraints(instant = FALSE)
 	var/obj/item/I = null
 	if(handcuffed)
 		I = handcuffed
@@ -131,7 +129,7 @@
 
 /mob/living/carbon/monkey/proc/handle_combat()
 	if(pickupTarget)
-		if(IsDeadOrIncap() || restrained() || blacklistItems[pickupTarget] || HAS_TRAIT(pickupTarget, TRAIT_NODROP))
+		if(IsDeadOrIncap() || HAS_TRAIT(src, TRAIT_RESTRAINED) || blacklistItems[pickupTarget] || HAS_TRAIT(pickupTarget, TRAIT_NODROP))
 			pickupTarget = null
 		else
 			pickupTimer++
@@ -362,7 +360,7 @@
 		retaliate(L)
 	return ..()
 
-/mob/living/carbon/monkey/attackby(obj/item/W, mob/user, params)
+/mob/living/carbon/monkey/attackby(obj/item/W, mob/user, list/modifiers)
 	..()
 	if((W.force) && (!target) && (W.damtype != STAMINA) )
 		retaliate(user)
@@ -396,7 +394,7 @@
 		dropItemToGround(A, TRUE)
 		update_icons()
 
-/mob/living/carbon/monkey/grabbedby(mob/living/carbon/user, supress_message = FALSE, item_override)
+/mob/living/carbon/monkey/grabbedby(mob/living/carbon/user, suppress_message = FALSE, item_override)
 	. = ..()
 	if(!IsDeadOrIncap() && pulledby && (mode != MONKEY_IDLE || prob(MONKEY_PULL_AGGRO_PROB))) // nuh uh you don't pull me!
 		if(Adjacent(pulledby))

@@ -9,7 +9,6 @@
 	emote_hear = null
 	emote_see = null
 	speak_chance = 1
-	turns_per_move = 3
 	see_in_dark = 6
 	move_to_delay = 3
 	base_intents = list(/datum/intent/unarmed/claw)
@@ -30,21 +29,25 @@
 	food_type = list()
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 	pooptype = null
-	STACON = 7
-	STASTR = 6
-	STASPD = 12
+	base_constitution = 7
+	base_strength = 6
+	base_speed = 12
 	simple_detect_bonus = 20
 	deaggroprob = 0
 	defprob = 40
 	defdrain = 10
 	del_on_deaggro = 44 SECONDS
 	retreat_health = 0.3
-	food = 0
-	attack_sound = 'sound/combat/hits/bladed/smallslash (1).ogg'
+
+	attack_sound = list('sound/combat/hits/bladed/smallslash (1).ogg')
 	attack_verb_continuous = "claws"
 	attack_verb_simple = "claw"
 	dodgetime = 30
 	aggressive = 1
+
+	ai_controller = /datum/ai_controller/imp
+
+	del_on_death = TRUE
 
 /obj/projectile/magic/firebolt
 	name = "ball of fire"
@@ -56,40 +59,16 @@
 	flag = "magic"
 	hitsound = 'sound/blank.ogg'
 
-/obj/projectile/magic/firebolt/on_hit(target)
-	if(ismob(target))
-		var/mob/M = target
-		if(M.anti_magic_check())
-			M.visible_message(span_warning("[src] vanishes on contact with [target]!"))
-			qdel(src)
-			return BULLET_ACT_BLOCK
-	. = ..()
-
 /mob/living/simple_animal/hostile/retaliate/infernal/imp/Initialize()
 	. = ..()
+	AddComponent(/datum/component/ai_aggro_system)
 
 /mob/living/simple_animal/hostile/retaliate/infernal/imp/death(gibbed)
-	..()
 	var/turf/deathspot = get_turf(src)
-	new /obj/item/natural/infernalash(deathspot)
-	new /obj/item/natural/infernalash(deathspot)
-	new /obj/item/natural/infernalash(deathspot)
-	new /obj/item/natural/infernalash(deathspot)
-	new /obj/item/natural/infernalash(deathspot)
-	new /obj/item/natural/infernalash(deathspot)
-	update_icon()
-	sleep(1)
-	qdel(src)
-
+	for(var/i in 1 to 6)
+		new /obj/item/natural/infernalash(deathspot)
+	return ..()
 
 /mob/living/simple_animal/hostile/retaliate/infernal/imp/taunted(mob/user)
 	emote("aggro")
-	Retaliate()
-	GiveTarget(user)
 	return
-
-/mob/living/simple_animal/hostile/retaliate/infernal/imp/Life()
-	..()
-	if(pulledby)
-		Retaliate()
-		GiveTarget(pulledby)

@@ -13,7 +13,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 /obj/structure/industrial_lift
 	name = "lift platform"
 	desc = "A lightweight lift platform. It moves up and down."
-	icon = 'icons/turf/roguefloor.dmi'
+	icon = 'icons/turf/constructed/wood.dmi'
 	icon_state = "weird1"
 	density = FALSE
 	anchored = TRUE
@@ -73,12 +73,17 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 	///this is our held_cargo
 	var/list/held_cargo = list()
 	var/list/moving_lifts = list()
+	///are we fake? if so we remove the z_fall block and such
+	var/fake = FALSE
 
 /obj/structure/industrial_lift/Initialize(mapload)
 	. = ..()
 	GLOB.lifts.Add(src)
 
 	set_movement_registrations()
+	if(fake)
+		alpha = 0
+		obj_flags = CAN_BE_HIT
 
 	//since lift_master datums find all connected platforms when an industrial lift first creates it and then
 	//sets those platforms' lift_master_datum to itself, this check will only evaluate to true once per tram platform
@@ -141,7 +146,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 
 /obj/structure/industrial_lift/proc/AddItemOnLift(datum/source, atom/movable/new_lift_contents)
 	SIGNAL_HANDLER
-	var/static/list/blacklisted_types = typecacheof(list(/obj/effect/decal/cleanable, /obj/structure/industrial_lift, /mob/camera, /obj/effect/overlay/water, /atom/movable/lighting_object))
+	var/static/list/blacklisted_types = typecacheof(list(/obj/effect/decal/cleanable, /atom/movable/outdoor_effect, /obj/structure/industrial_lift, /mob/camera, /obj/effect/overlay/water, /atom/movable/lighting_object))
 	if(is_type_in_typecache(new_lift_contents, blacklisted_types) || new_lift_contents.invisibility == INVISIBILITY_ABSTRACT) //prevents the tram from stealing things like landmarks
 		return FALSE
 	if(new_lift_contents in lift_load)
@@ -153,8 +158,9 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 	*/
 
 	lift_load += new_lift_contents
-	new_lift_contents.plane = 3
-	new_lift_contents.layer += 2
+	if(!iseffect(new_lift_contents))
+		new_lift_contents.plane = 3
+		new_lift_contents.layer += 2
 	ADD_TRAIT(new_lift_contents, TRAIT_TRAM_MOVER, REF(src))
 	RegisterSignal(new_lift_contents, COMSIG_PARENT_QDELETING, PROC_REF(RemoveItemFromLift))
 	RegisterSignal(new_lift_contents, COMSIG_MOVABLE_TURF_EXITED, PROC_REF(UncrossedAtomRemoveItemFromLift))
@@ -579,7 +585,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 	if(!isliving(user))
 		return FALSE
 	// Gotta be awake and aware
-	if(user.incapacitated())
+	if(user.incapacitated(IGNORE_GRAB))
 		return FALSE
 	// Gotta be by the lift
 	if(!user.Adjacent(src))
@@ -661,7 +667,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
  * * boolean, FALSE if the menu should be closed, TRUE if the menu is clear to stay opened.
  */
 /obj/structure/industrial_lift/proc/check_menu(mob/user, starting_loc)
-	if(user.incapacitated() || !user.Adjacent(src) || starting_loc != src.loc)
+	if(user.incapacitated(IGNORE_GRAB) || !user.Adjacent(src) || starting_loc != src.loc)
 		return FALSE
 	return TRUE
 
@@ -690,7 +696,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 
 	return open_lift_radial(user)
 
-/obj/structure/industrial_lift/attackby(obj/item/attacking_item, mob/user, params)
+/obj/structure/industrial_lift/attackby(obj/item/attacking_item, mob/user, list/modifiers)
 	if(!radial_travel)
 		return ..()
 
@@ -711,7 +717,6 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 
 // A subtype intended for "public use"
 /obj/structure/industrial_lift/public
-	canSmoothWith = null
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	warns_on_down_movement = TRUE
 	violent_landing = FALSE
@@ -767,7 +772,6 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 /obj/structure/industrial_lift/tram
 	name = "tram"
 	desc = "A tram for tramversing the station."
-	canSmoothWith = null
 	obj_flags = BLOCK_Z_OUT_DOWN
 	//kind of a centerpiece of the station, so pretty tough to destroy
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
@@ -775,7 +779,7 @@ GLOBAL_LIST_INIT(all_radial_directions, list(
 	lift_id = TRAM_LIFT_ID
 	lift_master_type = /datum/lift_master/tram
 	radial_travel = FALSE
-	mouse_opacity = 0
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 
 	/// Set by the tram control console in late initialize
 	var/travelling = FALSE

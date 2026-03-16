@@ -1,80 +1,68 @@
-/datum/brewing_recipe/jack_wine
-	name = "Jacksberry Wine"
-	reagent_to_brew = /datum/reagent/consumable/ethanol/jackberrywine
-	needed_reagents = list(/datum/reagent/water = 198)
-	needed_crops = list(/obj/item/reagent_containers/food/snacks/produce/jacksberry = 5)
+/datum/brewing_recipe/wine
+	abstract_type = /datum/brewing_recipe/wine
 	brewed_amount = 4
-	brew_time = 5 MINUTES
+	brew_time = 3.33 MINUTES
 	sell_value = 50
 
-	ages = TRUE
+/datum/brewing_recipe/wine/jack_wine
+	name = "Jacksberry Wine"
+	reagent_to_brew = /datum/reagent/consumable/ethanol/jackberrywine
+	needed_reagents = list(/datum/reagent/water = 200)
+	needed_crops = list(/obj/item/reagent_containers/food/snacks/produce/fruit/jacksberry = 4)
+
 	age_times = list(
-		/datum/reagent/consumable/ethanol/jackberrywine/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/jackberrywine/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/jackberrywine/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/jackberrywine/delectable = 10 MINUTES,
 	)
 
-/datum/brewing_recipe/plum_wine
+/datum/brewing_recipe/wine/plum_wine
 	name = "Umeshu"
 	reagent_to_brew = /datum/reagent/consumable/ethanol/plum_wine
-	needed_reagents = list(/datum/reagent/water = 90)
-	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/plum = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
-	brewed_amount = 3
-	brew_time = 6 MINUTES
-	sell_value = 35
+	needed_reagents = list(/datum/reagent/water = 100)
+	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/fruit/plum = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
 	age_times = list(
-		/datum/reagent/consumable/ethanol/plum_wine/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/plum_wine/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/plum_wine/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/plum_wine/delectable = 10 MINUTES,
 	)
 
-/datum/brewing_recipe/tangerine_wine
+/datum/brewing_recipe/wine/tangerine_wine
 	name = "Tangerine Wine"
 	reagent_to_brew = /datum/reagent/consumable/ethanol/tangerine
-	needed_reagents = list(/datum/reagent/water = 90)
-	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/tangerine = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
-	brewed_amount = 3
-	brew_time = 6 MINUTES
-	sell_value = 35
+	needed_reagents = list(/datum/reagent/water = 100)
+	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/fruit/tangerine = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
 	age_times = list(
-		/datum/reagent/consumable/ethanol/tangerine/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/tangerine/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/tangerine/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/tangerine/delectable = 10 MINUTES,
 	)
 
-/datum/brewing_recipe/raspberry_wine
+/datum/brewing_recipe/wine/raspberry_wine
 	name = "Raspberry Wine"
 	reagent_to_brew = /datum/reagent/consumable/ethanol/raspberry
-	needed_reagents = list(/datum/reagent/water = 90)
-	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/raspberry = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
-	brewed_amount = 3
-	brew_time = 6 MINUTES
-	sell_value = 35
+	needed_reagents = list(/datum/reagent/water = 100)
+	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/fruit/raspberry = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
 	age_times = list(
-		/datum/reagent/consumable/ethanol/raspberry/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/raspberry/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/raspberry/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/raspberry/delectable = 10 MINUTES,
 	)
 
-/datum/brewing_recipe/blackberry_wine
+/datum/brewing_recipe/wine/blackberry_wine
 	name = "Blackberry Wine"
 	reagent_to_brew = /datum/reagent/consumable/ethanol/blackberry
-	needed_reagents = list(/datum/reagent/water = 90)
-	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/blackberry = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
-	brewed_amount = 3
-	brew_time = 6 MINUTES
-	sell_value = 35
+	needed_reagents = list(/datum/reagent/water = 100)
+	needed_items = list(/obj/item/reagent_containers/food/snacks/produce/fruit/blackberry = 3, /obj/item/reagent_containers/food/snacks/sugar = 1)
 	age_times = list(
-		/datum/reagent/consumable/ethanol/blackberry/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/blackberry/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/blackberry/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/blackberry/delectable = 10 MINUTES,
 	)
 
 
-/datum/brewing_recipe/tiefling_wine
+/datum/brewing_recipe/wine/tiefling_wine
 	name = "Tiefling Blood Wine"
 	reagent_to_brew = /datum/reagent/consumable/ethanol/tiefling
-	needed_reagents = list(/datum/reagent/water = 90, /datum/reagent/blood/tiefling = 60)
+	needed_reagents = list(/datum/reagent/water = 100, /datum/reagent/blood/tiefling = 60)
 	needed_items = list(/obj/item/reagent_containers/food/snacks/sugar = 1)
-	brewed_amount = 3
-	brew_time = 6 MINUTES
 	sell_value = 90
 	age_times = list(
-		/datum/reagent/consumable/ethanol/tiefling/aged = 10 MINUTES,
-		/datum/reagent/consumable/ethanol/tiefling/delectable = 20 MINUTES
+		/datum/reagent/consumable/ethanol/tiefling/aged = 5 MINUTES,
+		/datum/reagent/consumable/ethanol/tiefling/delectable = 10 MINUTES,
 	)

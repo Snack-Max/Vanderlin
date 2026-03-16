@@ -1,5 +1,4 @@
-#define LINKIFY_READY(string, value) "<a href='byond://?src=[REF(src)];ready=[value]'>[string]</a>"
-GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json"))
+GLOBAL_LIST_INIT(roleplay_readme, file2list("strings/rt/Lore_Primer.txt"))
 
 /mob/dead/new_player
 	flags_1 = NONE
@@ -11,10 +10,17 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	var/ready = FALSE
 	/// Referenced when you want to delete the new_player later on in the code.
 	var/spawning = FALSE
-	/// For instant transfer once the round is set up
-	var/mob/living/new_character
 	/// Used to make sure someone doesn't get spammed with messages if they're ineligible for roles
 	var/ineligible_for_roles = FALSE
+
+	/// Cached character data for multi-ready slots
+	var/list/multi_ready_characters = list()
+	/// Current character index being used
+	var/multi_ready_index = 1
+
+	var/multi_ready_assigned_slot = 0
+
+	hud_type = /datum/hud/new_player
 
 /mob/dead/new_player/Initialize()
 	if(length(GLOB.newplayer_start))
@@ -33,10 +39,8 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 ///Say verb
 /mob/dead/new_player/say_verb(message as text)
 	set name = "Say"
-	set category = "IC"
+	set category = "IC.Speech"
 	set hidden = 1
-
-#ifdef MATURESERVER
 
 	if(message)
 		if(client)
@@ -45,19 +49,88 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 			else
 				client.lobbyooc(message)
 
-#endif
-
 /mob/dead/new_player/prepare_huds()
 	return
 
-/mob/dead/new_player/proc/new_player_panel()
-	if(!SSassets.initialized)
-		sleep(0.5 SECONDS)
-		new_player_panel()
+
+/// Called when player readies up - caches all selected character data
+/mob/dead/new_player/proc/cache_multi_ready_characters()
+	multi_ready_characters = list()
+	multi_ready_index = 1
+
+	if(!client?.prefs?.multi_char_ready || !length(client.prefs.multi_ready_slots))
 		return
-	if(client)
-		if(client.prefs)
-			client.prefs.ShowChoices(src, 4)
+
+	var/original_slot = client.prefs.default_slot
+
+	for(var/slot in client.prefs.multi_ready_slots)
+		client.prefs.load_character(slot)
+		var/list/char_data = list(
+			"slot" = slot,
+			"real_name" = client.prefs.real_name,
+			"gender" = client.prefs.gender,
+			"age" = client.prefs.age,
+			"pref_species" = client.prefs.pref_species,
+			"selected_patron" = client.prefs.selected_patron,
+			"job_preferences" = client.prefs.job_preferences?.Copy(),
+			"features" = client.prefs.features?.Copy(),
+			"quirks" = client.prefs.quirks?.Copy(),
+			"quirk_customizations" = client.prefs.quirk_customizations?.Copy(),
+			"skin_tone" = client.prefs.skin_tone,
+			"eye_color" = client.prefs.eye_color,
+			"underwear" = client.prefs.underwear,
+			"undershirt" = client.prefs.undershirt,
+			"socks" = client.prefs.socks,
+			"pronouns" = client.prefs.pronouns,
+			"voice_type" = client.prefs.voice_type,
+			"voice_color" = client.prefs.voice_color,
+			"domhand" = client.prefs.domhand,
+			"flavortext" = client.prefs.flavortext,
+			"headshot_link" = client.prefs.headshot_link,
+		)
+		multi_ready_characters += list(char_data)
+
+	client.prefs.load_character(original_slot)
+
+/// Applies cached character data at given index to preferences
+/mob/dead/new_player/proc/apply_multi_ready_character(index)
+	if(!length(multi_ready_characters) || index > length(multi_ready_characters))
+		return FALSE
+
+	var/list/char_data = multi_ready_characters[index]
+	if(!char_data)
+		return FALSE
+
+	var/datum/preferences/P = client.prefs
+	// 0 Validation on any of this
+	P.real_name = char_data["real_name"]
+	P.gender = char_data["gender"]
+	P.age = char_data["age"]
+	P.pref_species = char_data["pref_species"]
+	P.selected_patron = char_data["selected_patron"]
+	P.job_preferences = char_data["job_preferences"]
+	P.features = char_data["features"]
+	P.quirks = char_data["quirks"]
+	P.quirk_customizations = char_data["quirk_customizations"]
+	P.skin_tone = char_data["skin_tone"]
+	P.eye_color = char_data["eye_color"]
+	P.underwear = char_data["underwear"]
+	P.undershirt = char_data["undershirt"]
+	P.socks = char_data["socks"]
+	P.pronouns = char_data["pronouns"]
+	P.voice_type = char_data["voice_type"]
+	P.voice_color = char_data["voice_color"]
+	P.domhand = char_data["domhand"]
+	P.flavortext = char_data["flavortext"]
+	P.headshot_link = char_data["headshot_link"]
+
+	P.default_slot = char_data["slot"]
+	multi_ready_index = index
+
+	if(!P.job_preferences)
+		P.job_preferences = list()
+
+	return TRUE
 
 /mob/dead/new_player/Topic(href, href_list[])
 	if(src != usr)
@@ -76,15 +149,15 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		relevant_cap = max(hpc, epc)
 
 	if(href_list["show_preferences"])
-		client.prefs.ShowChoices(src, 4)
+		client.prefs.show_choices(src, 4)
 		return 1
 
 	if(href_list["show_options"])
-		client.prefs.ShowChoices(src, 1)
+		client.prefs.show_choices(src, 1)
 		return 1
 
 	if(href_list["show_keybinds"])
-		client.prefs.ShowChoices(src, 3)
+		client.prefs.show_choices(src, 3)
 		return 1
 
 	if(href_list["ready"])
@@ -98,20 +171,30 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		if(SSticker.current_state <= GAME_STATE_PREGAME)
 			if(ready != tready)
 				ready = tready
-		//if it's post initialisation and they're trying to observe we do the needful
-		if(!SSticker.current_state < GAME_STATE_PREGAME && tready == PLAYER_READY_TO_OBSERVE)
-			ready = tready
-			make_me_an_observer()
-			return
 
 	if(href_list["refresh"])
 		winshow(src, "stonekeep_prefwin", FALSE)
 		src << browse(null, "window=preferences_browser")
-		new_player_panel()
 
 	if(client && client.prefs.is_active_migrant())
 		to_chat(usr, span_boldwarning("You are in the migrant queue."))
 		return
+
+	if(href_list["PossessVessel"])
+		var/id = href_list["PossessVessel"]
+		if(!client.is_whitelisted(id))
+			to_chat(src, span_boldwarning("You are not whitelisted for [id]."))
+			return
+		var/list/group = GLOB.active_ghost_vessels[id]
+		if(!length(group))
+			to_chat(src, span_warning("No vessels of that type are available."))
+			return
+		var/mob/living/carbon/human/vessel_mob = pick(group)
+		var/datum/component/ghost_vessel/gc = vessel_mob.GetComponent(/datum/component/ghost_vessel)
+		if(!gc || !gc.being_offered)
+			to_chat(src, span_warning("That vessel is no longer available."))
+			return
+		gc.possess_vessel(src)
 
 	if(href_list["late_join"])
 		if(!SSticker?.IsRoundInProgress())
@@ -138,24 +221,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 				to_chat(usr, "<span class='warning'>[pick(choicez)] ([ttime]).</span>")
 				return
 
-		var/plevel = 0
-		if(ismob(usr))
-			var/mob/user = usr
-			if(user.client)
-				plevel = user.client.patreonlevel()
-		if(!IsPatreon(ckey))
-			if(SSticker.queued_players.len || (relevant_cap && living_player_count() >= relevant_cap && !(ckey(key) in GLOB.admin_datums) && plevel < 1))
-				to_chat(usr, "<span class='danger'>[CONFIG_GET(string/hard_popcap_message)]</span>")
-
-				var/queue_position = SSticker.queued_players.Find(usr)
-				if(queue_position == 1)
-					to_chat(usr, "<span class='notice'>Thou art next in line to join the game. You will be notified when a slot opens up.</span>")
-				else if(queue_position)
-					to_chat(usr, "<span class='notice'>Thou art [queue_position-1] players in front of you in the queue to join the game.</span>")
-				else
-					SSticker.queued_players += usr
-					to_chat(usr, "<span class='notice'>Thou have been added to the queue to join the game. Your position in queue is [SSticker.queued_players.len].</span>")
-				return
 		LateChoices()
 
 	if(href_list["SelectedJob"])
@@ -182,8 +247,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	if(!ready && href_list["preference"])
 		if(client)
 			client.prefs.process_link(src, href_list)
-	else if(!href_list["late_join"])
-		new_player_panel()
 
 	if(href_list["showpoll"])
 		handle_player_polling()
@@ -197,18 +260,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		var/datum/poll_question/poll = locate(href_list["votepollref"]) in GLOB.polls
 		vote_on_poll_handler(poll, href_list)
 
-
-
-/mob/dead/new_player/verb/do_rp_prompt()
-	set name = "Lore Primer"
-	set category = "Memory"
-	var/list/dat = list()
-	dat += GLOB.roleplay_readme
-	if(dat)
-		var/datum/browser/popup = new(src, "Primer", "STONEKEEP", 460, 550)
-		popup.set_content(dat.Join())
-		popup.open()
-
 //When you cop out of the round (NB: this HAS A SLEEP FOR PLAYER INPUT IN IT)
 /mob/dead/new_player/proc/make_me_an_observer()
 	if(QDELETED(src) || !src.client)
@@ -220,7 +271,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	if(QDELETED(src) || !src.client || this_is_like_playing_right != "Yes")
 		ready = PLAYER_NOT_READY
 		src << browse(null, "window=playersetup") //closes the player setup window
-		new_player_panel()
 		return FALSE
 
 	var/mob/dead/observer/observer = new()
@@ -241,7 +291,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	if(observer.client && observer.client.prefs)
 		observer.real_name = observer.client.prefs.real_name
 		observer.name = observer.real_name
-	observer.update_icon()
 	observer.stop_sound_channel(CHANNEL_LOBBYMUSIC)
 	QDEL_NULL(mind)
 	qdel(src)
@@ -255,8 +304,10 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 			return "[jobtitle] is unavailable."
 		if(JOB_UNAVAILABLE_BANNED)
 			return "You are currently banned from [jobtitle]."
+		if(JOB_UNAVAILABLE_RACE_BANNED)
+			return "You are currently banned from playing that species."
 		if(JOB_UNAVAILABLE_PLAYTIME)
-			return "You do not have enough relevant playtime for [jobtitle]."
+			return "You do not have enough playtime for [jobtitle]."
 		if(JOB_UNAVAILABLE_SLOTFULL)
 			return "[jobtitle] is already filled to capacity."
 		if(JOB_UNAVAILABLE_AGE)
@@ -269,8 +320,8 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 			return "[jobtitle] requires more faith."
 		if(JOB_UNAVAILABLE_QUALITY)
 			return "[jobtitle] requires higher player quality."
-		if(JOB_UNAVAILABLE_PATREON)
-			return "Your patreon tier is not high enough for [jobtitle]."
+		if(JOB_UNAVAILABLE_DONATOR)
+			return "You need to be a donator to have play as [jobtitle]."
 		if(JOB_UNAVAILABLE_ACCOUNTAGE)
 			return "Your account is not old enough for [jobtitle]."
 		if(JOB_UNAVAILABLE_LASTCLASS)
@@ -284,8 +335,19 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 
 //used for latejoining
 /mob/dead/new_player/proc/IsJobUnavailable(rank, latejoin = FALSE)
+	if(QDELETED(src))
+		return JOB_UNAVAILABLE_GENERIC
+
 	var/datum/job/job = SSjob.GetJob(rank)
+	var/datum/preferences/player_prefs = client.prefs
 	//TODO: This fucking sucks.
+
+	if(is_skeleton_knight_job(job)) //has to be first because it's a subtype of skeleton
+		if(has_world_trait(/datum/world_trait/death_knight))
+			return JOB_AVAILABLE
+		else
+			return JOB_UNAVAILABLE_GENERIC
+
 	if(is_skeleton_job(job))
 		if(has_world_trait(/datum/world_trait/skeleton_siege))
 			return JOB_AVAILABLE
@@ -304,12 +366,6 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		else
 			return JOB_UNAVAILABLE_GENERIC
 
-	if(is_deathknight_job(job))
-		if(has_world_trait(/datum/world_trait/death_knight))
-			return JOB_AVAILABLE
-		else
-			return JOB_UNAVAILABLE_GENERIC
-
 	if(!(job.job_flags & JOB_NEW_PLAYER_JOINABLE))
 		return JOB_UNAVAILABLE_GENERIC
 	// Check if the player is on cooldown for the hiv+ role
@@ -319,42 +375,47 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 
 	if((job.current_positions >= job.total_positions) && job.total_positions != -1)
 		return JOB_UNAVAILABLE_SLOTFULL
+
 	if(is_banned_from(ckey, rank))
 		return JOB_UNAVAILABLE_BANNED
+
 	if(CONFIG_GET(flag/usewhitelist))
 		if(job.whitelist_req && (!client.whitelisted()))
 			return JOB_UNAVAILABLE_GENERIC
 
 	if(is_role_banned(client.ckey, job.title))
 		return JOB_UNAVAILABLE_BANNED
+
+	if(is_race_banned(client.ckey, player_prefs.pref_species.id))
+		return JOB_UNAVAILABLE_RACE_BANNED
+
 	if(job.banned_leprosy && is_misc_banned(client.ckey, BAN_MISC_LEPROSY))
 		return JOB_UNAVAILABLE_BANNED
+
 	if(job.banned_lunatic && is_misc_banned(client.ckey, BAN_MISC_LUNATIC))
 		return JOB_UNAVAILABLE_BANNED
 
-	if(QDELETED(src))
-		return JOB_UNAVAILABLE_GENERIC
 	if(!job.player_old_enough(client))
 		return JOB_UNAVAILABLE_ACCOUNTAGE
+
 	if(job.required_playtime_remaining(client))
 		return JOB_UNAVAILABLE_PLAYTIME
+
 	if(latejoin && !job.special_check_latejoin(client))
 		return JOB_UNAVAILABLE_GENERIC
-	if(length(job.allowed_races) && !(client.prefs.pref_species.name in job.allowed_races))
-		if(!client.triumph_ids.Find("race_all"))
-			return JOB_UNAVAILABLE_RACE
-/*	if(length(job.allowed_patrons) && !(client.prefs.selected_patron.type in job.allowed_patrons))
-		return JOB_UNAVAILABLE_DEITY */
-	if(job.plevel_req > client.patreonlevel())
-		return JOB_UNAVAILABLE_PATREON
-	if(!isnull(job.min_pq) && (get_playerquality(ckey) < job.min_pq))
-		return JOB_UNAVAILABLE_QUALITY
-	if(length(job.allowed_sexes) && !(client.prefs.gender in job.allowed_sexes))
+
+	if(!client.has_triumph_buy(TRIUMPH_BUY_RACE_ALL) && !job.prefs_species_check(player_prefs))
+		return JOB_UNAVAILABLE_RACE
+
+	if(length(job.allowed_sexes) && !(player_prefs.gender in job.allowed_sexes))
 		return JOB_UNAVAILABLE_SEX
-	if(length(job.allowed_ages) && !(client.prefs.age in job.allowed_ages))
+
+	if(length(job.allowed_ages) && !(player_prefs.age in job.allowed_ages))
 		return JOB_UNAVAILABLE_AGE
-	if((client.prefs.lastclass == job.title) && !job.bypass_lastclass)
+
+	if((player_prefs.lastclass == job.title) && !job.bypass_lastclass)
 		return JOB_UNAVAILABLE_LASTCLASS
+
 	return JOB_AVAILABLE
 
 /mob/dead/new_player/proc/AttemptLateSpawn(rank)
@@ -383,6 +444,7 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	var/atom/destination = mind.assigned_role.get_latejoin_spawn_point()
 	if(!destination)
 		CRASH("Failed to find a latejoin spawn point.")
+	islatejoin = TRUE
 	var/mob/living/character = create_character(destination)
 	character.islatejoin = TRUE
 	if(!character)
@@ -404,6 +466,9 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 	GLOB.joined_player_list += character.ckey
 	GLOB.respawncounts[character.ckey] += 1
 
+	if(humanc)
+		try_apply_character_post_equipment(humanc)
+
 	log_manifest(character.mind.key,character.mind,character,latejoin = TRUE)
 
 
@@ -422,12 +487,14 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		GLOB.peasant_positions,
 		GLOB.apprentices_positions,
 		GLOB.serf_positions,
+		GLOB.company_positions,
 		GLOB.youngfolk_positions,
+		GLOB.allmig_positions,
+		GLOB.inquisition_positions,
 	)
 
 	for(var/list/category in omegalist)
 		if(!SSjob.name_occupations[category[1]])
-			testing("HELP NO THING FOUND FOR [category[1]]")
 			continue
 
 		var/list/available_jobs = list()
@@ -451,15 +518,21 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 				if (GARRISON)
 					cat_name = "Garrison"
 				if (SERFS)
-					cat_name = "Tradesmen"
+					cat_name = "Yeomanry"
 				if (CHURCHMEN)
 					cat_name = "Churchmen"
+				if (COMPANY)
+					cat_name = "Company"
 				if (PEASANTS)
 					cat_name = "Peasantry"
 				if (APPRENTICES)
 					cat_name = "Apprentices"
 				if (YOUNGFOLK)
 					cat_name = "Young Folk"
+				if (OUTSIDERS)
+					cat_name = "Outsiders"
+				if (INQUISITION)
+					cat_name = "Inquisition"
 
 			dat += "<fieldset style='width: 185px; border: 2px solid [cat_color]; display: inline'>"
 			dat += "<legend align='center' style='font-weight: bold; color: [cat_color]'>[cat_name]</legend>"
@@ -494,6 +567,10 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 			for(var/job in available_jobs)
 				var/datum/job/job_datum = SSjob.name_occupations[job]
 				if(job_datum)
+					if(job_datum.scales && job_datum.enabled)
+						var/new_slots = job_datum.get_total_positions()
+						if(new_slots > job_datum.spawn_positions)
+							job_datum.set_spawn_and_total_positions(get_total_town_members())
 					var/command_bold = ""
 					if(job in GLOB.noble_positions)
 						command_bold = " command"
@@ -509,31 +586,29 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 			column_counter++
 			if(column_counter > 0 && (column_counter % 4 == 0))
 				dat += "</td><td valign='top'>"
+	if(length(GLOB.active_ghost_vessels))
+		var/list/available_vessel_ids = list()
+		for(var/id in GLOB.active_ghost_vessels)
+			if(client.is_whitelisted(id))
+				available_vessel_ids += id
+
+		if(length(available_vessel_ids))
+			dat += "<fieldset style='width: 185px; border: 2px solid #8B4513; display: inline'>"
+			dat += "<legend align='center' style='font-weight: bold; color: #8B4513'>Vessels</legend>"
+			for(var/id in available_vessel_ids)
+				var/count = length(GLOB.active_ghost_vessels[id])
+				dat += "<a class='job' href='byond://?src=[REF(src)];PossessVessel=[id]'>Join as [id] ([count] available)</a>"
+			dat += "</fieldset><br>"
+			column_counter++
+			if(column_counter > 0 && (column_counter % 4 == 0))
+				dat += "</td><td valign='top'>"
+
 	dat += "</td></tr></table></center>"
 	dat += "</div></div>"
 	var/datum/browser/popup = new(src, "latechoices", "Choose Class", 720, 580)
 	popup.add_stylesheet("playeroptions", 'html/browser/playeroptions.css')
 	popup.set_content(jointext(dat, ""))
 	popup.open(FALSE) // 0 is passed to open so that it doesn't use the onclose() proc
-
-/// Creates, assigns and returns the new_character to spawn as. Assumes a valid mind.assigned_role exists.
-/mob/dead/new_player/proc/create_character(atom/destination)
-	spawning = TRUE
-	close_spawn_windows()
-
-	mind.active = FALSE //we wish to transfer the key manually
-	var/mob/living/spawning_mob = mind.assigned_role.get_spawn_mob(client, destination)
-	if(QDELETED(src) || !client)
-		return // Disconnected while checking for the appearance ban.
-
-	mind.transfer_to(spawning_mob)
-	//client.init_verbs()
-	new_character = . = spawning_mob //right into left
-
-	spawning_mob.after_creation()
-
-	GLOB.chosen_names += spawning_mob.real_name
-
 
 /mob/proc/after_creation()
 	return
@@ -543,39 +618,8 @@ GLOBAL_LIST_INIT(roleplay_readme, world.file2list("strings/rt/Lore_Primer.json")
 		dna.species.after_creation(src)
 	roll_mob_stats()
 
-/mob/dead/new_player/proc/transfer_character()
-	. = new_character
-	if(!.)
-		return
-	new_character.key = key		//Manually transfer the key to log them in
-	new_character.stop_sound_channel(CHANNEL_LOBBYMUSIC)
-	var/area/joined_area = get_area(new_character.loc)
-	if(joined_area)
-		joined_area.on_joining_game(new_character)
-	if(new_character.client)
-		var/atom/movable/screen/splash/Spl = new(new_character.client, TRUE)
-		Spl.Fade(TRUE)
-	new_character = null
-	qdel(src)
-
-
 /mob/dead/new_player/Move()
 	return 0
-
-
-/mob/dead/new_player/proc/close_spawn_windows()
-
-	src << browse(null, "window=latechoices") //closes late choices window
-	src << browse(null, "window=playersetup") //closes the player setup window
-	src << browse(null, "window=preferences") //closes job selection
-	src << browse(null, "window=mob_occupation")
-	src << browse(null, "window=latechoices") //closes late job selection
-
-	SStriumphs.remove_triumph_buy_menu(client)
-
-	winshow(src, "stonekeep_prefwin", FALSE)
-	src << browse(null, "window=preferences_browser")
-	src << browse(null, "window=lobby_window")
 
 // Used to make sure that a player has a valid job preference setup, used to knock players out of eligibility for anything if their prefs don't make sense.
 // A "valid job preference setup" in this situation means at least having one job set to low, or not having "return to lobby" enabled

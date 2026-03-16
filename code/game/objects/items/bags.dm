@@ -24,7 +24,7 @@
 
 /obj/item/storage/sack/equipped(mob/living/carbon/human/user, slot)
 	. = ..()
-	if(slot == SLOT_HEAD)
+	if(slot & ITEM_SLOT_HEAD)
 		user.become_blind("blindfold_[REF(src)]")
 	if(HAS_TRAIT(user, TRAIT_ROTMAN))
 		to_chat(user, span_info("The [src] slips through dead fingers..."))
@@ -34,35 +34,34 @@
 	..()
 	user.cure_blind("blindfold_[REF(src)]")
 
-/obj/item/storage/sack/mob_can_equip(mob/M, slot)
+/obj/item/storage/sack/mob_can_equip(mob/living/M, mob/living/equipper, slot, disable_warning, bypass_equip_delay_self)
 	if(!..())
 		return FALSE
 	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
 	var/list/things = STR.contents()
-	if(things.len)
+	if(length(things))
 		return FALSE
 	else
 		return TRUE
 
-
-/obj/item/storage/sack/attack_right(mob/user)
-	. = ..()
-	if(.)
-		return
+/obj/item/storage/sack/attack_hand_secondary(mob/user, list/modifiers)
+	if(user.get_active_held_item())
+		return ..()
+	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
+	var/list/things = STR.contents()
+	if(!length(things))
+		return ..()
+	var/obj/item/I = pick(things)
+	STR.remove_from_storage(I, get_turf(user))
+	user.put_in_hands(I)
 	user.changeNext_move(CLICK_CD_MELEE)
-	testing("yea144")
-	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
-	var/list/things = STR.contents()
-	if(things.len)
-		testing("yea64")
-		var/obj/item/I = pick(things)
-		STR.remove_from_storage(I, get_turf(user))
-		user.put_in_hands(I)
+	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 
-/obj/item/storage/sack/update_icon()
+/obj/item/storage/sack/update_icon_state()
+	. = ..()
 	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
 	var/list/things = STR.contents()
-	if(things.len)
+	if(length(things))
 		icon_state = "fbag"
 		w_class = WEIGHT_CLASS_BULKY
 	else
@@ -103,22 +102,20 @@
 	desc = "A cloth and leather satchel for storing the fruit of one's hunt."
 	icon_state = "gamesatchel"
 	icon = 'icons/roguetown/clothing/storage.dmi'
-	slot_flags = ITEM_SLOT_BELT|ITEM_SLOT_BACK_L|ITEM_SLOT_BACK_R|ITEM_SLOT_HIP
+	slot_flags = ITEM_SLOT_BACK_L|ITEM_SLOT_BACK_R|ITEM_SLOT_HIP
 	w_class = WEIGHT_CLASS_NORMAL
 	resistance_flags = NONE
 	max_integrity = 300
 	component_type = /datum/component/storage/concrete/grid/sack/meat
 
-/obj/item/storage/meatbag/attack_right(mob/user)
+/obj/item/storage/meatbag/attack_hand_secondary(mob/user, list/modifiers)
 	. = ..()
 	if(.)
 		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	testing("yea144")
 	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
 	var/list/things = STR.contents()
-	if(things.len)
-		testing("yea64")
+	if(length(things))
 		var/obj/item/I = pick(things)
 		STR.remove_from_storage(I, get_turf(user))
 		user.put_in_hands(I)
@@ -149,3 +146,87 @@
 "sflip" = 0,
 "wflip" = 0,
 "eflip" = 8)
+
+/obj/item/storage/handbasket
+	name = "handbasket"
+	desc = "Fibers interwoven to make a cheap, handheld storage item."
+	icon_state = "handbasket"
+	icon = 'icons/roguetown/items/misc.dmi'
+	slot_flags = ITEM_SLOT_HIP
+	w_class = WEIGHT_CLASS_NORMAL
+	resistance_flags = NONE
+	max_integrity = 300
+	component_type = /datum/component/storage/concrete/grid/handbasket
+
+/obj/item/storage/handbasket/update_overlays()
+	. = ..()
+	var/list/stuff = contents
+	if(!length(stuff))
+		return
+	// Assoc list of type to count
+	var/list/type_list = list()
+	for(var/obj/item as anything in stuff)
+		if(!type_list[item.type])
+			type_list[item.type] = 0
+		type_list[item.type]++
+	for(var/type as anything in type_list)
+		if(type_list[type] < 5)
+			continue
+		if(ispath(type, /obj/item/reagent_containers/food/snacks/bread))
+			. += mutable_appearance(icon, "handbasket_bread")
+			return
+		if(ispath(type, /obj/item/alch/herb))
+			. += mutable_appearance(icon, "handbasket_herb")
+			return
+		if(ispath(type, /obj/item/reagent_containers/food/snacks/produce/fruit))
+			. += mutable_appearance(icon, "handbasket_fruit")
+			return
+		if(ispath(type, /obj/item/reagent_containers/food/snacks/egg))
+			. += mutable_appearance(icon, "handbasket_egg")
+			return
+	. += mutable_appearance(icon, "handbasket_generic")
+
+/obj/item/storage/handbasket/attack_hand_secondary(mob/user, list/modifiers)
+	if(user.get_active_held_item())
+		return ..()
+	var/datum/component/storage/STR = GetComponent(/datum/component/storage)
+	var/list/things = STR.contents()
+	if(!length(things))
+		return ..()
+	var/obj/item/I = pick(things)
+	STR.remove_from_storage(I, get_turf(user))
+	user.put_in_hands(I)
+	user.changeNext_move(CLICK_CD_MELEE)
+	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+
+/obj/item/storage/handbasket/getonmobprop(tag)
+	. = ..()
+	if(tag)
+		switch(tag)
+			if("gen")
+				return list("shrink" = 0.5,
+"sx" = -4,
+"sy" = -7,
+"nx" = 6,
+"ny" = -6,
+"wx" = -2,
+"wy" = -7,
+"ex" = -1,
+"ey" = -7,
+"northabove" = 0,
+"southabove" = 1,
+"eastabove" = 1,
+"westabove" = 0,
+"nturn" = 0,
+"sturn" = 0,
+"wturn" = 0,
+"eturn" = 0,
+"nflip" = 8,
+"sflip" = 0,
+"wflip" = 0,
+"eflip" = 8)
+			if("onbelt")
+				return list("shrink" = 0.3,"sx" = -2,"sy" = -5,"nx" = 4,"ny" = -5,"wx" = 0,"wy" = -5,"ex" = 2,"ey" = -5,"nturn" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0)
+
+
+

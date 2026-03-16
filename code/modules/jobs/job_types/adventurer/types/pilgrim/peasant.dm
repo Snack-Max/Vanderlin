@@ -1,62 +1,73 @@
-/datum/advclass/pilgrim/peasant
-	name = "Peasant"
+/datum/attribute_holder/sheet/job/pilgrim/peasant
+	attribute_variance = list(
+		/datum/attribute/skill/craft/crafting = list(20, 30)
+	)
+	raw_attribute_list = list(
+		STAT_STRENGTH = 1,
+		STAT_CONSTITUTION = 1,
+		STAT_ENDURANCE = 1,
+		STAT_INTELLIGENCE = -1,
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/combat/polearms = 20,
+		/datum/attribute/skill/combat/whipsflails = 20,
+		/datum/attribute/skill/craft/carpentry = 10,
+		/datum/attribute/skill/misc/sewing = 10,
+		/datum/attribute/skill/labor/farming = 40,
+		/datum/attribute/skill/labor/taming = 10,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/athletics = 30,
+		/datum/attribute/skill/craft/tanning = 10,
+		/datum/attribute/skill/misc/climbing = 20,
+	)
+
+/datum/job/advclass/pilgrim/peasant
+	title = "Peasant"
 	tutorial = "A serf with no particular proficiency of their own, born poor \
 				and more likely to die poor. Farm workers, carriers, handymen."
 	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list(
-		"Humen",
-		"Rakshari",
-		"Elf",
-		"Half-Elf",
-		"Dwarf",
-		"Tiefling",
-		"Dark Elf",
-		"Aasimar",
-		"Half-Orc",
-		"Kobold",
-	)
-	outfit = /datum/outfit/job/adventurer/peasant
+	outfit = /datum/outfit/pilgrim/peasant
 	category_tags = list(CTAG_PILGRIM)
 	apprentice_name = "Handyman"
+	cmode_music = 'sound/music/cmode/towner/CombatBeggar.ogg'
 
-/datum/outfit/job/adventurer/peasant/pre_equip(mob/living/carbon/human/H)
-	..()
-	H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/knives, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/polearms, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/whipsflails, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/crafting, rand(2,3), TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/sewing, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/labor/farming, 4, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/labor/taming, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/medicine, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 3, TRUE)
+	attribute_sheet = /datum/attribute_holder/sheet/job/pilgrim/peasant
 
+	traits = list(
+		TRAIT_DEADNOSE,
+		TRAIT_SEEDKNOW
+	)
+
+/datum/outfit/pilgrim/peasant
+	name = "Peasant (Pilgrim)"
 	belt = /obj/item/storage/belt/leather/rope
-	shirt = /obj/item/clothing/shirt/undershirt/random
 	pants = /obj/item/clothing/pants/trou
-	head = /obj/item/clothing/head/strawhat
-	shoes = /obj/item/clothing/shoes/simpleshoes
 	wrists = /obj/item/clothing/wrists/bracers/leather
 	backr = /obj/item/weapon/hoe
 	backl = /obj/item/storage/backpack/satchel
 	neck = /obj/item/storage/belt/pouch/coins/poor
 	armor = /obj/item/clothing/armor/gambeson/light/striped
 	beltl = /obj/item/weapon/sickle
-	beltr = /obj/item/flint
-	var/obj/item/weapon/pitchfork/P = new()
-	H.put_in_hands(P, forced = TRUE)
-	if(H.gender == FEMALE)
+	beltr = /obj/item/weapon/flail/towner
+	l_hand = /obj/item/weapon/pitchfork
+	backpack_contents = list(
+		/obj/item/flint = 1,
+		/obj/item/neuFarm/seed/wheat = 1,
+		/obj/item/neuFarm/seed/apple = 1,
+		/obj/item/fertilizer/ash = 1,
+		/obj/item/weapon/knife/villager = 1,
+		/obj/item/weapon/shovel/small = 1
+	)
+
+
+/datum/outfit/pilgrim/peasant/pre_equip(mob/living/carbon/human/equipped_human, visuals_only)
+	. = ..()
+	shirt = pick(/obj/item/clothing/shirt/undershirt/colored/random, /obj/item/clothing/shirt/shortshirt/colored/random)
+	head = pick(/obj/item/clothing/head/strawhat, /obj/item/clothing/head/armingcap, /obj/item/clothing/head/headband/colored/red, /obj/item/clothing/head/roguehood/colored/random)
+	shoes = pick(/obj/item/clothing/shoes/simpleshoes, /obj/item/clothing/shoes/boots/leather)
+
+	if(equipped_human.gender == FEMALE)
 		head = /obj/item/clothing/head/armingcap
-		armor = /obj/item/clothing/shirt/dress/gen/random
+		armor = /obj/item/clothing/shirt/dress/gen/colored/random
 		shirt = /obj/item/clothing/shirt/undershirt
 		pants = null
-	backpack_contents = list(/obj/item/neuFarm/seed/wheat=1,/obj/item/neuFarm/seed/apple=1,/obj/item/ash=1,/obj/item/weapon/knife/villager=1)
-	H.change_stat(STATKEY_STR, 1)
-	H.change_stat(STATKEY_CON, 1)
-	H.change_stat(STATKEY_END, 1)
-	H.change_stat(STATKEY_INT, -1)
-	ADD_TRAIT(H, TRAIT_NOSTINK, TRAIT_GENERIC)	//Peasants probably smell terrible. (:
-	ADD_TRAIT(H, TRAIT_SEEDKNOW, TRAIT_GENERIC)

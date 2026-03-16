@@ -26,7 +26,6 @@
 	burn_reduction = 0
 	max_damage = 0
 	w_class = WEIGHT_CLASS_TINY
-	max_integrity = 0
 	sellprice = 0
 	fingers = FALSE
 
@@ -41,7 +40,6 @@
 	burn_reduction = 0
 	max_damage = 0
 	w_class = WEIGHT_CLASS_TINY
-	max_integrity = 0
 	sellprice = 0
 	fingers = FALSE
 
@@ -56,7 +54,6 @@
 	burn_reduction = 0
 	max_damage = 0
 	w_class = WEIGHT_CLASS_TINY
-	max_integrity = 0
 	sellprice = 0
 
 /obj/item/bodypart/r_leg/prosthetic
@@ -70,7 +67,6 @@
 	burn_reduction = 0
 	max_damage = 0
 	w_class = WEIGHT_CLASS_TINY
-	max_integrity = 0
 	sellprice = 0
 
 // --------- WOOD PROSTHETICS -----------
@@ -85,7 +81,7 @@
 	max_integrity = 300
 	sellprice = 20
 	metalizer_result = /obj/item/bodypart/l_arm/prosthetic/iron
-	anvilrepair = /datum/skill/craft/carpentry
+	anvilrepair = /datum/attribute/skill/craft/carpentry
 
 /obj/item/bodypart/r_arm/prosthetic/wood
 	name = "right wooden arm"
@@ -97,7 +93,7 @@
 	max_integrity = 300
 	sellprice = 20
 	metalizer_result = /obj/item/bodypart/l_arm/prosthetic/iron
-	anvilrepair = /datum/skill/craft/carpentry
+	anvilrepair = /datum/attribute/skill/craft/carpentry
 
 /obj/item/bodypart/l_leg/prosthetic/wood
 	name = "left wooden leg"
@@ -110,7 +106,7 @@
 	sellprice = 20
 	//organ_slowdown = 1.3
 	metalizer_result = /obj/item/bodypart/l_arm/prosthetic/iron
-	anvilrepair = /datum/skill/craft/carpentry
+	anvilrepair = /datum/attribute/skill/craft/carpentry
 
 /obj/item/bodypart/r_leg/prosthetic/wood
 	name = "right wooden leg"
@@ -123,7 +119,7 @@
 	sellprice = 20
 	//organ_slowdown = 1.3
 	metalizer_result = /obj/item/bodypart/l_arm/prosthetic/iron
-	anvilrepair = /datum/skill/craft/carpentry
+	anvilrepair = /datum/attribute/skill/craft/carpentry
 
 // --------- IRON PROSTHETICS -----------
 
@@ -138,7 +134,7 @@
 	brute_reduction = 5
 	burn_reduction = 5
 	sellprice = 30
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/iron
 	punch_modifier = 1.2
 
@@ -152,7 +148,7 @@
 	brute_reduction = 5
 	burn_reduction = 5
 	sellprice = 30
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/iron
 	punch_modifier = 1.2
 
@@ -167,7 +163,7 @@
 	brute_reduction = 5
 	burn_reduction = 5
 	sellprice = 30
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/iron
 
 /obj/item/bodypart/r_leg/prosthetic/iron
@@ -181,7 +177,7 @@
 	brute_reduction = 5
 	burn_reduction = 5
 	sellprice = 30
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/iron
 
 
@@ -197,8 +193,9 @@
 	brute_reduction = 10
 	burn_reduction = 10
 	sellprice = 40
-	anvilrepair = /datum/skill/craft/engineering
-	smeltresult = /obj/item/ingot/steel
+	anvilrepair = /datum/attribute/skill/craft/engineering
+	melt_amount = 75
+	melting_material = /datum/material/steel
 	punch_modifier = 1.4
 
 /obj/item/bodypart/r_arm/prosthetic/steel
@@ -211,8 +208,9 @@
 	brute_reduction = 10
 	burn_reduction = 10
 	sellprice = 40
-	anvilrepair = /datum/skill/craft/engineering
-	smeltresult = /obj/item/ingot/steel
+	anvilrepair = /datum/attribute/skill/craft/engineering
+	melt_amount = 75
+	melting_material = /datum/material/steel
 	punch_modifier = 1.4
 
 /obj/item/bodypart/l_leg/prosthetic/steel
@@ -226,8 +224,9 @@
 	brute_reduction = 10
 	burn_reduction = 10
 	sellprice = 40
-	anvilrepair = /datum/skill/craft/engineering
-	smeltresult = /obj/item/ingot/steel
+	anvilrepair = /datum/attribute/skill/craft/engineering
+	melt_amount = 75
+	melting_material = /datum/material/steel
 
 /obj/item/bodypart/r_leg/prosthetic/steel
 	name = "steel right leg"
@@ -240,8 +239,9 @@
 	brute_reduction = 10
 	burn_reduction = 10
 	sellprice = 40
-	anvilrepair = /datum/skill/craft/engineering
-	smeltresult = /obj/item/ingot/steel
+	anvilrepair = /datum/attribute/skill/craft/engineering
+	melt_amount = 75
+	melting_material = /datum/material/steel
 
 // --------- GOLD PROSTHETICS -----------
 
@@ -254,7 +254,7 @@
 	max_damage = 120
 	fingers = TRUE
 	sellprice = 70
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/gold
 
 /obj/item/bodypart/r_arm/prosthetic/gold
@@ -266,31 +266,31 @@
 	max_damage = 120
 	fingers = TRUE
 	sellprice = 70
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/gold
 
 /obj/item/bodypart/l_leg/prosthetic/gold
 	name = "golden left leg"
 	desc = "A left leg of cogs and gold."
-	icon_state = "bprleg"
+	icon_state = "bpleg"
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_BULKY
 	max_damage = 120
 	//organ_slowdown = 0
 	sellprice = 70
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/gold
 
 /obj/item/bodypart/r_leg/prosthetic/gold
 	name = "golden right leg"
 	desc = "A right leg of cogs and gold."
-	icon_state = "bprleg"
+	icon_state = "bpleg"
 	resistance_flags = FIRE_PROOF
 	w_class = WEIGHT_CLASS_BULKY
 	max_damage = 120
 	//organ_slowdown = 0
 	sellprice = 70
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/gold
 
 // --------- BRONZE PROSTHETICS -----------
@@ -304,7 +304,7 @@
 	max_integrity = 350
 	sellprice = 40
 	fingers = TRUE
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/bronze
 
 /obj/item/bodypart/r_arm/prosthetic/bronze
@@ -316,5 +316,5 @@
 	max_integrity = 350
 	sellprice = 40
 	fingers = TRUE
-	anvilrepair = /datum/skill/craft/engineering
+	anvilrepair = /datum/attribute/skill/craft/engineering
 	smeltresult = /obj/item/ingot/bronze

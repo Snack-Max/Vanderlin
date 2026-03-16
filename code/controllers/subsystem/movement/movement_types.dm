@@ -110,7 +110,7 @@
 /**
  * Replacement for walk()
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -144,7 +144,7 @@
 /**
  * Like move(), but it uses byond's pathfinding on a step by step basis
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -170,7 +170,7 @@
 /**
  * Like move(), but we don't care about collision at all
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -222,7 +222,7 @@
 /**
  * Used for force-move loops, similar to move_towards_legacy() but not quite the same
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -270,7 +270,7 @@
 /**
  * Wrapper around walk_to()
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -298,12 +298,12 @@
 		return
 	var/atom/old_loc = moving.loc
 	step_to(moving, target)
-	return old_loc != moving.loc
+	return old_loc != moving?.loc
 
 /**
  * Wrapper around walk_away()
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -337,7 +337,7 @@
 /**
  * Helper proc for the move_towards datum
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -356,7 +356,7 @@
 /**
  * Helper proc for homing onto something with move_towards
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -488,7 +488,7 @@
 /**
  * Wrapper for walk_towards, not reccomended, as it's movement ends up being a bit stilted
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -516,7 +516,7 @@
 /**
  * Helper proc for the move_rand datum
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -564,7 +564,7 @@
 /**
  * Wrapper around walk_rand(), doesn't actually result in a random walk, it's more like moving to random places in viewish
  *
- * Returns TRUE if the loop sucessfully started, or FALSE if it failed
+ * Returns TRUE if the loop successfully started, or FALSE if it failed
  *
  * Arguments:
  * moving - The atom we want to move
@@ -588,6 +588,8 @@
 
 /datum/move_loop/minecart
 	var/direction
+	var/aerial_distance
+	var/aerial_velocity
 
 /datum/move_loop/minecart/setup(delay, timeout, dir)
 	. = ..()
@@ -595,17 +597,43 @@
 		return
 	direction = dir
 
+/datum/move_loop/minecart/Destroy()
+	if(!QDELETED(moving) && istype(moving, /obj/structure/closet/crate/miningcar))
+		var/turf/moving_turf = get_turf(moving)
+		if(istype(moving_turf, /turf/open/openspace))
+			var/obj/structure/closet/crate/miningcar/minecart = moving
+			minecart.handle_aerial_fall(freefall = TRUE)
+	. = ..()
+
+/datum/move_loop/minecart/process()
+	. = ..()
+	if(QDELETED(src) || QDELETED(moving))
+		return
+	var/turf/moving_turf = get_turf(moving)
+	if(istype(moving_turf, /turf/open/openspace))
+		aerial_velocity += (delay / 10) * 9.8
+		aerial_distance += aerial_velocity * (delay / 10)
+		if(aerial_distance >= 1)
+			aerial_distance -= 1
+			if(istype(moving, /obj/structure/closet/crate/miningcar))
+				var/obj/structure/closet/crate/miningcar/minecart = moving
+				minecart.handle_aerial_fall()
+	else
+		aerial_distance = 0
+		aerial_velocity = 0
+
 /datum/move_loop/minecart/move()
 	var/atom/old_loc = moving.loc
-	var/atom/new_loc = get_step(moving, direction)
-	if(istype(new_loc, /turf/open/transparent/openspace))
-		var/turf/below_turf = GET_TURF_BELOW(new_loc)
-		if(locate(/obj/structure/minecart_rail) in below_turf)
-			new_loc = below_turf
-	else if(!(locate(/obj/structure/minecart_rail) in new_loc))
-		var/turf/above_turf = GET_TURF_ABOVE(new_loc)
-		if(locate(/obj/structure/minecart_rail) in above_turf)
-			new_loc = above_turf
+	var/turf/new_loc = get_step(moving, direction)
+	if(locate(/obj/structure/minecart_rail) in old_loc)
+		if(istype(new_loc, /turf/open/openspace))
+			var/turf/below_turf = GET_TURF_BELOW(new_loc)
+			if(locate(/obj/structure/minecart_rail) in below_turf)
+				new_loc = below_turf
+		else if(!(locate(/obj/structure/minecart_rail) in new_loc))
+			var/turf/above_turf = GET_TURF_ABOVE(new_loc)
+			if(locate(/obj/structure/minecart_rail) in above_turf)
+				new_loc = above_turf
 
 	moving.Move(new_loc, direction)
 	// We cannot rely on the return value of Move(), we care about teleports and it doesn't

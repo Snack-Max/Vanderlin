@@ -12,7 +12,7 @@
 	pickup_sound = "rustle"
 	break_sound = 'sound/foley/breaksound.ogg'
 	drop_sound = 'sound/foley/dropsound/armor_drop.ogg'
-	anvilrepair = /datum/skill/craft/armorsmithing
+	anvilrepair = /datum/attribute/skill/craft/armorsmithing
 	sewrepair = FALSE
 	smeltresult = /obj/item/ingot/iron //no 1 to 1 conversion
 
@@ -23,6 +23,17 @@
 
 	grid_width = 64
 	grid_height = 32
+	item_weight = 7 * IRON_MULTIPLIER
+
+	material_category = ARMOR_MAT_PLATE
+
+/obj/item/clothing/gloves/plate/iron
+	name = "iron plate gauntlets"
+	desc = "Plated gauntlets made out of iron. Offers good protection against melee attacks."
+	icon_state = "igauntlets"
+	sellprice = VALUE_IRON_ARMOR/2
+	armor = ARMOR_PLATE_BAD
+	max_integrity = INTEGRITY_STRONG
 
 /obj/item/clothing/gloves/plate/rust
 	name = "rusted riveted gauntlets"
@@ -36,3 +47,59 @@
 	sellprice = VALUE_IRON_ARMOR/2
 	armor = ARMOR_PLATE_BAD
 	max_integrity = INTEGRITY_STANDARD
+
+/obj/item/clothing/gloves/plate/blk
+	name = "blacksteel gauntlets"
+	desc = "Gauntlets of blacksteel, offering unmatched protection for the hands."
+	icon_state = "bkgloves"
+	icon = 'icons/roguetown/clothing/special/blkknight.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
+	sleeved = 'icons/roguetown/clothing/special/onmob/blkknight.dmi'
+	anvilrepair = /datum/attribute/skill/craft/blacksmithing
+	smeltresult = /obj/item/ingot/blacksteel
+	armor_class = AC_MEDIUM
+	armor = ARMOR_PLATE_GOOD
+	item_weight = 7 * BLACKSTEEL_MULTIPLIER
+	sellprice = VALUE_SILVER_ITEM * 2
+
+/obj/item/clothing/gloves/plate/silver
+	name = "silver gauntlets"
+	desc = "Finely forged gauntlets made out of silver."
+	icon_state = "silvergloves"
+	armor = ARMOR_PLATE_SILVER
+	smeltresult = /obj/item/ingot/silver
+	item_weight = 12 * SILVER_MULTIPLIER
+	sellprice = VALUE_SILVER_ITEM
+
+/obj/item/clothing/gloves/plate/silver/Initialize(mapload)
+	. = ..()
+	enchant(/datum/enchantment/silver)
+
+	//............... Evil Gloves ............... //
+
+/obj/item/clothing/gloves/plate/zizo
+	name = "darksteel gauntlets"
+	desc = "darksteel plate gauntlets. Called forth from the edge of what should be known. In Her name."
+	icon_state = "zizogauntlets"
+	icon = 'icons/roguetown/clothing/special/evilarmor.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sleeved = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sellprice = 0 // Incredibly evil Zizoid armor, this should be burnt, nobody wants this
+
+/obj/item/clothing/gloves/plate/matthios
+	name = "gilded gauntlets"
+	desc = "Shimmering plate gauntlets. Many riches have been taken with these, and just as many lives."
+	icon_state = "matthiosgloves"
+	icon = 'icons/roguetown/clothing/special/evilarmor.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sleeved = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sellprice = 0 // See above comment
+
+/obj/item/clothing/gloves/plate/graggar
+	name = "vicious gauntlets"
+	desc = "Plate gauntlets that reek of death. Many lives have been taken with these."
+	icon_state = "graggarplategloves"
+	icon = 'icons/roguetown/clothing/special/evilarmor.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sleeved = 'icons/roguetown/clothing/special/onmob/evilarmor.dmi'
+	sellprice = 0 // See above comment

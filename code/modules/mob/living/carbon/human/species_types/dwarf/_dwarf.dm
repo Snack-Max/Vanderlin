@@ -3,9 +3,16 @@
 
 /datum/species/dwarf
 	name = "Dwarfb"
-	id = "dwarf"
-	max_age = 200
-	changesource_flags = MIRROR_BADMIN | WABBAJACK | MIRROR_MAGIC | MIRROR_PRIDE | RACE_SWAP | SLIME_EXTRACT
+	id = SPEC_ID_DWARF
+	changesource_flags = WABBAJACK
+	native_language = "Dwarfish"
+	exotic_bloodtype = /datum/blood_type/human/dwarf
+	meat = list(/obj/item/reagent_containers/food/snacks/meat/fatty/dwarf = 1, /obj/item/reagent_containers/food/snacks/fat = 0.25, /obj/item/reagent_containers/food/snacks/meat/steak/human = 0.5)
+
+	bodypart_features = list(
+		/datum/bodypart_feature/hair/head,
+		/datum/bodypart_feature/hair/facial,
+	)
 
 /datum/species/dwarf/on_species_gain(mob/living/carbon/C, datum/species/old_species)
 	..()
@@ -28,18 +35,3 @@
 
 /datum/species/dwarf/qualifies_for_rank(rank, list/features)
 	return TRUE
-
-/datum/species/dwarf/get_skin_list()
-	return sortList(list(
-	"skin1" = "ffe0d1",
-	"skin2" = "fcccb3"
-	))
-
-/datum/species/dwarf/get_hairc_list()
-	return sortList(list(
-	"black - nightsky" = "0a0707",
-	"brown - treebark" = "362e25",
-	"blonde - moonlight" = "dfc999",
-	"red - autumn" = "a34332"
-	))
-

@@ -1,11 +1,42 @@
 /proc/get_step_multiz(ref, dir)
-	if(dir & UP)
-		dir &= ~UP
-		return get_step(GET_TURF_ABOVE(get_turf(ref)), dir)
-	if(dir & DOWN)
-		dir &= ~DOWN
-		return get_step(GET_TURF_BELOW(get_turf(ref)), dir)
-	return get_step(ref, dir)
+	// this avoids evil expensive bitmath
+	switch(dir)
+		if(UP to DOWN-1)
+			// sadly we have to do get_turf here
+			return GET_TURF_ABOVE_DIAGONAL(get_turf(ref), dir)
+		if(DOWN to INFINITY)
+			return GET_TURF_BELOW_DIAGONAL(get_turf(ref), dir)
+		else
+			return get_step(ref, dir)
+	/* switch(dir)
+		if(0 to SOUTHWEST) // 0 to 10; 11-15 is invalid
+			return get_step(ref, dir)
+		if(UP to UP|SOUTH|WEST) // 16 to 26; 27-31 is invalid (no EASTWEST)
+			return GET_TURF_ABOVE_DIAGONAL(get_turf(ref), dir)
+		if(DOWN to DOWN|NORTH|SOUTH|EAST|WEST) // 32 to 47
+			return GET_TURF_BELOW_DIAGONAL(get_turf(ref), dir)
+		else
+			CRASH("Invalid direction [dir] passed to get_step_multiz!") */
+
+/proc/get_dir_multiz(turf/us, turf/them)
+	us = get_turf(us)
+	them = get_turf(them)
+	if(!us || !them)
+		return NONE
+	if(us.z == them.z)
+		return get_dir(us, them)
+	else
+		var/turf/T = GET_TURF_ABOVE(us)
+		var/dir = NONE
+		if(T && (T.z == them.z))
+			dir = UP
+		else
+			T = GET_TURF_BELOW(us)
+			if(T && (T.z == them.z))
+				dir = DOWN
+			else
+				return get_dir(us, them)
+		return (dir | get_dir(us, them))
 
 /proc/get_multiz_accessible_levels(center_z)
 	. = list(center_z)
@@ -42,35 +73,3 @@ GLOBAL_LIST_EMPTY(zweb_cache)
 			LAZYADD(GLOB.zweb_cache[ztext], my_text)
 	return GLOB.zweb_cache[my_text][comp_text]
 
-/proc/get_dir_multiz(turf/us, turf/them)
-	us = get_turf(us)
-	them = get_turf(them)
-	if(!us || !them)
-		return NONE
-	if(us.z == them.z)
-		return get_dir(us, them)
-	else
-		var/turf/T = GET_TURF_ABOVE(us)
-		var/dir = NONE
-		if(T && (T.z == them.z))
-			dir = UP
-		else
-			T = GET_TURF_BELOW(us)
-			if(T && (T.z == them.z))
-				dir = DOWN
-			else
-				return get_dir(us, them)
-		return (dir | get_dir(us, them))
-
-/proc/dir_inverse_multiz(dir)
-	var/holder = dir & (UP|DOWN)
-	if((holder == NONE) || (holder == (UP|DOWN)))
-		return turn(dir, 180)
-	dir &= ~(UP|DOWN)
-	dir = turn(dir, 180)
-	if(holder == UP)
-		holder = DOWN
-	else
-		holder = UP
-	dir |= holder
-	return dir

@@ -1,35 +1,30 @@
 /proc/random_human_blood_type()
 	var/static/list/human_blood_type_weights = list(
-		/datum/blood_type/human/o_minus = 4,
-		/datum/blood_type/human/o_plus = 36,
-		/datum/blood_type/human/a_minus = 28,
-		/datum/blood_type/human/a_plus = 3,
-		/datum/blood_type/human/b_minus = 20,
-		/datum/blood_type/human/b_plus = 1,
-		/datum/blood_type/human/ab_minus = 5,
-		/datum/blood_type/human/ab_plus = 1
+		/datum/blood_type/human = 10, //bloodtypes aren't real
 	)
 
 	return pickweight(human_blood_type_weights)
 
-/proc/random_eye_color()
+/proc/random_eye_color(crunch = FALSE)
+	if(crunch)
+		. = "#"
 	switch(pick(20;"brown",20;"hazel",20;"grey",15;"blue",15;"green",1;"amber",1;"albino"))
 		if("brown")
-			return "630"
+			. += "630"
 		if("hazel")
-			return "542"
+			. += "542"
 		if("grey")
-			return pick("666","777","888","999","aaa","bbb","ccc")
+			. += pick("666","777","888","999","aaa","bbb","ccc")
 		if("blue")
-			return "36c"
+			. += "36c"
 		if("green")
-			return "060"
+			. += "060"
 		if("amber")
-			return "fc0"
+			. += "fc0"
 		if("albino")
-			return pick("c","d","e","f") + pick("0","1","2","3","4","5","6","7","8","9") + pick("0","1","2","3","4","5","6","7","8","9")
+			. += pick("c","d","e","f") + pick("0","1","2","3","4","5","6","7","8","9") + pick("0","1","2","3","4","5","6","7","8","9")
 		else
-			return "000"
+			. += "000"
 
 /proc/random_underwear(gender)
 	if(!GLOB.underwear_list.len)
@@ -53,81 +48,9 @@
 		else
 			return pick(GLOB.undershirt_list)
 
-/proc/random_socks()
-	if(!GLOB.socks_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/socks, GLOB.socks_list)
-	return pick(GLOB.socks_list)
-
-/// TO BE DELETED
-/proc/random_backpack()
-	return pick(GLOB.backpacklist)
-
 /// TO BE DELETED, INTEGRATE INTO SPECIES DATUM
 /proc/random_features()
-	if(!GLOB.tails_list_human.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/human, GLOB.tails_list_human)
-	if(!GLOB.tails_list_lizard.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/lizard, GLOB.tails_list_lizard)
-	if(!GLOB.snouts_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/snouts, GLOB.snouts_list)
-	if(!GLOB.horns_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/horns, GLOB.horns_list)
-	if(!GLOB.ears_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/ears, GLOB.ears_list)
-	if(!GLOB.frills_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/frills, GLOB.frills_list)
-	if(!GLOB.spines_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/spines, GLOB.spines_list)
-	if(!GLOB.legs_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/legs, GLOB.legs_list)
-	if(!GLOB.body_markings_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/body_markings, GLOB.body_markings_list)
-	if(!GLOB.wings_list.len)
-		init_sprite_accessory_subtypes(/datum/sprite_accessory/wings, GLOB.wings_list)
-	return list(
-		"mcolor" = pick(
-			"FFFFFF",
-			"7F7F7F",
-			"7FFF7F",
-			"7F7FFF",
-			"FF7F7F",
-			"7FFFFF",
-			"FF7FFF",
-			"FFFF7F",
-		),
-		"ethcolor" = pick_assoc(GLOB.color_list_ethereal),
-		"tail_lizard" = pick(GLOB.tails_list_lizard),
-		"tail_human" = "TiebTail", //1: should be its own feature, 2: shouldn't be doing this...
-		"wings" = "None",
-		"snout" = pick(GLOB.snouts_list),
-		"horns" = pick(GLOB.horns_list),
-		"ears" = "ElfW", //horcs, tiefs, elves
-		"frills" = pick(GLOB.frills_list),
-		"spines" = pick(GLOB.spines_list),
-		"body_markings" = pick(GLOB.body_markings_list),
-		"legs" = "Normal Legs",
-		"caps" = pick(GLOB.caps_list)
-	)
-
-/// TO BE DELETED
-/proc/random_hairstyle(gender)
-	switch(gender)
-		if(MALE)
-			return pick(GLOB.hairstyles_male_list)
-		if(FEMALE)
-			return pick(GLOB.hairstyles_female_list)
-		else
-			return pick(GLOB.hairstyles_list)
-
-/// TO BE DELETED
-/proc/random_facial_hairstyle(gender)
-	switch(gender)
-		if(MALE)
-			return pick(GLOB.facial_hairstyles_male_list)
-		if(FEMALE)
-			return "None"
-		else
-			return pick(GLOB.facial_hairstyles_list)
+	return MANDATORY_FEATURE_LIST
 
 /proc/random_unique_name(gender, attempts_to_find_unique_name=10)
 	for(var/i in 1 to attempts_to_find_unique_name)
@@ -140,86 +63,70 @@
 			break
 
 
-GLOBAL_LIST_INIT(skin_tones, sortList(list(
-	"skin1" = "ffe0d1",
-	"skin2" = "fcccb3",
-	"skin3" = "e8b59b"
+GLOBAL_LIST_INIT(skin_tones, sortList(
+	list(
+		"Ice Cap" = SKIN_COLOR_ICECAP, // - (Pale)
+		"Arctic" = SKIN_COLOR_ARCTIC, // - (White 1)
+		"Tundra" = SKIN_COLOR_TUNDRA, // - (White 2)
+		"Continental" = SKIN_COLOR_CONTINENTAL, // - (White 3)
+		"Temperate" = SKIN_COLOR_TEMPERATE, // - (White 4)
+		"Coastal" = SKIN_COLOR_COASTAL, // - (Latin)
+		"Subtropical" = SKIN_COLOR_SUBTROPICAL, // - (Mediterranean)
+		"Tropical Dry" = SKIN_COLOR_TROPICALDRY, // - (Mediterranean 2)
+		"Tropical Wet" = SKIN_COLOR_TROPICALWET, // - (Latin 2)
+		"Desert" = SKIN_COLOR_DESERT, //  - (Middle-east 1)
+		"Oasis" = SKIN_COLOR_OASIS, // - (Middle-east 2)
+		"Steppe" = SKIN_COLOR_CRIMSONLANDS, // - (Black)
+		"Volcanic" = SKIN_COLOR_VOLCANIC, // - Melanesian
+		"Island" = SKIN_COLOR_ISLAND, // - Polynesian
+		"Taiga" = SKIN_COLOR_TAIGA, // - Native American 1
+		"Swamp" = SKIN_COLOR_SWAMP, // - Native American 2
 	)))
 
 /proc/random_skin_tone()
 	return GLOB.skin_tones[pick(GLOB.skin_tones)]
 
-GLOBAL_LIST_INIT(haircolor, sortList(list(
-	"black" = "#0a0707",
-	"brown" = "#362e25",
-	"blonde" = "#dfc999",
-	"red" = "#a34332"
-	)))
+GLOBAL_LIST_INIT(haircolor, sortList(
+	list(
+		"blond - pale" = "9d8d6e",
+		"blond - dirty" = "88754f",
+		"blond - drywheat" = "d5ba7b",
+		"blond - strawberry" = "c69b71",
 
+		"brown - mud" = "362e25",
+		"brown - oats" = "584a3b",
+		"brown - grain" = "58433b",
+		"brown - soil" = "48322a",
+		"brown - bark" = "2d1300",
+
+		"black - oil" = "181a1d",
+		"black - cave" = "201616",
+		"black - rogue" = "2b201b",
+		"black - midnight" = "1d1b2b",
+
+		"red - berry" = "b23434",
+		"red - wine" = "82534c",
+		"red - sunset" = "82462b",
+		"red - blood" = "822b2b",
+		"red - maroon" = "612929",
+
+		"orange - rust" = "bc5e35"
+	)))
 
 /proc/random_haircolor()
 	return GLOB.haircolor[pick(GLOB.haircolor)]
 
-GLOBAL_LIST_INIT(oldhc, sortList(list(
-	"pale - golden" = "f0eab6",
-	"pale - dust" = "ded0af",
-	"gray - decay" = "6a6a6a",
-	"gray - silvered" = "687371",
-	"gray - elderly" = "9e9e9e",
-	"gray - ashen" = "404040",
-	"white - ancient" = "c9c9c9",
-	"white - mythic" = "f4f4f4"
+GLOBAL_LIST_INIT(oldhc, sortList(
+	list(
+		"pale - golden" = "f0eab6",
+		"pale - dust" = "ded0af",
+		"gray - decay" = "6a6a6a",
+		"gray - silvered" = "687371",
+		"gray - elderly" = "9e9e9e",
+		"gray - ashen" = "404040",
+		"white - ancient" = "c9c9c9",
+		"white - mythic" = "f4f4f4"
 	)))
-
-/proc/skintone2hex(skin_tone)
-	. = 0
-	switch(skin_tone)
-		if("caucasian1")
-			. = "ffe0d1"
-		if("caucasian2")
-			. = "fcccb3"
-		if("caucasian3")
-			. = "e8b59b"
-		if("latino")
-			. = "d9ae96"
-		if("mediterranean")
-			. = "c79b8b"
-		if("asian1")
-			. = "ffdeb3"
-		if("asian2")
-			. = "e3ba84"
-		if("arab")
-			. = "c4915e"
-		if("indian")
-			. = "b87840"
-		if("african1")
-			. = "754523"
-		if("african2")
-			. = "471c18"
-		if("albino")
-			. = "fff4e6"
-		if("orange")
-			. = "ffc905"
-		if("skin1")
-			. = "ffe0d1"
-		if("skin2")
-			. = "fcccb3"
-		if("skin3")
-			. = "e8b59b"
-
-/proc/haircolor2hex(haircolor)
-	. = 0
-	switch(haircolor)
-		if("cave black")
-			. = "#0a0707"
-		if("mud brown")
-			. = "#362e25"
-		if("pale blonde")
-			. = "#dfc999"
-		if("dusk red")
-			. = "#a34332"
-		if("decay grey")
-			. = "#6a6a6a"
 
 //some additional checks as a callback for for do_afters that want to break on losing health or on the mob taking action
 /mob/proc/break_do_after_checks(list/checked_health, check_clicks)
@@ -250,8 +157,9 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
  * @param {string} interaction_key - The assoc key under which the do_after is capped, with max_interact_count being the cap. Interaction key will default to target if not set. \
  * @param {number} max_interact_count - The maximum amount of interactions allowed. \
  * @param {boolean} hidden - By default, any action 1 second or longer shows a cog over the user while it is in progress. If hidden is set to TRUE, the cog will not be shown.
+ * @param {boolean} display_over_user - By default, the progress bar is displayed over the target if it is defined. If set to TRUE, the bar will be displayed over the user instead
  */
-/proc/do_after(mob/user, delay, atom/target = null, timed_action_flags = NONE, progress = TRUE, datum/callback/extra_checks, interaction_key, max_interact_count = 1, hidden = FALSE)
+/proc/do_after(mob/user, delay, atom/target = null, timed_action_flags = NONE, progress = TRUE, datum/callback/extra_checks, interaction_key, max_interact_count = 1, hidden = FALSE, display_over_user = FALSE)
 	if(!user)
 		return FALSE
 	if(!isnum(delay))
@@ -274,10 +182,6 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 	var/atom/target_loc = target?.loc
 	var/user_dir = user.dir /* V */
 
-	var/drifting = FALSE
-	if(!user.Process_Spacemove(0) && user.inertia_dir)
-		drifting = TRUE
-
 	var/holding = user.get_active_held_item()
 
 	if(!(timed_action_flags & IGNORE_SLOWDOWNS))
@@ -288,8 +192,7 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 
 	if(progress)
 		if(user.client)
-			progbar = new(user, delay, target || user)
-
+			progbar = new(user, delay, display_over_user ? user : target || user)
 		if(!hidden && delay >= 1 SECONDS)
 			cog = new(user)
 
@@ -304,12 +207,8 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 		if(!QDELETED(progbar))
 			progbar.update(world.time - starttime)
 
-		if(drifting && !user.inertia_dir)
-			drifting = FALSE
-			user_loc = user.loc
-
 		if(QDELETED(user) \
-			|| (!(timed_action_flags & IGNORE_USER_LOC_CHANGE) && !drifting && user.loc != user_loc) \
+			|| (!(timed_action_flags & IGNORE_USER_LOC_CHANGE) && user.loc != user_loc) \
 			|| (!(timed_action_flags & IGNORE_HELD_ITEM) && user.get_active_held_item() != holding) \
 			|| (!(timed_action_flags & IGNORE_INCAPACITATED) && HAS_TRAIT(user, TRAIT_INCAPACITATED)) \
 			/* V: */ \
@@ -329,7 +228,8 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 	if(!QDELETED(progbar))
 		progbar.end_progress()
 
-	cog?.remove(.) /* V */
+	if(!QDELETED(cog))
+		cog.remove(TRUE) /* V */
 
 	if(interaction_key)
 		user.stop_doing(interaction_key)
@@ -373,12 +273,12 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 
 /* :V */
 
-/proc/is_species(A, species_datum)
+/proc/is_species(mob/living/carbon/human/checked, species_datum)
 	. = FALSE
-	if(ishuman(A))
-		var/mob/living/carbon/human/H = A
-		if(H.dna && istype(H.dna.species, species_datum))
-			. = TRUE
+	if(!istype(checked))
+		return
+	if(istype(checked.dna?.species, species_datum))
+		. = TRUE
 
 /proc/spawn_atom_to_turf(spawn_type, target, amount, admin_spawn=FALSE, list/extra_args)
 	var/turf/T = get_turf(target)
@@ -430,33 +330,41 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 
 // Displays a message in deadchat, sent by source. Source is not linkified, message is, to avoid stuff like character names to be linkified.
 // Automatically gives the class deadsay to the whole message (message + source)
-/proc/deadchat_broadcast(message, source=null, mob/follow_target=null, turf/turf_target=null, speaker_key=null, message_type=DEADCHAT_REGULAR)
-	message = "<span class='deadsay'>[source]<span class='linkify'>[message]</span></span>"
+/proc/deadchat_broadcast(message, source = null, mob/follow_target = null, turf/turf_target = null, speaker_key = null, message_type = DEADCHAT_REGULAR, max_range = null)
+	message = span_deadsay("[source][span_linkify(message)]")
 	for(var/mob/M in GLOB.player_list)
-		var/datum/preferences/prefs
-		if(M.client.prefs)
-			prefs = M.client.prefs
-		else
-			prefs = new
+		var/chat_toggles = TOGGLES_DEFAULT_CHAT
+		var/toggles = TOGGLES_DEFAULT
+		var/list/ignoring
+
+		if(M.client?.prefs)
+			var/datum/preferences/prefs = M.client?.prefs
+			chat_toggles = prefs.chat_toggles
+			toggles = prefs.toggles
+			ignoring = prefs.ignoring
 
 		var/override = FALSE
-		if(M.client.holder && (prefs.chat_toggles & CHAT_DEAD))
+		if(M.client.holder && (chat_toggles & CHAT_DEAD))
 			override = TRUE
+
 		if(HAS_TRAIT(M, TRAIT_SIXTHSENSE))
 			override = TRUE
+
 		if(isnewplayer(M) && !override)
 			continue
+
 		if(M.stat != DEAD && !override)
 			continue
-		if(speaker_key && (speaker_key in prefs.ignoring))
+
+		if(speaker_key && (speaker_key in ignoring))
 			continue
 
 		switch(message_type)
 			if(DEADCHAT_DEATHRATTLE)
-				if(prefs.toggles & DISABLE_DEATHRATTLE)
+				if(toggles & DISABLE_DEATHRATTLE)
 					continue
 			if(DEADCHAT_ARRIVALRATTLE)
-				if(prefs.toggles & DISABLE_ARRIVALRATTLE)
+				if(toggles & DISABLE_ARRIVALRATTLE)
 					continue
 
 		if(isobserver(M))
@@ -485,13 +393,12 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 	var/static/list/mob_spawn_nicecritters = list() // and possible friendly mobs
 
 	if(mob_spawn_meancritters.len <= 0 || mob_spawn_nicecritters.len <= 0)
-		for(var/T in typesof(/mob/living/simple_animal))
-			var/mob/living/simple_animal/SA = T
+		for(var/mob/living/simple_animal/SA as anything in typesof(/mob/living/simple_animal))
 			switch(initial(SA.gold_core_spawnable))
 				if(HOSTILE_SPAWN)
-					mob_spawn_meancritters += T
+					mob_spawn_meancritters += SA
 				if(FRIENDLY_SPAWN)
-					mob_spawn_nicecritters += T
+					mob_spawn_nicecritters += SA
 
 	var/chosen
 	if(mob_class == FRIENDLY_SPAWN)
@@ -500,19 +407,6 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 		chosen = pick(mob_spawn_meancritters)
 	var/mob/living/simple_animal/C = new chosen(spawn_location)
 	return C
-
-/proc/passtable_on(target, source)
-	var/mob/living/L = target
-	if (!HAS_TRAIT(L, TRAIT_PASSTABLE) && L.pass_flags & PASSTABLE)
-		ADD_TRAIT(L, TRAIT_PASSTABLE, INNATE_TRAIT)
-	ADD_TRAIT(L, TRAIT_PASSTABLE, source)
-	L.pass_flags |= PASSTABLE
-
-/proc/passtable_off(target, source)
-	var/mob/living/L = target
-	REMOVE_TRAIT(L, TRAIT_PASSTABLE, source)
-	if(!HAS_TRAIT(L, TRAIT_PASSTABLE))
-		L.pass_flags &= ~PASSTABLE
 
 /proc/dance_rotate(atom/movable/AM, datum/callback/callperrotate, set_original_dir=FALSE)
 	set waitfor = FALSE
@@ -525,3 +419,25 @@ GLOBAL_LIST_INIT(oldhc, sortList(list(
 		sleep(1)
 	if(set_original_dir)
 		AM.setDir(originaldir)
+
+/**
+ * Gets the mind from a variable, whether it be a mob, or a mind itself.
+ * Also works on brains - it will try to fetch the brainmob's mind.
+ * If [include_last] is true, then it will also return last_mind for carbons if there isn't a current mind.
+ */
+/proc/get_mind(target, include_last = FALSE) as /datum/mind
+	RETURN_TYPE(/datum/mind)
+	if(istype(target, /datum/mind))
+		return target
+	else if(ismob(target))
+		var/mob/mob_target = target
+		if(!QDELETED(mob_target.mind))
+			return mob_target.mind
+		if(include_last && iscarbon(mob_target))
+			var/mob/living/carbon/carbon_target = mob_target
+			if(!QDELETED(carbon_target.last_mind))
+				return carbon_target.last_mind
+	else if(istype(target, /obj/item/organ/brain))
+		var/obj/item/organ/brain/brain = target
+		if(!QDELETED(brain.brainmob?.mind))
+			return brain.brainmob.mind

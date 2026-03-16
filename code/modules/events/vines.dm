@@ -1,20 +1,16 @@
 /datum/round_event/vines/start()
 	var/list/turfs = list() //list of all the empty floor turfs in the hallway areas
 
-	var/obj/structure/vine/SV = new()
+	for(var/area/outdoors/town/A in GLOB.areas)
+		for(var/turf/open/F as anything in A.get_turfs_from_all_zlevels())
+			if(F.density || isopenspace(F))
+				continue
+			turfs += F
 
-	for(var/area/rogue/outdoors/town/A in world)
-		for(var/turf/open/F in A)
-			if(F.Enter(SV))
-				if(!istype(F, /turf/open/transparent/openspace))
-					turfs += F
-
-	qdel(SV)
-
-//	var/maxi = max(GLOB.badomens.len, 1)
 	var/maxi = 7
-	for(var/i in 1 to rand(5,maxi))
-		if(turfs.len) //Pick a turf to spawn at if we can
+
+	if(length(turfs))
+		for(var/i in 1 to rand(5, maxi))
 			var/turf/T = pick_n_take(turfs)
 			message_admins("VINES at [ADMIN_VERBOSEJMP(T)]")
 			new /datum/vine_controller(T, event = src) //spawn a controller at turf
@@ -191,8 +187,8 @@
 /datum/vine_mutation/woodening/on_grow(obj/structure/vine/holder)
 	if(holder.energy)
 		holder.density = TRUE
-	holder.max_integrity = 100
-	holder.obj_integrity = holder.max_integrity
+	holder.modify_max_integrity(100)
+	holder.update_integrity(100)
 
 /datum/vine_mutation/woodening/on_hit(obj/structure/vine/holder, mob/living/hitter, obj/item/I, expected_damage)
 	if(I.get_sharpness())
@@ -210,7 +206,7 @@
 	density = FALSE
 	layer = SPACEVINE_LAYER
 	mouse_opacity = MOUSE_OPACITY_OPAQUE //Clicking anywhere on the turf is good enough
-	pass_flags = PASSTABLE | PASSGRILLE
+	pass_flags_self = PASSTABLE | PASSGRILLE
 	max_integrity = 5
 	resistance_flags = FLAMMABLE
 	damage_deflection = 5
@@ -220,24 +216,13 @@
 	var/list/mutations = list()
 	break_sound = "plantcross"
 	destroy_sound = null
+	attacked_sound = 'sound/misc/woodhit.ogg'
 
 /obj/structure/vine/Initialize()
 	. = ..()
 	dir = pick(GLOB.cardinals)
 	icon_state = "Light[rand(1,2)]"
 	add_atom_colour("#ffffff", FIXED_COLOUR_PRIORITY)
-
-/obj/structure/vine/examine(mob/user)
-	. = ..()/*
-	var/text = "This one is a"
-	if(mutations.len)
-		for(var/A in mutations)
-			var/datum/vine_mutation/SM = A
-			text += " [SM.name]"
-	else
-		text += " normal"
-	text += " vine."
-	. += text*/
 
 /obj/structure/vine/Destroy()
 	for(var/datum/vine_mutation/SM in mutations)
@@ -274,16 +259,6 @@
 //		damage_dealt = SM.on_hit(src, user, I, damage_dealt) //on_hit now takes override damage as arg and returns new value for other mutations to permutate further
 //	take_damage(damage_dealt, I.damtype, "melee", 1)
 
-/obj/structure/vine/play_attack_sound(damage_amount, damage_type = BRUTE, damage_flag = 0)
-	switch(damage_type)
-		if(BRUTE)
-			if(damage_amount)
-				playsound(src, 'sound/misc/woodhit.ogg', 100, FALSE)
-			else
-				playsound(src, "nodmg", 100, FALSE)
-		if(BURN)
-			playsound(src.loc, "burn", 100, TRUE)
-
 /obj/structure/vine/Crossed(mob/crosser)
 	if(isliving(crosser))
 		for(var/datum/vine_mutation/SM in mutations)
@@ -297,13 +272,10 @@
 /obj/structure/vine/attack_hand(mob/user)
 	for(var/datum/vine_mutation/SM in mutations)
 		SM.on_hit(src, user)
-	user_unbuckle_mob(user, user)
 	. = ..()
 
 /obj/structure/vine/attack_paw(mob/living/user)
-	for(var/datum/vine_mutation/SM in mutations)
-		SM.on_hit(src, user)
-	user_unbuckle_mob(user,user)
+	return attack_hand(user)
 
 /datum/vine_controller
 	var/list/obj/structure/vine/vines
@@ -346,6 +318,8 @@
 
 /datum/vine_controller/Destroy()
 	STOP_PROCESSING(SSobj, src)
+	tree = null
+	vines = null
 	return ..()
 
 /datum/vine_controller/proc/spawn_spacevine_piece(turf/location, obj/structure/vine/parent, list/muts)
@@ -371,7 +345,7 @@
 	return SV
 
 /datum/vine_controller/proc/endvines()
-	for(var/obj/structure/vine/V in vines)
+	for(var/obj/structure/vine/V as anything in vines)
 		V.dieepic()
 	qdel(src)
 
@@ -423,8 +397,8 @@
 
 /obj/structure/vine/proc/dieepic()
 	icon_state = "[icon_state]d"
-	max_integrity = 1
-	obj_integrity = 1
+	modify_max_integrity(1, can_break = FALSE)
+	update_integrity(1)
 	destroy_sound = 'sound/foley/breaksound.ogg'
 
 /obj/structure/vine/proc/grow()
@@ -485,11 +459,10 @@
 	if(!override)
 		qdel(src)
 
-/obj/structure/vine/CanPass(atom/movable/mover, turf/target)
+/obj/structure/vine/CanAllowThrough(atom/movable/mover, turf/target)
+	. = ..()
 	if(isvineimmune(mover))
-		. = TRUE
-	else
-		. = ..()
+		return TRUE
 
 /proc/isvineimmune(atom/A)
 	. = FALSE

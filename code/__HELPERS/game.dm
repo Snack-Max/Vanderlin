@@ -6,150 +6,11 @@
 		return null
 	return format_text ? format_text(A.name) : A.name
 
-/proc/get_areas_in_range(dist=0, atom/center=usr)
-	if(!dist)
-		var/turf/T = get_turf(center)
-		return T ? list(T.loc) : list()
-	if(!center)
-		return list()
-
-	var/list/turfs = RANGE_TURFS(dist, center)
-	var/list/areas = list()
-	for(var/V in turfs)
-		var/turf/T = V
-		areas |= T.loc
-	return areas
-
-/proc/get_adjacent_areas(atom/center)
-	. = list(get_area(get_ranged_target_turf(center, NORTH, 1)),
-			get_area(get_ranged_target_turf(center, SOUTH, 1)),
-			get_area(get_ranged_target_turf(center, EAST, 1)),
-			get_area(get_ranged_target_turf(center, WEST, 1)))
-	listclearnulls(.)
-
-/proc/get_open_turf_in_dir(atom/center, dir)
-	var/turf/open/T = get_ranged_target_turf(center, dir, 1)
-	if(istype(T))
-		return T
-
-/proc/get_adjacent_open_turfs(atom/center)
-	. = list(get_open_turf_in_dir(center, NORTH),
-			get_open_turf_in_dir(center, SOUTH),
-			get_open_turf_in_dir(center, EAST),
-			get_open_turf_in_dir(center, WEST))
-	listclearnulls(.)
-
-/proc/get_adjacent_open_areas(atom/center)
-	. = list()
-	var/list/adjacent_turfs = get_adjacent_open_turfs(center)
-	for(var/I in adjacent_turfs)
-		. |= get_area(I)
-
-// Like view but bypasses luminosity check
-
-/proc/get_hear(range, atom/source)
-
-	var/lum = source.luminosity
-	source.luminosity = 6
-
-	var/list/heard = view(range, source)
-	source.luminosity = lum
-
-	return heard
-
-/proc/alone_in_area(area/the_area, mob/must_be_alone, check_type = /mob/living/carbon)
-	var/area/our_area = get_area(the_area)
-	for(var/C in GLOB.alive_mob_list)
-		if(!istype(C, check_type))
-			continue
-		if(C == must_be_alone)
-			continue
-		if(our_area == get_area(C))
-			return 0
-	return 1
 
 //We used to use linear regression to approximate the answer, but Mloc realized this was actually faster.
 //And lo and behold, it is, and it's more accurate to boot.
 /proc/cheap_hypotenuse(Ax,Ay,Bx,By)
 	return sqrt(abs(Ax - Bx)**2 + abs(Ay - By)**2) //A squared + B squared = C squared
-
-/proc/circlerange(center=usr,radius=3)
-
-	var/turf/centerturf = get_turf(center)
-	var/list/turfs = new/list()
-	var/rsq = radius * (radius+0.5)
-
-	for(var/atom/T in range(radius, centerturf))
-		var/dx = T.x - centerturf.x
-		var/dy = T.y - centerturf.y
-		if(dx*dx + dy*dy <= rsq)
-			turfs += T
-
-	//turfs += centerturf
-	return turfs
-
-/proc/circleview(center=usr,radius=3)
-
-	var/turf/centerturf = get_turf(center)
-	var/list/atoms = new/list()
-	var/rsq = radius * (radius+0.5)
-
-	for(var/atom/A in view(radius, centerturf))
-		var/dx = A.x - centerturf.x
-		var/dy = A.y - centerturf.y
-		if(dx*dx + dy*dy <= rsq)
-			atoms += A
-
-	//turfs += centerturf
-	return atoms
-
-/proc/get_dist_euclidian(atom/Loc1 as turf|mob|obj,atom/Loc2 as turf|mob|obj)
-	var/dx = Loc1.x - Loc2.x
-	var/dy = Loc1.y - Loc2.y
-
-	var/dist = sqrt(dx**2 + dy**2)
-
-	return dist
-
-/proc/circlerangeturfs(center=usr,radius=3)
-
-	var/turf/centerturf = get_turf(center)
-	var/list/turfs = new/list()
-	var/rsq = radius * (radius+0.5)
-
-	for(var/turf/T in range(radius, centerturf))
-		var/dx = T.x - centerturf.x
-		var/dy = T.y - centerturf.y
-		if(dx*dx + dy*dy <= rsq)
-			turfs += T
-	return turfs
-
-/proc/circleviewturfs(center=usr,radius=3)		//Is there even a diffrence between this proc and circlerangeturfs()?
-
-	var/turf/centerturf = get_turf(center)
-	var/list/turfs = new/list()
-	var/rsq = radius * (radius+0.5)
-
-	for(var/turf/T in view(radius, centerturf))
-		var/dx = T.x - centerturf.x
-		var/dy = T.y - centerturf.y
-		if(dx*dx + dy*dy <= rsq)
-			turfs += T
-	return turfs
-
-
-//This is the new version of recursive_mob_check, used for say().
-//The other proc was left intact because morgue trays use it.
-//Sped this up again for real this time
-/proc/recursive_hear_check(O)
-	var/list/processing_list = list(O)
-	. = list()
-	while(processing_list.len)
-		var/atom/A = processing_list[1]
-		if(A.flags_1 & HEAR_1)
-			. += A
-		processing_list.Cut(1, 2)
-		processing_list += A.contents
 
 /** recursive_organ_check
  * inputs: O (object to start with)
@@ -224,68 +85,6 @@
 	return found_mobs
 
 
-/proc/get_hearers_in_view(R, atom/source)
-	// Returns a list of hearers in view(R) from source (ignoring luminosity). Used in saycode.
-	var/turf/T = get_turf(source)
-	. = list()
-
-	if(!T)
-		return
-
-	var/list/processing_list = list()
-	if (R == 0) // if the range is zero, we know exactly where to look for, we can skip view
-		processing_list += T.contents // We can shave off one iteration by assuming turfs cannot hear
-	else  // A variation of get_hear inlined here to take advantage of the compiler's fastpath for obj/mob in view
-		var/lum = T.luminosity
-		T.luminosity = 6 // This is the maximum luminosity
-		for(var/mob/M in view(R, T))
-			processing_list += M
-		for(var/obj/O in view(R, T))
-			processing_list += O
-		T.luminosity = lum
-
-	while(processing_list.len) // recursive_hear_check inlined here
-		var/atom/A = processing_list[1]
-		if(A.flags_1 & HEAR_1)
-			. += A
-		processing_list.Cut(1, 2)
-		processing_list += A.contents
-
-
-#define SIGNV(X) ((X<0)?-1:1)
-
-/proc/inLineOfSight(X1,Y1,X2,Y2,Z=1,PX1=16.5,PY1=16.5,PX2=16.5,PY2=16.5)
-	var/turf/T
-	if(X1==X2)
-		if(Y1==Y2)
-			return 1 //Light cannot be blocked on same tile
-		else
-			var/s = SIGN(Y2-Y1)
-			Y1+=s
-			while(Y1!=Y2)
-				T=locate(X1,Y1,Z)
-				if(T.opacity)
-					return 0
-				Y1+=s
-	else
-		var/m=(32*(Y2-Y1)+(PY2-PY1))/(32*(X2-X1)+(PX2-PX1))
-		var/b=(Y1+PY1/32-0.015625)-m*(X1+PX1/32-0.015625) //In tiles
-		var/signX = SIGN(X2-X1)
-		var/signY = SIGN(Y2-Y1)
-		if(X1<X2)
-			b+=m
-		while(X1!=X2 || Y1!=Y2)
-			if(round(m*X1+b-Y1))
-				Y1+=signY //Line exits tile vertically
-			else
-				X1+=signX //Line exits tile horizontally
-			T=locate(X1,Y1,Z)
-			if(T.opacity)
-				return 0
-	return 1
-#undef SIGNV
-
-
 /proc/isInSight(atom/A, atom/B)
 	var/turf/Aturf = get_turf(A)
 	var/turf/Bturf = get_turf(B)
@@ -308,8 +107,7 @@
 
 /proc/get_mob_by_key(key)
 	var/ckey = ckey(key)
-	for(var/i in GLOB.player_list)
-		var/mob/M = i
+	for(var/mob/M as anything in GLOB.player_list)
 		if(M.ckey == ckey)
 			return M
 	return null
@@ -331,28 +129,60 @@
 /proc/ScreenText(obj/O, maptext="", screen_loc="CENTER-7,CENTER-7", maptext_height=480, maptext_width=480)
 	if(!isobj(O))
 		O = new /atom/movable/screen/text()
-	O.maptext = maptext
+	O.maptext = MAPTEXT(maptext)
 	O.maptext_height = maptext_height
 	O.maptext_width = maptext_width
 	O.screen_loc = screen_loc
 	return O
 
-/proc/remove_images_from_clients(image/I, list/show_to)
-	for(var/client/C in show_to)
-		C.images -= I
+/// Removes an image from a client's `.images`. Useful as a callback.
+/proc/remove_image_from_client(image/image, client/remove_from)
+	remove_from?.images -= image
 
-/proc/flick_overlay(image/I, list/show_to, duration)
-	for(var/client/C in show_to)
-		C.images += I
-	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(remove_images_from_clients), I, show_to), duration, TIMER_CLIENT_TIME)
+/// Like remove_image_from_client, but will remove the image from a list of clients
+/proc/remove_image_from_clients(image/image_to_remove, list/hide_from)
+	for(var/client/remove_from in hide_from)
+		remove_from.images -= image_to_remove
 
-/proc/flick_overlay_view(image/I, atom/target, duration) //wrapper for the above, flicks to everyone who can see the target atom
-	var/list/viewing = list()
-	for(var/m in viewers(target))
-		var/mob/M = m
-		if(M.client)
-			viewing += M.client
-	flick_overlay(I, viewing, duration)
+/proc/flick_overlay(image/image_to_show, list/show_to, duration)
+	if(!show_to || !length(show_to) || !image_to_show)
+		return
+	for(var/client/add_to in show_to)
+		add_to.images += image_to_show
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(remove_image_from_clients), image_to_show, show_to), duration, TIMER_CLIENT_TIME)
+
+/**
+ * Helper atom that copies an appearance and exists for a period
+*/
+/atom/movable/flick_visual
+
+/// Takes the passed in MA/icon_state, mirrors it onto ourselves, and displays that in world for duration seconds
+/// Returns the displayed object, you can animate it and all, but you don't own it, we'll delete it after the duration
+/atom/proc/flick_overlay_view(mutable_appearance/display, duration)
+	if(!display)
+		return null
+
+	var/mutable_appearance/passed_appearance = \
+		istext(display) \
+			? mutable_appearance(icon, display, layer) \
+			: display
+
+	// If you don't give it a layer, we assume you want it to layer on top of this atom
+	// Because this is vis_contents, we need to set the layer manually (you can just set it as you want on return if this is a problem)
+	if(passed_appearance.layer == FLOAT_LAYER)
+		passed_appearance.layer = layer + 0.1
+	// This is faster then pooling. I promise
+	var/atom/movable/flick_visual/visual = new()
+	visual.appearance = passed_appearance
+	visual.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	// I hate /area
+	var/atom/movable/lies_to_children = src
+	lies_to_children.vis_contents += visual
+	QDEL_IN_CLIENT_TIME(visual, duration)
+	return visual
+
+/area/flick_overlay_view(mutable_appearance/display, duration)
+	return
 
 /proc/get_active_player_count(alive_check = 0, afk_check = 0, human_check = 0)
 	// Get active players who are playing in the round
@@ -417,14 +247,31 @@
 
 	return pollCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category, flashwindow, candidates)
 
+
+/proc/pollGhostCandidatesWhitelisted(Question, jobbanType, gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE, new_players = FALSE, whitelist_type)
+	var/list/candidates = list()
+
+	for(var/mob/dead/observer/G in GLOB.player_list)
+		if(G.client.is_whitelisted(whitelist_type))
+			candidates += G
+	if(new_players)
+		for(var/mob/dead/new_player/G as anything in GLOB.new_player_list)
+			if(!G.client)
+				continue
+			candidates += G
+
+	return pollCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category, flashwindow, candidates)
+
+
 /proc/pollCandidates(Question, jobbanType, gametypeCheck, be_special_flag = 0, poll_time = 300, ignore_category = null, flashwindow = TRUE, list/group = null)
 	var/time_passed = world.time
 	if (!Question)
 		Question = "Would you like to be a special role?"
 	var/list/result = list()
-	for(var/m in group)
-		var/mob/M = m
+	for(var/mob/M as anything in group)
 		if(!M.key || !M.client || (ignore_category && GLOB.poll_ignore[ignore_category] && (M.ckey in GLOB.poll_ignore[ignore_category])))
+			continue
+		if(jobbanType && is_banned_from(M.ckey, list(jobbanType)))
 			continue
 		if(be_special_flag)
 			if(!(M.client.prefs) || !(be_special_flag in M.client.prefs.be_special))
@@ -450,11 +297,16 @@
 		return list()
 	return L
 
+/proc/pollCandidatesForMobWhitelisted(Question, jobbanType, gametypeCheck, be_special_flag = 0, poll_time = 300, mob/M, ignore_category = null, new_players = FALSE, whitelist_type)
+	var/list/L = pollGhostCandidatesWhitelisted(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category, new_players = new_players, whitelist_type = whitelist_type)
+	if(!M || QDELETED(M) || !M.loc)
+		return list()
+	return L
+
 /proc/pollCandidatesForMobs(Question, jobbanType, gametypeCheck, be_special_flag = 0, poll_time = 300, list/mobs, ignore_category = null)
 	var/list/L = pollGhostCandidates(Question, jobbanType, gametypeCheck, be_special_flag, poll_time, ignore_category)
 	var/i=1
-	for(var/v in mobs)
-		var/atom/A = v
+	for(var/atom/A as anything in mobs)
 		if(!A || QDELETED(A) || !A.loc)
 			mobs.Cut(i,i+1)
 		else
@@ -487,7 +339,6 @@
 			C = M.client
 	if(!C || (!C.prefs.windowflashing && !ignorepref))
 		return
-	winset(C, "mainwindow", "flash=5")
 
 //Recursively checks if an item is inside a given type, even through layers of storage. Returns the atom if it finds it.
 /proc/recursive_loc_check(atom/movable/target, type)
@@ -544,26 +395,80 @@ GLOBAL_LIST_EMPTY(fake_ckeys)
 	if(!key || !istext(key))
 		return "some invalid"
 	var/ckey = ckey(key)
-
-	if(!(ckey in GLOB.anonymize))
-		return ckey
-	if(GLOB.fake_ckeys[ckey])
-		return GLOB.fake_ckeys[ckey]
-
-	//Generating a new one instead
-	var/valid_name
-	do
-		var/name_attempt = "[capitalize(pick(GLOB.first_names))] [pick(GLOB.ooctitle)]"
-		for(var/X in GLOB.fake_ckeys)
-			if(GLOB.fake_ckeys[X] == name_attempt)
-				continue
-
-		valid_name = name_attempt
-	while(!valid_name)
-
-	GLOB.fake_ckeys[ckey] = valid_name
-	return valid_name
+	return ckey
 
 /// Returns if the given client is an admin, REGARDLESS of if they're deadminned or not.
 /proc/is_admin(client/client)
 	return !isnull(GLOB.admin_datums[client.ckey]) || !isnull(GLOB.deadmins[client.ckey])
+
+/**
+ * Checks a given message to see if any of the words are something we want to treat specially, as detailed below.
+ *
+ * There are 3 cases where a word is something we want to act on
+ * 1. Admin pings, like @adminckey. Pings the admin in question, text is not clickable
+ * 2. Datum refs, like @0x2001169 or @mob_23. Clicking on the link opens up the VV for that datum
+ * 3. Ticket refs, like #3. Displays the status and ahelper in the link, clicking on it brings up the ticket panel for it.
+ * Returns a list being used as a tuple. Index ASAY_LINK_NEW_MESSAGE_INDEX contains the new message text (with clickable links and such)
+ * while index ASAY_LINK_PINGED_ADMINS_INDEX contains a list of pinged admin clients, if there are any.
+ *
+ * Arguments:
+ * * msg - the message being scanned
+ */
+/proc/check_asay_links(msg)
+	var/list/msglist = splittext(msg, " ") //explode the input msg into a list
+	var/list/pinged_admins = list() // if we ping any admins, store them here so we can ping them after
+	var/modified = FALSE // did we find anything?
+
+	var/i = 0
+	for(var/word in msglist)
+		i++
+		if(!length(word))
+			continue
+
+		switch(word[1])
+			if("@")
+				var/stripped_word = ckey(copytext(word, 2))
+
+				// first we check if it's a ckey of an admin
+				var/client/client_check = GLOB.directory[stripped_word]
+				if(client_check?.holder)
+					msglist[i] = "<u>[word]</u>"
+					pinged_admins[stripped_word] = client_check
+					modified = TRUE
+					continue
+
+				// then if not, we check if it's a datum ref
+
+				var/word_with_brackets = "\[[stripped_word]\]" // the actual memory address lookups need the bracket wraps
+				var/datum/datum_check = locate(word_with_brackets)
+				if(!istype(datum_check))
+					continue
+				msglist[i] = "<u><a href='byond://?_src_=vars;[HrefToken(forceGlobal = TRUE)];Vars=[word_with_brackets]'>[word]</A></u>"
+				modified = TRUE
+
+			if("#") // check if we're linking a ticket
+				var/possible_ticket_id = text2num(copytext(word, 2))
+				if(!possible_ticket_id)
+					continue
+
+				var/datum/admin_help/ahelp_check = GLOB.ahelp_tickets?.TicketByID(possible_ticket_id)
+				if(!ahelp_check)
+					continue
+
+				var/state_word
+				switch(ahelp_check.state)
+					if(AHELP_ACTIVE)
+						state_word = "Active"
+					if(AHELP_CLOSED)
+						state_word = "Closed"
+					if(AHELP_RESOLVED)
+						state_word = "Resolved"
+
+				msglist[i]= "<u><A href='byond://?_src_=holder;[HrefToken(forceGlobal = TRUE)];ahelp=[REF(ahelp_check)];ahelp_action=ticket'>[word] ([state_word] | [ahelp_check.initiator_key_name])</A></u>"
+				modified = TRUE
+
+	if(modified)
+		var/list/return_list = list()
+		return_list[ASAY_LINK_NEW_MESSAGE_INDEX] = jointext(msglist, " ") // without tuples, we must make do!
+		return_list[ASAY_LINK_PINGED_ADMINS_INDEX] = pinged_admins
+		return return_list

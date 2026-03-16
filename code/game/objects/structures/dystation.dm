@@ -38,9 +38,7 @@
 	new /obj/effect/decal/cleanable/dyes(get_turf(src))
 	var/obj/item/bin/I = new(loc)
 	I.kover = TRUE
-	I.update_icon()
 	return ..()
-
 
 /obj/structure/dye_bin/Initialize(mapload, obj/item/dye_pack/inserted_pack)
 	. = ..()
@@ -58,7 +56,7 @@
 	selectable_colors |= new_pack.selectable_colors
 	qdel(new_pack)
 
-/obj/structure/dye_bin/attackby(obj/item/I, mob/living/user)
+/obj/structure/dye_bin/attackby(obj/item/I, mob/living/user, list/modifiers)
 	if(istype(I, /obj/item/dye_pack))
 		. = TRUE
 		var/obj/item/dye_pack/pack = I
@@ -72,7 +70,7 @@
 		return
 
 
-	if(!I.sewrepair) // ????
+	if(!(I.sewrepair || I.dyeable)) // ????
 		if(I.force < 8) // ?????????
 			to_chat(user, span_warning("I do not think \the [I] can be dyed this way."))
 		return ..()
@@ -80,11 +78,11 @@
 	/* ---------- */
 	. = TRUE
 
-	if(istype(I, /obj/item/clothing/head/mob_holder))
+	if(ismobholder(I))
 		if(!allow_mobs)
 			to_chat(user, span_warning("I could not fit [I] into [src]."))
 			return
-		var/obj/item/clothing/head/mob_holder/fellow = I
+		var/obj/item/mob_holder/fellow = I
 		fellow.release() //is this not a bug?
 
 	if(inserted)
@@ -102,10 +100,7 @@
 	icon_state = "dye_bin_full"
 	updateUsrDialog()
 
-/obj/structure/dye_bin/attack_hand(mob/living/user)
-	ui_interact(user)
-
-/obj/structure/dye_bin/ui_interact(mob/living/user)
+/obj/structure/dye_bin/interact(mob/living/user)
 	var/list/dat = list("<STYLE> * {text-align: center;} </STYLE>")
 	if(!inserted)
 		dat += "No item inserted."
@@ -115,15 +110,15 @@
 		dat += "<A href='byond://?src=[ref];action=eject'>Remove item.</A>"
 		dat += "<HR>"
 
-		dat += "Color: <font color='[active_color]'>&#9899;</font>"
+		dat += "Color: <span style='color:[active_color];'>&#9898;</span>"
 		dat += "<BR>"
 		dat += "<A href='byond://?src=[ref];action=select'>Select new color.</A>"
 		dat += "<BR>"
 
 		dat += "<A href='byond://?src=[ref];action=paint;type=base'>Taint with dye.</A>"
-		if(isclothing(inserted))
-			var/obj/item/clothing/cloth = inserted
-			if(cloth.detail_tag)
+		if(isitem(inserted))
+			var/obj/item/I = inserted
+			if(I.get_detail_tag())
 				dat += " | <A href='byond://?src=[ref];action=paint;type=detail'>Apply dye to accent.</A>"
 
 	var/datum/browser/menu = new(user, "colormate","<CENTER>[src]</CENTER>", 400, 400, src)
@@ -142,12 +137,12 @@
 	var/mob/living/user = usr
 	if(!istype(user))
 		return
-	if(!user.canUseTopic(src, TRUE))
+	if(!user.can_perform_action(src, FORBID_TELEKINESIS_REACH))
 		return
 
 	switch(href_list["action"])
 		if("select")
-			var/choice = input(user,"Choose your dye:", "Dyes", null) as null|anything in selectable_colors
+			var/choice = browser_input_list(user,"Choose your dye:", "Dyes", selectable_colors)
 			if(!choice)
 				return
 			active_color = selectable_colors[choice]
@@ -157,9 +152,6 @@
 				return
 			if(!active_color)
 				return
-			if(user.mind?.get_skill_level(/datum/skill/misc/sewing) <= 2) // We're not letting people with 0 knowledge in sewing do dying, so they don't step on the toes of the seamstress
-				to_chat(user, span_warning("I do not know enough about this craft..."))
-				return
 
 			playsound(src, pick('sound/foley/waterwash (1).ogg','sound/foley/waterwash (2).ogg'), 50, FALSE)
 			user.visible_message( \
@@ -168,10 +160,10 @@
 				span_hear("I hear something moving in water.") \
 			)
 			if(do_after(user, 5 SECONDS, src))
-				if(href_list["type"] == "detail" && isclothing(inserted))
-					var/obj/item/clothing/cloth = inserted
-					cloth.detail_color = active_color
-					cloth.update_icon()
+				if(href_list["type"] == "detail" && isitem(inserted))
+					var/obj/item/I = inserted
+					I.detail_color = active_color
+					I.update_appearance(UPDATE_OVERLAYS)
 				else
 					inserted.add_atom_colour(active_color, FIXED_COLOUR_PRIORITY)
 
@@ -192,7 +184,6 @@
 			inserted = null
 
 			icon_state = initial(icon_state)
-			update_icon()
 
 	updateUsrDialog()
 
@@ -207,7 +198,7 @@
 		span_warning("I hear a loud bang!") \
 	)
 
-	if(prob(user.STASTR * 8))
+	if(prob(GET_MOB_ATTRIBUTE_VALUE(user, STAT_STRENGTH) * 8))
 		deconstruct(FALSE)
 
 /*	.................   Dyes   ................... */

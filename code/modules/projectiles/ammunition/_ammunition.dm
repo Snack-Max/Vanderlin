@@ -3,7 +3,7 @@
 	desc = ""
 	icon_state = "s-casing"
 	flags_1 = CONDUCT_1
-	slot_flags = ITEM_SLOT_BELT
+	slot_flags = ITEM_SLOT_HIP
 	throwforce = 0
 	w_class = WEIGHT_CLASS_TINY
 
@@ -28,28 +28,21 @@
 	. = ..()
 	if(projectile_type)
 		BB = new projectile_type(src)
-	pixel_x = rand(-10, 10)
-	pixel_y = rand(-10, 10)
+	pixel_x = base_pixel_x + rand(-10, 10)
+	pixel_y = base_pixel_y + rand(-10, 10)
 	setDir(pick(GLOB.alldirs))
-	update_icon()
 
 /obj/item/ammo_casing/Destroy()
-	. = ..()
-
-	var/turf/T = get_turf(src)
-	if(T && !BB && is_station_level(T.z))
-		SSblackbox.record_feedback("tally", "station_mess_destroyed", 1, name)
-
-/obj/item/ammo_casing/update_icon()
-	..()
-	icon_state = "[initial(icon_state)]"
+	if(istype(BB))
+		QDEL_NULL(BB)
+	return ..()
 
 //proc to magically refill a casing with a new projectile
 /obj/item/ammo_casing/proc/newshot() //For energy weapons, syringe gun, shotgun shells and wands (!).
 	if(!BB)
 		BB = new projectile_type(src, src)
 
-/obj/item/ammo_casing/attackby(obj/item/I, mob/user, params)
+/obj/item/ammo_casing/attackby(obj/item/I, mob/user, list/modifiers)
 	if(istype(I, /obj/item/ammo_box))
 		var/obj/item/ammo_box/box = I
 		if(isturf(loc))
@@ -63,7 +56,7 @@
 				else
 					continue
 			if (boolets > 0)
-				box.update_icon()
+				box.update_appearance()
 				to_chat(user, "<span class='notice'>I collect [boolets] shell\s. [box] now contains [box.stored_ammo.len] shell\s.</span>")
 			else
 				to_chat(user, "<span class='warning'>I fail to collect anything!</span>")
@@ -77,7 +70,6 @@
 /obj/item/ammo_casing/proc/bounce_away(still_warm = FALSE, bounce_delay = 3)
 	if(!heavy_metal)
 		return
-	update_icon()
 	SpinAnimation(10, 1)
 	var/turf/T = get_turf(src)
 	if(still_warm && T && T.bullet_sizzle)

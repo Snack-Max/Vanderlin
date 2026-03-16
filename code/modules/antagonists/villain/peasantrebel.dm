@@ -3,7 +3,7 @@
 
 /datum/antagonist/prebel
 	name = "Peasant Rebel"
-	roundend_category = "peasant rebels"
+	roundend_category = "Peasant Rebels"
 	antagpanel_category = "Peasant Rebellion"
 	job_rank = ROLE_PREBEL
 	antag_hud_type = ANTAG_HUD_REV
@@ -19,20 +19,25 @@
 	increase_votepwr = FALSE
 	var/datum/team/prebels/rev_team
 
-/datum/antagonist/prebel/examine_friendorfoe(datum/antagonist/examined_datum,mob/examiner,mob/examined)
+/datum/antagonist/prebel/examine_friendorfoe(datum/antagonist/examined_datum, mob/examiner, mob/examined)
 	if(istype(examined_datum, /datum/antagonist/prebel/head))
 		return "<span class='boldnotice'>A revolution leader.</span>"
 	if(istype(examined_datum, /datum/antagonist/prebel))
 		return "<span class='boldnotice'>My ally in revolt against the pigs.</span>"
-
 
 /datum/antagonist/prebel/on_gain()
 	. = ..()
 	owner.special_role = ROLE_PREBEL
 	var/mob/living/carbon/human/H = owner.current
 	H.cmode_music = 'sound/music/cmode/antag/CombatSausageMaker.ogg'
-	H.add_stress(/datum/stressevent/prebel)
+	H.add_stress(/datum/stress_event/prebel)
 	ADD_TRAIT(H, TRAIT_VILLAIN, TRAIT_GENERIC)
+	create_objectives()
+	owner.current.log_message("has been converted to the revolution!", LOG_ATTACK, color="red")
+
+/datum/antagonist/prebel/on_removal()
+	remove_objectives()
+	. = ..()
 
 /datum/antagonist/prebel/greet()
 	to_chat(owner, "<span class='danger'>I am a peasant rebel! It's time for a change in leadership for this town.</span>")
@@ -53,22 +58,6 @@
 		if(new_owner.current && HAS_TRAIT(new_owner.current, TRAIT_MINDSHIELD))
 			return FALSE
 
-/datum/antagonist/prebel/apply_innate_effects(mob/living/mob_override)
-	var/mob/living/M = mob_override || owner.current
-	add_antag_hud(antag_hud_type, antag_hud_name, M)
-
-/datum/antagonist/prebel/remove_innate_effects(mob/living/mob_override)
-	var/mob/living/M = mob_override || owner.current
-	remove_antag_hud(antag_hud_type, M)
-
-/datum/antagonist/prebel/on_gain()
-	. = ..()
-	create_objectives()
-	owner.current.log_message("has been converted to the revolution!", LOG_ATTACK, color="red")
-
-/datum/antagonist/prebel/on_removal()
-	remove_objectives()
-	. = ..()
 
 /datum/antagonist/prebel/create_team(datum/team/prebels/new_team)
 	if(!new_team)
@@ -99,11 +88,17 @@
 
 /datum/antagonist/prebel/head
 	name = "Head Rebel"
+	antag_hud_type = ANTAG_HUD_REV
 	antag_hud_name = "rev_head"
 	increase_votepwr = TRUE
+
 /datum/antagonist/prebel/head/on_gain()
 	. = ..()
-	owner.AddSpell(new /obj/effect/proc_holder/spell/self/rebelconvert)
+	owner.current.add_spell(/datum/action/cooldown/spell/undirected/convert_rebel, source = src)
+
+/datum/antagonist/prebel/head/on_removal()
+	. = ..()
+	owner.current.remove_spells(source = src)
 
 /datum/antagonist/prebel/proc/can_be_converted(mob/living/candidate)
 	if(!candidate.mind)
@@ -119,20 +114,25 @@
 		return FALSE
 	return TRUE
 
-/obj/effect/proc_holder/spell/self/rebelconvert
+/datum/action/cooldown/spell/undirected/convert_rebel
 	name = "RECRUIT REBELS"
 	desc = "!"
-	antimagic_allowed = TRUE
-	recharge_time = 150
 
-/obj/effect/proc_holder/spell/self/rebelconvert/cast(list/targets,mob/user = usr)
-	..()
-	var/inputty = input("Make a speech!", "VANDERLIN") as text|null
+	antimagic_flags = NONE
+
+	charge_required = FALSE
+	cooldown_time = 25 SECONDS
+
+/datum/action/cooldown/spell/undirected/convert_rebel/cast(atom/cast_on)
+	. = ..()
+	if(!owner.mind.has_antag_datum(/datum/antagonist/prebel))
+		return
+	var/inputty = browser_input_text(cast_on, "Make a speech", "REVOLUTON!")
 	if(inputty)
-		user.say(inputty, forced = "spell")
-		var/datum/antagonist/prebel/PR = user.mind.has_antag_datum(/datum/antagonist/prebel)
-		for(var/mob/living/carbon/human/L in get_hearers_in_view(6, get_turf(user)))
-			addtimer(CALLBACK(L,TYPE_PROC_REF(/mob/living/carbon/human, rev_ask), user,PR,inputty),1)
+		owner.say(inputty, forced = "Revolution ([name])")
+		var/datum/antagonist/prebel/PR = owner.mind.has_antag_datum(/datum/antagonist/prebel)
+		for(var/mob/living/carbon/human/rebel in get_hearers_in_view(6, owner))
+			addtimer(CALLBACK(rebel, TYPE_PROC_REF(/mob/living/carbon/human, rev_ask), owner, PR, inputty), 1)
 
 /mob/living/carbon/human/proc/rev_ask(mob/living/carbon/human/guy,datum/antagonist/prebel/mind_datum,offer)
 	if(!guy || !mind_datum || !offer)
@@ -145,7 +145,8 @@
 		return
 	if(MOBTIMER_EXISTS(src, MT_REBELOFFER))
 		return
-
+	if(is_antag_banned(ckey, ROLE_PREBEL))
+		return
 	var/datum/team/prebels/RT = mind_datum.rev_team
 	var/shittime = world.time
 	playsound_local(src, 'sound/misc/rebel.ogg', 100, FALSE)
@@ -202,3 +203,5 @@
 	for(var/datum/mind/M in members)
 		if(considered_alive(M))
 			M.adjust_triumphs(5)
+
+#undef INGAME_ROLE_HEAD_UPDATE_PERIOD

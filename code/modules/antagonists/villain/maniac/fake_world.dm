@@ -7,9 +7,9 @@
 	. = ..()
 	SSfake_world.fake_world_constructs |= src
 
-/obj/structure/fake_door/maniac/Destroy()
-	. = ..()
+/obj/structure/fake_door/Destroy()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 /turf/open/floor/plasteel/maniac
 	icon = 'icons/roguetown/maniac/dreamer_floors.dmi'
@@ -22,8 +22,8 @@
 	SSfake_world.fake_world_constructs |= src
 
 /turf/open/floor/plasteel/maniac/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 /turf/open/floor/plasteel/maniac/damaged
 	icon_state = "ldamaged1"
@@ -37,19 +37,19 @@
 	SSfake_world.fake_world_constructs |= src
 
 /turf/open/floor/underworld/space/sparkle_quiet/fake_world/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 /turf/closed/wall/mineral/underbrick/fake_world/Initialize(mapload)
 	. = ..()
 	SSfake_world.fake_world_constructs |= src
 
 /turf/closed/wall/mineral/underbrick/fake_world/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 //Mostly garbage related to the ending "cutscene"
-/obj/item/clothing/head/cyberdeck
+/obj/item/clothing/head/maniac
 	name = "cyberdeck headset"
 	desc = "Sweet dreams..."
 	icon = 'icons/roguetown/maniac/clothing.dmi'
@@ -57,16 +57,16 @@
 	icon_state = "cyberdeck"
 	armor = list("blunt" = 25, "slash" = 25, "stab" = 25, "piercing" = 0, "fire" = 0, "acid" = 0)
 
-/obj/item/clothing/shirt/formal
+/obj/item/clothing/shirt/maniac
 	name = "formal shirt"
-	desc = "TNC is the fairest company I know, atleast I think?."
+	desc = "TNC is the fairest company I know, at least I think?."
 	icon = 'icons/roguetown/maniac/clothing.dmi'
 	mob_overlay_icon = 'icons/roguetown/maniac/clothing_mob.dmi'
 	icon_state = "shirt"
 
-/obj/item/clothing/pants/tights/formal
+/obj/item/clothing/pants/tights/maniac
 	name = "formal pants"
-	desc = "TNC is the fairest company I know, atleast I think?."
+	desc = "TNC is the fairest company I know, at least I think?."
 	gender = PLURAL
 	icon = 'icons/roguetown/maniac/clothing.dmi'
 	mob_overlay_icon = 'icons/roguetown/maniac/clothing_mob.dmi'
@@ -74,9 +74,9 @@
 
 /datum/outfit/treyliam
 	name = "Trey Liam"
-	head = /obj/item/clothing/head/cyberdeck
-	shirt = /obj/item/clothing/shirt/formal
-	pants = /obj/item/clothing/pants/tights/formal
+	head = /obj/item/clothing/head/maniac
+	shirt = /obj/item/clothing/shirt/maniac
+	pants = /obj/item/clothing/pants/tights/maniac
 
 /obj/effect/landmark/treyliam
 	name = "trey"
@@ -90,21 +90,21 @@
 	SSfake_world.fake_world_constructs |= src
 
 /obj/item/gun/ballistic/revolver/last_resort/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 /obj/structure/closet/fake_world/Initialize(mapload)
 	. = ..()
 	SSfake_world.fake_world_constructs |= src
 
 /obj/structure/closet/fake_world/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()
 
 /obj/structure/bed/fake_world/Initialize(mapload)
 	. = ..()
 	SSfake_world.fake_world_constructs |= src
 
 /obj/structure/bed/fake_world/Destroy()
-	. = ..()
 	SSfake_world.fake_world_constructs -= src
+	return ..()

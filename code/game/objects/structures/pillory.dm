@@ -13,10 +13,13 @@
 	density = TRUE
 	layer = ABOVE_ALL_MOB_LAYER
 	plane = GAME_PLANE_UPPER
+	lock = /datum/lock/key/pillory
 	var/latched = FALSE
-	var/locked = FALSE
 	var/base_icon = "pillory_single"
-	var/list/lockcheck = list("dungeon", "garrison")
+
+/obj/structure/pillory/church
+	desc = "To keep the heretics locked!"
+	lock = /datum/lock/key/pillory/church
 
 /obj/structure/pillory/double
 	icon_state = "pillory_double"
@@ -26,92 +29,62 @@
 	icon_state = "pillory_reinforced"
 	base_icon = "pillory_reinforced"
 
+/obj/structure/pillory/church/double
+	icon_state = "pillory_double"
+	base_icon = "pillory_double"
+
+/obj/structure/pillory/church/reinforced
+	icon_state = "pillory_reinforced"
+	base_icon = "pillory_reinforced"
+
 /obj/structure/pillory/Initialize()
 	LAZYINITLIST(buckled_mobs)
 	. = ..()
 
-/obj/structure/pillory/OnCrafted(dirin, mob/user)
-	. = ..()
-	for(var/obj/item/customlock/finished/lock in contents)
-		lockcheck = list(lock.lockid)
-		qdel(lock)
-		desc = "To keep the criminals locked! This has a custom lock installed."
-
 /obj/structure/pillory/examine(mob/user)
 	. = ..()
-	. += span_info("It is [latched ? "latched" : "unlatched"] and [locked ? "locked." : "unlocked."]")
+	. += span_info("It is [latched ? "latched" : "unlatched"].")
+	if(lock)
+		. += span_info("It is [locked() ? "locked" : "unlocked"].")
 
-/obj/structure/pillory/attack_right(mob/living/user)
+/obj/structure/pillory/attack_hand_secondary(mob/living/user, list/modifiers)
 	. = ..()
-	if(!buckled_mobs.len)
-		to_chat(user, span_warning("What's the point of latching it with nobody inside?"))
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
 		return
+	if(!length(buckled_mobs))
+		to_chat(user, span_warning("What's the point of latching it with nobody inside?"))
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	if(user in buckled_mobs)
 		to_chat(user, span_warning("I can't reach the latch!"))
-		return
-	if(locked)
-		to_chat(usr, span_warning("Unlock it first!"))
-		return
+		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	togglelatch(user)
+	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 
-/obj/structure/pillory/attackby(obj/item/P, mob/user, params)
+/obj/structure/pillory/pre_lock_interact(mob/living/user)
 	if(user in buckled_mobs)
 		to_chat(user, span_warning("I can't reach the lock!"))
-		return
+		return FALSE
 	if(!latched)
-		to_chat(user, span_warning("It's not latched shut!"))
-		return
-	if(istype(P, /obj/item/key))
-		var/obj/item/key/K = P
-		if((K.lockid in lockcheck))
-			togglelock(user)
-			return
-		else
-			to_chat(user, span_warning("Wrong key."))
-			playsound(src, 'sound/foley/doors/lockrattle.ogg', 100)
-			return
-	if(istype(P, /obj/item/storage/keyring))
-		var/obj/item/storage/keyring/K = P
-		for(var/obj/item/key/KE in K.contents)
-			if((KE.lockid in lockcheck))
-				togglelock(user)
-				return
-		to_chat(user, span_warning("I lack the key."))
-		playsound(src, 'sound/foley/doors/lockrattle.ogg', 100)
+		to_chat(user, span_warning("\The [src] is not latched shut!"))
+		return FALSE
+	return ..()
 
 /obj/structure/pillory/proc/togglelatch(mob/living/user, silent)
 	user.changeNext_move(CLICK_CD_MELEE)
-	if(latched)
-		user.visible_message(span_warning("[user] unlatches [src]."), \
-			span_notice("I unlatch [src]."))
-		playsound(src, 'sound/foley/doors/lock.ogg', 100)
-		latched = FALSE
-	else
-		user.visible_message(span_warning("[user] latches [src]."), \
-			span_notice("I latch [src]."))
-		playsound(src, 'sound/foley/doors/lock.ogg', 100)
-		latched = TRUE
-
-/obj/structure/pillory/proc/togglelock(mob/living/user, silent)
-	user.changeNext_move(CLICK_CD_MELEE)
-	if (!latched)
-		to_chat(user, span_warning("\The [src] is not latched shut."))
-	if(locked)
-		user.visible_message(span_warning("[user] unlocks [src]."), \
-			span_notice("I unlock [src]."))
-		playsound(src, 'sound/foley/doors/lock.ogg', 100)
-		locked = FALSE
-	else
-		user.visible_message(span_warning("[user] locks [src]."), \
-			span_notice("I lock [src]."))
-		playsound(src, 'sound/foley/doors/lock.ogg', 100)
-		locked = TRUE
+	if(locked())
+		to_chat(user, span_info("\The [src] is locked."))
+		return
+	latched = !latched
+	user.visible_message( \
+		span_warning("[user] [latched ? "latches" : "unlatches"] \the [src]."), \
+		span_notice("I [latched ? "latch" : "unlatch"] \the [src]."))
+	playsound(src, 'sound/foley/lock.ogg', 100)
 
 /obj/structure/pillory/buckle_mob(mob/living/M, force = FALSE, check_loc = TRUE)
 	if (!anchored)
 		return FALSE
 
-	if(locked)
+	if(locked())
 		to_chat(usr, span_warning("Unlock it first!"))
 		return FALSE
 
@@ -142,14 +115,12 @@
 			var/datum/species/S = H.dna.species
 
 			if (istype(S))
-				//H.cut_overlays()
 				H.update_body_parts_head_only()
 				density = FALSE
-				switch(H.dna.species.name)
-					if ("Dwarf","Goblin")
+				switch(H.dna.species.id)
+					if (SPEC_ID_DWARF, SPEC_ID_GOBLIN)
 						H.set_mob_offsets("bed_buckle", _x = 0, _y = PILLORY_HEAD_OFFSET)
 				icon_state = "[base_icon]-over"
-				update_icon()
 			else
 				unbuckle_all_mobs()
 		else
@@ -163,15 +134,14 @@
 	M.regenerate_icons()
 	M.reset_offsets("bed_buckle")
 	icon_state = "[base_icon]"
-	update_icon()
 	..()
 
 /obj/structure/pillory/user_unbuckle_mob(mob/living/buckled_mob, mob/living/user)
 	if(latched)
-		if(isliving(user) && user.STASTR >= 18)
+		if(isliving(user) && GET_MOB_ATTRIBUTE_VALUE(user, STAT_STRENGTH) >= 18)
 			if(do_after(user, 2.5 SECONDS))
 				user.visible_message(span_warning("[user] breaks [src] open!"))
-				locked = FALSE
+				unlock()
 				latched = FALSE
 				return ..()
 		else

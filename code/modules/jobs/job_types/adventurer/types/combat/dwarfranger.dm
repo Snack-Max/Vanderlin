@@ -1,19 +1,44 @@
-/datum/advclass/combat/dranger
-	name = "Ranger"
+/datum/attribute_holder/sheet/job/dranger
+	raw_attribute_list = list(
+		STAT_PERCEPTION = 3,
+		STAT_SPEED = 1, // Fast... for a dwarf
+		/datum/attribute/skill/combat/swords = 30, // In line with basic combat classes
+		/datum/attribute/skill/combat/wrestling = 10,
+		/datum/attribute/skill/combat/unarmed = 20,
+		/datum/attribute/skill/craft/crafting = 20,
+		/datum/attribute/skill/misc/swimming = 10,
+		/datum/attribute/skill/misc/climbing = 30,
+		/datum/attribute/skill/combat/crossbows = 30,
+		/datum/attribute/skill/craft/tanning = 20,
+		/datum/attribute/skill/misc/sewing = 30,
+		/datum/attribute/skill/misc/medicine = 20,
+		/datum/attribute/skill/craft/cooking = 10,
+		/datum/attribute/skill/misc/athletics = 20,
+		/datum/attribute/skill/misc/reading = 20,
+	)
+
+/datum/job/advclass/combat/dranger
+	title = "Dwarf Ranger"
 	tutorial = "Dwarfish rangers, much like their humen counterparts, \
 	live outside of society and explore the far corners of the creation. They \
 	protect dwarfish settlements from wild beasts and sell their notes to the cartographers."
-	allowed_sexes = list(MALE, FEMALE)
-	allowed_races = list("Dwarf")
-	outfit = /datum/outfit/job/adventurer/dranger
-	min_pq = 0
+	allowed_races = list(SPEC_ID_DWARF)
+	outfit = /datum/outfit/adventurer/dranger
 	category_tags = list(CTAG_ADVENTURER)
 
-/datum/outfit/job/adventurer/dranger/pre_equip(mob/living/carbon/human/H)
-	..()
-	head = /obj/item/clothing/head/roguehood/uncolored
+	exp_types_granted = list(EXP_TYPE_ADVENTURER, EXP_TYPE_COMBAT, EXP_TYPE_RANGER)
+
+	attribute_sheet = /datum/attribute_holder/sheet/job/dranger
+
+	traits = list(
+		TRAIT_MEDIUMARMOR, // Dwarf rangers are no good at dodging, but can wear heavier armor than typical rangers
+	)
+
+/datum/outfit/adventurer/dranger
+	name = "Dwarf Ranger (Adventurer)"
+	head = /obj/item/clothing/head/roguehood/colored/uncolored
 	pants = /obj/item/clothing/pants/trou/leather
-	shirt = /obj/item/clothing/shirt/undershirt/random
+	shirt = /obj/item/clothing/shirt/undershirt/colored/random
 	shoes = /obj/item/clothing/shoes/simpleshoes
 	belt = /obj/item/storage/belt/leather
 	backr = /obj/item/gun/ballistic/revolver/grenadelauncher/crossbow
@@ -23,25 +48,16 @@
 	armor = /obj/item/clothing/armor/chainmail/iron // Starts with better armor than a typical ranger (iron chainmail) but has no dodge expert or sneaking skill
 	wrists = /obj/item/clothing/wrists/bracers/leather
 	r_hand = /obj/item/weapon/sword/scimitar/falchion
-	backpack_contents = list(/obj/item/bait = 1)
-	if(prob(23))
+	cloak = /obj/item/clothing/cloak/raincloak/colored/brown
+
+	backpack_contents = list(
+		/obj/item/bait = 1,
+	)
+
+/datum/outfit/adventurer/dranger/pre_equip(mob/living/carbon/human/H, visuals_only)
+	. = ..()
+	var/shoe_roll = prob(23)
+	if(shoe_roll)
 		shoes = /obj/item/clothing/shoes/boots
-	if(prob(23))
+	else if(prob(23))
 		shoes = /obj/item/clothing/shoes/boots/leather
-	cloak = /obj/item/clothing/cloak/raincloak/brown
-	H.mind?.adjust_skillrank(/datum/skill/combat/swords, 3, TRUE) // In line with basic combat classes
-	H.mind?.adjust_skillrank(/datum/skill/combat/wrestling, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/unarmed, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/crafting, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/swimming, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/climbing, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/combat/crossbows, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/tanning, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/sewing, 3, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/medicine, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/craft/cooking, 1, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/athletics, 2, TRUE)
-	H.mind?.adjust_skillrank(/datum/skill/misc/reading, 2, TRUE)
-	H.change_stat(STATKEY_PER, 3)
-	H.change_stat(STATKEY_SPD, 1) // Fast... for a dwarf
-	ADD_TRAIT(H, TRAIT_MEDIUMARMOR, TRAIT_GENERIC) // Dwarf rangers are no good at dodging, but can wear heavier armor than typical rangers

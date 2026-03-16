@@ -34,7 +34,7 @@
 /obj/item/natural/cured/essence
 	name = "essence of wilderness"
 	icon_state = "wessence"
-	desc = "A mystical essence embued with the power of Dendor. Merely holding it transports one's mind to ancient times."
+	desc = "A mystical essence imbued with the power of Dendor. Merely holding it transports one's mind to ancient times."
 	resistance_flags = FLAMMABLE
 	w_class = WEIGHT_CLASS_SMALL
 	sellprice = 20
@@ -42,7 +42,7 @@
 /obj/item/natural/fur // a piece of skin with animal hair on it. Could be called a fur but its untanned and also encompasses rat skins and goat skins so pelt is more suitable at least to my ears.
 	name = "fur"
 	icon_state = "wool1"
-	desc = "pelt from one of Dendor's creachers."
+	desc = "Pelt from one of Dendor's creachers."
 	dropshrink = 0.90
 	force = 0
 	throwforce = 0
@@ -52,42 +52,204 @@
 	sellprice = 5
 
 /obj/item/natural/fur/gote
-	desc = "from a gote."
+	desc = "Pelt from a gote."
 	icon_state = "pelt_gote"
 
 /obj/item/natural/fur/volf
-	desc = "from a volf."
+	desc = "Pelt from a volf."
 	icon_state = "pelt_volf"
 
 /obj/item/natural/fur/mole
-	desc = "from a mole."
+	desc = "Pelt from a mole."
 	icon_state = "pelt_mole"
 
 /obj/item/natural/fur/rous
-	desc = "from a rous."
+	desc = "Pelt from a rous."
 	icon_state = "pelt_rous"
 
 /obj/item/natural/fur/cabbit
-	desc = "from a cabbit."
+	desc = "Pelt from a cabbit."
 	icon_state = "wool2"
+
+/obj/item/natural/fur/direbear
+	desc = "fur from one of Dendor's mightiest creachers."
+	icon_state = "pelt_direbear"
+	color = "#33302b"
+	sellprice = 28
+
+/obj/item/natural/fur/fox
+	desc = "Fur from a venard."
+	icon_state = "pelt_fox"
+	color = null
+
+/obj/item/natural/fur/raccoon
+	desc = "Fur from a raccoon."
+	icon_state = "pelt_raccoon"
+	color = null
+	sellprice = 12
+
+/obj/item/natural/fur/bobcat
+	desc = "Fur from a lynx."
+	icon_state = "pelt_bobcat"
+	color = null
+
+/obj/item/natural/head
+	possible_item_intents = list(/datum/intent/use)
+	layer = 3.1
+	grid_height = 64
+	grid_width = 64
+	w_class = WEIGHT_CLASS_NORMAL
+	var/meat_to_give = /obj/item/reagent_containers/food/snacks/meat/steak
+	var/rotten = FALSE
+
+//quality from butchering, 0 is bad, 1 is normal, 2 is good, -1 means its rotten and useless
+/obj/item/natural/head/proc/ButcheringResults(butchering_quality)
+	switch(butchering_quality)
+		if(0)
+			sellprice = floor(sellprice * 0.75)
+			headpricemin = floor(headpricemin * 0.75)
+			headpricemax = floor(headpricemax * 0.75)
+		if(1)
+			EMPTY_BLOCK_GUARD
+		if(2)
+			sellprice = floor(sellprice * 1.25)
+			headpricemin = floor(headpricemin * 1.25)
+			headpricemax = floor(headpricemax * 1.25)
+		if(-1)
+			sellprice = floor(sellprice * 0.1)
+			headpricemin = floor(headpricemin * 0.1)
+			headpricemax = floor(headpricemax * 0.1)
+			var/initial_name = name
+			name = "rotten [initial_name]"
+			rotten = TRUE
+
+/obj/item/natural/head/MiddleClick(mob/living/user, list/modifiers)
+	var/obj/item/held_item = user.get_active_held_item()
+	if(held_item)
+		var/path_to_check = ispath(held_item) ? held_item : held_item.type
+		if(ispath(path_to_check, /obj/item/weapon/knife))
+			var/butchering_skill = GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/labor/butchering)
+			var/used_time = 8
+			used_time = (used_time - 0.5 * butchering_skill) SECONDS
+			visible_message("[user] begins to butcher \the [src].")
+			playsound(src, 'sound/foley/gross.ogg', 100, FALSE)
+			var/amt2raise = GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE)/4
+			if(do_after(user, used_time, src))
+				var/obj/item/I = new meat_to_give(get_turf(src))
+				if(rotten && istype(I,/obj/item/reagent_containers/food/snacks))
+					var/obj/item/reagent_containers/food/snacks/F = I
+					F.become_rotten()
+
+				new /obj/effect/decal/cleanable/blood/splatter(get_turf(src))
+				user.adjust_experience(/datum/attribute/skill/labor/butchering, amt2raise, FALSE)
+				qdel(src)
+	..()
 
 /obj/item/natural/head/volf
 	name = "volf head"
-	desc = "the head of a fearsome volf."
+	desc = "The severed head of a fearsome volf."
 	icon_state = "volfhead"
-	layer = 3.1
+	headpricemin = 3
+	headpricemax = 7
+	sellprice = 5
 
 /obj/item/natural/head/saiga
 	name = "saiga head"
-	desc = "the head of a proud saiga."
+	desc = "The severed head of a proud saiga."
 	icon_state = "saigahead"
+	headprice = 3
+	sellprice = 3
+
+/obj/item/natural/head/troll
+	name = "troll head"
+	desc = "The severed head of a giant troll."
+	icon_state = "trollhead"
+	grid_height = 96
+	grid_width = 96
+	w_class = WEIGHT_CLASS_BULKY
+	headpricemin = 80
+	headpricemax = 230
+	sellprice = 155
+
+/obj/item/natural/head/troll/apply_components()
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
+
+/obj/item/natural/head/troll/axe
+	name = "troll head"
+	desc = "The severed head of a once mighty warrior troll."
+	icon_state = "trollhead_axe"
+	headpricemin = 90
+	headpricemax = 250
+	sellprice = 170
+
+/obj/item/natural/head/troll/cave
+	name = "cave troll head"
+	icon_state = "cavetrollhead"
+	headpricemin = 120
+	headpricemax = 280
+	sellprice = 200
+
+/obj/item/natural/head/rous
+	name = "rous head"
+	desc = "The severed head of an unusually large rat."
+	icon_state = "roushead"
+	headpricemin = 3
+	headpricemax = 7
+	sellprice = 5
+	meat_to_give = /obj/item/reagent_containers/food/snacks/meat/mince/beef
+
+/obj/item/natural/head/direbear
+	name = "direbear head"
+	desc = "The head of a terrifying direbear."
+	icon_state = "direbearhead"
 	layer = 3.1
+	sellprice = 20
+
+/obj/item/natural/head/fox
+	name = "venard head"
+	desc = "The head of a majestic venard."
+	icon_state = "foxhead"
+	layer = 3.1
+	grid_height = 32
+	sellprice = 6
+
+/obj/item/natural/head/spider
+	name = "beespider head"
+	desc = "The severed head of a venomous beespider."
+	icon_state = "spiderhead"
+	headpricemin = 4
+	headpricemax = 20
+	sellprice = 12
+	meat_to_give = /obj/item/reagent_containers/food/snacks/meat/strange
+
+/obj/item/natural/head/bug
+	name = "bogbug head"
+	desc = "The severed head of a gross bogbug."
+	icon_state = "boghead"
+	headpricemin = 4
+	headpricemax = 15
+	sellprice = 10
+	meat_to_give = /obj/item/reagent_containers/food/snacks/meat/strange
+
+/obj/item/natural/head/mole
+	name = "mole head"
+	desc = "The severed head of a lesser mole."
+	icon_state = "molehead"
+	grid_height = 96
+	grid_width = 96
+	headpricemin = 3
+	headpricemax = 7
+	sellprice = 5
+
+/obj/item/natural/head/mole/apply_components()
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
 
 /obj/item/natural/head/gote
 	name = "gote head"
-	desc = "the head of a fiery gote."
+	desc = "The severed head of a fiery gote."
 	icon_state = "gotehead"
-	layer = 3.1
+	headprice = 2
+	sellprice = 2
 
 //RTD make this a storage item and make clickign on animals with things put it in storage
 /obj/item/natural/saddle
@@ -101,56 +263,53 @@
 	force = 0
 	throwforce = 0
 	sellprice = 80
-	twohands_required = TRUE
 
-/obj/item/natural/saddle/attack(mob/living/target, mob/living/carbon/human/user)
+/obj/item/natural/saddle/apply_components()
+	AddComponent(/datum/component/two_handed, require_twohands=TRUE)
+
+/obj/item/natural/saddle/attack(mob/living/target, mob/living/carbon/human/user, list/modifiers)
 	if(istype(target, /mob/living/simple_animal))
-		testing("yea1")
 		var/mob/living/simple_animal/S = target
 		if(S.can_saddle && !S.ssaddle)
-			testing("yea2")
 			if(!target.has_buckled_mobs())
 				user.visible_message("<span class='warning'>[user] tries to saddle [target]...</span>")
 				if(do_after(user, 4 SECONDS, target))
-					playsound(loc, 'sound/foley/saddledismount.ogg', 100, FALSE)
+					playsound(src, 'sound/foley/saddledismount.ogg', 100, FALSE)
 					user.dropItemToGround(src)
 					S.ssaddle = src
 					src.forceMove(S)
-					S.update_icon()
+					S.update_appearance(UPDATE_OVERLAYS)
 		return
 	..()
 
-/mob/living/simple_animal
-	var/can_saddle = FALSE
-	var/obj/item/ssaddle
-	// A flat percentage bonus to our ability to detect sneaking people only. Use in lieu of giving mobs huge STAPER bonuses if you want them to be observant.
-	var/simple_detect_bonus = 0
-
-/mob/living/simple_animal/onbite(mob/living/carbon/human/user)
-	var/damage = 10*(user.STASTR/20)
+/mob/living/simple_animal/onbite(mob/living/user)
+	. = ..()
+	if(.)
+		return
+	var/damage = GET_MOB_ATTRIBUTE_VALUE(user, STAT_STRENGTH)*0.5
 	if(HAS_TRAIT(user, TRAIT_STRONGBITE))
 		damage = damage*2
 	user.do_attack_animation(src, ATTACK_EFFECT_BITE)
-	playsound(user.loc, "smallslash", 100, FALSE, -1)
+	playsound(user, "smallslash", 100, FALSE, -1)
 	user.next_attack_msg.Cut()
-	if(stat == DEAD)
-		if(user.has_status_effect(/datum/status_effect/debuff/silver_curse))
+	if(stat == DEAD && ishuman(user))
+		var/mob/living/carbon/human/H = user
+		if(user.has_status_effect(/datum/status_effect/debuff/silver_bane))
 			to_chat(user, span_notice("My power is weakened, I cannot heal!"))
-			return
-		if(user.mind && istype(user, /mob/living/carbon/human/species/werewolf))
-			visible_message(span_danger("The werewolf ravenously consumes the [src]!"))
-			to_chat(src, span_warning("I feed on succulent flesh. I feel reinvigorated."))
-			user.reagents.add_reagent(/datum/reagent/medicine/healthpot, 30)
+			return TRUE
+		if(is_species(user, /datum/species/werewolf))
+			visible_message(span_danger("[user] ravenously consumes [src]!"), span_warning("I feed on succulent flesh. I feel reinvigorated."))
+			H.rage_datum?.update_rage(WW_RAGE_HIGH)
 			gib()
-		return
-	if(src.apply_damage(damage, BRUTE))
-		if(istype(user, /mob/living/carbon/human/species/werewolf))
-			visible_message(span_danger("The werewolf bites into [src] and thrashes!"))
-		else
-			visible_message(span_danger("[user] bites [src]! What is wrong with them?"))
-		if(HAS_TRAIT(user, TRAIT_POISONBITE))
-			if(src.reagents)
-				var/poison = user.STACON/2
-				src.reagents.add_reagent(/datum/reagent/toxin/venom, poison/2)
-				src.reagents.add_reagent(/datum/reagent/medicine/soporpot, poison)
-				to_chat(user, span_warning("Your fangs inject venom into [src]!"))
+		return TRUE
+	if(!src.apply_damage(damage, BRUTE))
+		return TRUE
+	if(is_species(user, /datum/species/werewolf))
+		visible_message(span_danger("[user] bites into [src] and thrashes!"))
+	else
+		visible_message(span_danger("[user] bites [src]!"))
+	if(HAS_TRAIT(user, TRAIT_POISONBITE) && src.reagents)
+		var/poison = GET_MOB_ATTRIBUTE_VALUE(user, STAT_CONSTITUTION)/2
+		src.reagents.add_reagent(/datum/reagent/toxin/venom, poison/2)
+		src.reagents.add_reagent(/datum/reagent/medicine/soporpot, poison)
+		to_chat(user, span_warning("Your fangs inject venom into [src]!"))

@@ -18,6 +18,8 @@
 	var/small_item = FALSE //Small items can be grouped into a single crate.
 	var/static_cost = FALSE
 	var/randomprice_factor = 0.07
+	var/unlocked = TRUE
+	abstract_type = /datum/supply_pack
 
 /datum/supply_pack/New()
 	..()
@@ -34,6 +36,8 @@
 			var/na = max(round(cost * randomprice_factor, 1), 1)
 			cost = max(rand(cost-na, cost+na), 1)
 #endif
+	if(contains && !islist(contains))
+		contains = list(contains)
 
 /datum/supply_pack/proc/generate(atom/A, datum/bank_account/paying_account)
 	var/obj/structure/closet/crate/C
@@ -42,7 +46,7 @@
 		C.name = "[crate_name] - Purchased by [paying_account.account_holder]"
 	else
 		C = new crate_type(A)
-		C.name = crate_name
+		C.name = "[crate_name] of [lowertext(name)]"
 
 	fill(C)
 	return C
@@ -55,3 +59,24 @@
 	else
 		for(var/item in contains)
 			new item(C)
+
+/datum/supply_pack/proc/get_realized_price()
+	var/actual_price = 0
+	for(var/atom in contains)
+		actual_price += SSmerchant.get_item_base_value(atom)
+	return actual_price
+
+/datum/supply_pack/proc/calculate_reputation_cost()
+	var/datum/world_faction/faction = SSmerchant.active_faction
+	if(!faction)
+		return 50
+
+	var/base_cost = cost
+	var/tier = faction.get_reputation_tier()
+
+	// Base reputation cost scales with item value
+	// Higher tier = lower reputation costs (better relations = better deals)
+	var/reputation_multiplier = max(0.5, 1.5 - (tier * 0.15)) // 15% reduction per tier
+	var/reputation_cost = max(10, round(base_cost * reputation_multiplier))
+
+	return reputation_cost

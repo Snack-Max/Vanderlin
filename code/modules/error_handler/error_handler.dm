@@ -11,20 +11,44 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 		log_world("uncaught runtime error: [E]")
 		return ..()
 
-	//this is snowflake because of a byond bug (ID:2306577), do not attempt to call non-builtin procs in this if
-	if(copytext(E.name,1,32) == "Maximum recursion level reached")
-		//log to world while intentionally triggering the byond bug.
+	//this is snowflake because of a byond bug (ID:2306577)
+	// do not attempt to call non-builtin procs in this block OR BEFORE IT
+	if(copytext(E.name, 1, 32) == "Maximum recursion level reached")//32 == length() of that string + 1
+		var/list/proc_path_to_count = list()
+		var/crashed = FALSE
+		try
+			var/callee/stack_entry = caller
+			while(!isnull(stack_entry))
+				proc_path_to_count[stack_entry.proc] += 1
+				stack_entry = stack_entry.caller
+		catch
+			//union job. avoids crashing the stack again
+			//I just do not trust this construct to work reliably
+			crashed = TRUE
+
+		var/list/split = splittext(E.desc, "\n")
+		for (var/i in 1 to split.len)
+			if (split[i] != "" || copytext(split[1], 1, 2) != "  ")
+				split[i] = "  [split[i]]"
+		split += "--Stack Info [crashed ? "(Crashed, may be missing info)" : ""]:"
+		for(var/path in proc_path_to_count)
+			split += "  [path] = [proc_path_to_count[path]]"
+		E.desc = jointext(split, "\n")
+		SEND_TEXT(world.log, "\[[time2text(world.timeofday,"hh:mm:ss")]\] Runtime Error: [E.name]\n[E.desc]")
+		//log to world while intentionally triggering the byond bug. this does not DO anything, it just errors
+		//(seemingly because of the extra proc call to logger inside log_world interestingly enough)
 		log_world("runtime error: [E.name]\n[E.desc]")
 		//if we got to here without silently ending, the byond bug has been fixed.
-		log_world("The bug with recursion runtimes has been fixed. Please remove the snowflake check from world/Error in [__FILE__]:[__LINE__]")
+		log_world("The \"bug\" with recursion runtimes has been fixed. Please remove the snowflake check from world/Error in [__FILE__]:[__LINE__]")
 		return //this will never happen.
 
-	else if(copytext(E.name,1,18) == "Out of resources!")
-		log_world("BYOND out of memory. Restarting")
-		log_game("BYOND out of memory. Restarting")
+	// Proc calls are allowed past this point
+	else if(copytext(E.name, 1, 18) == "Out of resources!")//18 == length() of that string + 1
+		log_world("BYOND out of memory. Restarting ([E?.file]:[E?.line])")
 		TgsEndProcess()
+		. = ..()
 		Reboot(reason = 1)
-		return ..()
+		return
 
 	if (islist(stack_trace_storage))
 		for (var/line in splittext(E.desc, "\n"))
@@ -113,6 +137,10 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 				desclines += ("  " + line) // Pad any unpadded lines, so they look pretty
 			else
 				desclines += line
+			if(findtext(line, "src:") && isdatum(caller.src)) // append qdel info after this line
+				// jank
+				var/datum/caller_src = caller.src
+				desclines += "  src.gc_destroyed: [caller_src.gc_destroyed]"
 	if(usrinfo) //If this info isn't null, it hasn't been added yet
 		desclines.Add(usrinfo)
 	if(silencing)
@@ -120,7 +148,10 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 	if(GLOB.error_cache)
 		GLOB.error_cache.log_error(E, desclines)
 
-	var/main_line = "\[[time_stamp()]] Runtime in [E.file],[E.line]: [E]"
+	var/main_line = "\[[time_stamp()]\] Runtime in [E.file],[E.line]: [E]"
+	#ifdef LOWMEMORYMODE
+		to_chat(world, span_danger(main_line))
+	#endif
 	SEND_TEXT(world.log, main_line)
 	for(var/line in desclines)
 		SEND_TEXT(world.log, line)
@@ -128,16 +159,255 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 #ifdef UNIT_TESTS
 	if(GLOB.current_test)
 		//good day, sir
-		GLOB.current_test.Fail("[main_line]\n[desclines.Join("\n")]")
+		GLOB.current_test.Fail("[main_line]\n[desclines.Join("\n")]", file = E.file, line = E.line)
 #endif
 
 
 	// This writes the regular format (unwrapping newlines and inserting timestamps as needed).
 	log_runtime("runtime error: [E.name]\n[E.desc]")
-	add_elastic_data_immediate(ELASCAT_RUNTIMES, list(
-		"name" = E.name,
-		"desc" = E.desc,
-		"file" = "[E.file || "unknown"]",
-		"line" = E.line,
-	))
+	var/list/extra_data = list()
+	if(locinfo)
+		extra_data["user_location"] = locinfo
+
+	send_to_glitchtip(E, extra_data)
 #endif
+
+#undef ERROR_USEFUL_LEN
+
+
+/datum/config_entry/string/glitchtip_dsn
+	config_entry_value = ""
+
+/datum/config_entry/string/glitchtip_environment
+	config_entry_value = "production"
+
+/proc/generate_simple_uuid()
+	var/uuid = ""
+	for(var/i = 1 to 32)
+		uuid += pick("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f")
+		if(i == 8 || i == 12 || i == 16 || i == 20)
+			uuid += "-"
+	return uuid
+
+/proc/send_to_glitchtip(exception/E, list/extra_data = null)
+	#ifndef SPACEMAN_DMM
+	#ifndef OPENDREAM
+	if(!CONFIG_GET(string/glitchtip_dsn))
+		return
+	var/glitchtip_dsn = CONFIG_GET(string/glitchtip_dsn)
+	//! Parse DSN to extract components
+	//! Format: https://key@host/project_id
+	var/dsn_clean = replacetext(glitchtip_dsn, "https://", "")
+	var/at_pos = findtext(dsn_clean, "@")
+	var/slash_pos = findtext(dsn_clean, "/", at_pos)
+	if(!at_pos || !slash_pos)
+		log_runtime("Invalid Glitchtip DSN format")
+		return
+	var/key = copytext(dsn_clean, 1, at_pos)
+	var/host = copytext(dsn_clean, at_pos + 1, slash_pos)
+	var/project_id = copytext(dsn_clean, slash_pos + 1)
+
+	// Build Glitchtip/Sentry event payload
+	var/list/event_data = list()
+	event_data["event_id"] = generate_simple_uuid()
+	event_data["timestamp"] = time_stamp_metric()
+	event_data["level"] = "error"
+	event_data["platform"] = "other"
+	event_data["server_name"] = world.name
+	event_data["environment"] = CONFIG_GET(string/glitchtip_environment)
+
+	//! SDK information
+	event_data["sdk"] = list(
+		"name" = "byond-glitchtip",
+		"version" = "1.0.0"
+	)
+
+	//! Exception data - Glitchtip expects this format
+	var/list/exception_data = list()
+	exception_data["type"] = "BYOND Runtime Error"
+	exception_data["value"] = E.name
+	exception_data["module"] = E.file
+
+	// Build stack trace using caller/callee chain
+	var/list/frames = list()
+
+	// Add the error location as the first frame
+	var/list/error_frame = list()
+	error_frame["filename"] = E.file || "unknown"
+	error_frame["lineno"] = E.line || 0
+	error_frame["function"] = "runtime_error"
+	error_frame["in_app"] = TRUE
+	frames += list(error_frame)
+
+	// Walk the call stack using callee objects
+	var/frame_count = 0
+	var/max_frames = 50 // Prevent infinite loops or excessive data
+	for(var/callee/p = caller; p && frame_count < max_frames; p = p.caller)
+		frame_count++
+		var/proc_name = "unknown"
+		var/file_name = "unknown"
+		var/line_num = 0
+
+		if(p.proc)
+			proc_name = "[p.proc.type]"
+			// Clean up the proc name if it has path separators
+			var/slash_pos_inner = findtext(proc_name, "/", -1)
+			if(slash_pos_inner && slash_pos_inner < length(proc_name))
+				proc_name = copytext(proc_name, slash_pos_inner + 1)
+
+		// Get file and line information if available
+		if(p.file)
+			file_name = p.file
+			line_num = p.line || 0
+
+		if(findtext(file_name, "master.dm") && (proc_name == "Loop" || proc_name == "StartProcessing"))
+			break
+
+		var/list/frame = list()
+		frame["filename"] = file_name
+		frame["lineno"] = line_num
+		frame["function"] = proc_name
+		frame["in_app"] = TRUE
+
+		// Collect all available variables for this frame
+		var/list/frame_vars = list()
+
+		// Add context variables
+		if(p.src)
+			frame_vars["src"] = "[p.src]"
+		if(p.usr)
+			frame_vars["usr"] = "[p.usr]"
+
+		// Add procedure arguments
+		if(length(p.args))
+			for(var/i = 1; i <= length(p.args); i++)
+				var/datum/arg_value = p.args[i]
+				var/arg_string = "null"
+
+				// Not so sanely convert argument to string representation
+				try
+					if(arg_value == null)
+						arg_string = "null"
+					else if(isnum(arg_value))
+						arg_string = "[arg_value]"
+					else if(istext(arg_value))
+						// URL decode if it looks like URL-encoded data
+						var/decoded_value = arg_value
+						if(findtext(arg_value, "%") || findtext(arg_value, "&") || findtext(arg_value, "="))
+							decoded_value = url_decode(arg_value)
+
+						if(length(decoded_value) > 200)
+							arg_string = "\"[copytext(decoded_value, 1, 198)]...\""
+						else
+							arg_string = "\"[decoded_value]\""
+					else if(islist(arg_value))
+						// Handle lists by showing summary and contents
+						var/list/L = arg_value
+						if(length(L) == 0)
+							arg_string = "list(empty)"
+						else
+							arg_string = "list([length(L)] items)"
+
+							// Build contents string
+							var/list/content_items = list()
+							var/max_list_items = 20 // Prevent too long contents
+							var/items_to_show = min(length(L), max_list_items)
+
+							for(var/j = 1; j <= items_to_show; j++)
+								var/datum/item = L[j]
+								var/item_string = "null"
+
+								try
+									if(item == null)
+										item_string = "null"
+									else if(isnum(item))
+										item_string = "[item]"
+									else if(istext(item))
+										// URL decode as a treat
+										var/decoded_item = item
+										if(findtext(item, "%") || findtext(item, "&") || findtext(item, "="))
+											decoded_item = url_decode(item)
+
+										if(length(decoded_item) > 50)
+											item_string = "\"[copytext(decoded_item, 1, 48)]...\""
+										else
+											item_string = "\"[decoded_item]\""
+									else if(istype(item))
+										var/item_type_name = "[item.type]"
+										var/slash_pos_item = findtext(item_type_name, "/", -1)
+										if(slash_pos_item && slash_pos_item < length(item_type_name))
+											item_type_name = copytext(item_type_name, slash_pos_item + 1)
+										item_string = "[item_type_name]([item])"
+									else
+										item_string = "[item]"
+								catch
+									item_string = "<error>"
+
+								content_items += item_string
+
+							var/contents_string = jointext(content_items, ", ")
+							if(length(L) > max_list_items)
+								contents_string += ", ... and [length(L) - max_list_items] more"
+
+							frame_vars["arg[i]_contents"] = contents_string
+					else if(istype(arg_value))
+						var/type_name = "[arg_value.type]"
+						var/slash_pos_obj = findtext(type_name, "/", -1)
+						if(slash_pos_obj && slash_pos_obj < length(type_name))
+							type_name = copytext(type_name, slash_pos_obj + 1)
+						arg_string = "[type_name]: [arg_value]"
+					else
+						arg_string = "[arg_value]"
+				catch
+					arg_string = "<error converting arg>"
+
+				frame_vars["arg[i]"] = arg_string
+
+		if(length(frame_vars))
+			frame["vars"] = frame_vars
+
+		frames += list(frame)
+
+	exception_data["stacktrace"] = list("frames" = frames)
+	event_data["exception"] = list("values" = list(exception_data))
+
+	// User context
+	if(istype(usr))
+		var/list/user_data = list()
+		user_data["id"] = usr.key
+		user_data["username"] = usr.name
+		if(usr.client)
+			user_data["ip_address"] = usr.client.address
+		event_data["user"] = user_data
+
+	if(extra_data)
+		event_data["extra"] = extra_data
+
+	// Tags for filtering in Glitchtip
+	event_data["tags"] = list(
+		"server" = world.name,
+		"file" = E.file,
+		"line" = "[E.line]",
+		"byond_version" = world.byond_version
+	)
+
+	event_data["fingerprint"] = list("[E.file]:[E.line]", E.name)
+
+	send_glitchtip_request(event_data, host, project_id, key)
+	#endif
+	#endif
+
+/proc/send_glitchtip_request(list/event_data, host, project_id, key)
+	var/glitchtip_url = "https://[host]/api/[project_id]/store/"
+	var/json_payload = json_encode(event_data)
+
+	//! Glitchtip/Sentry auth header - According to docs this needs to be like this
+	var/auth_header = "Sentry sentry_version=7, sentry_client=byond-glitchtip/1.0.0, sentry_key=[key], sentry_timestamp=[time_stamp_metric()]"
+
+	var/datum/http_request/request = new()
+	request.prepare(RUSTG_HTTP_METHOD_POST, glitchtip_url, json_payload, list(
+		"X-Sentry-Auth" = auth_header,
+		"Content-Type" = "application/json",
+		"User-Agent" = "byond-glitchtip/1.0.0"
+	))
+	request.begin_async()

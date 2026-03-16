@@ -54,7 +54,7 @@
 	if(!istype(user, /mob/living))
 		return
 	var/mob/living/player = user
-	var/skill = player.mind.get_skill_level(/datum/skill/craft/engineering)
+	var/skill = GET_MOB_SKILL_VALUE_OLD(player, /datum/attribute/skill/craft/engineering)
 	if(current_charge)
 		. += span_warning("The contraption has [current_charge] charges left.")
 	if(!current_charge)
@@ -78,7 +78,7 @@
 	return
 
 /obj/item/contraption/proc/misfire(atom/A, mob/living/user)
-	user.mind.add_sleep_experience(/datum/skill/craft/engineering, (user.STAINT * 5))
+	user.mind.add_sleep_experience(/datum/attribute/skill/craft/engineering, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE) * 5))
 	to_chat(user, span_info("Oh fuck."))
 	playsound(src, 'sound/misc/bell.ogg', 100)
 	addtimer(CALLBACK(src, PROC_REF(misfire_result), A, user), rand(5, 30))
@@ -93,7 +93,7 @@
 	if(!current_charge)
 		addtimer(CALLBACK(src, PROC_REF(battery_collapse), A, user), 5)
 
-/obj/item/contraption/attackby(obj/item/I, mob/user, params)
+/obj/item/contraption/attackby(obj/item/I, mob/user, list/modifiers)
 	var/datum/effect_system/spark_spread/S = new()
 	var/turf/front = get_turf(src)
 	if(istype(I, /obj/item/gear/wood) && special_cog)
@@ -116,7 +116,7 @@
 		S.set_up(1, 1, front)
 		S.start()
 		if(current_charge)
-			to_chat(user, span_info("I try to insert the [I.name] but theres already \a [initial(accepted_power_source.name)] inside!"))
+			to_chat(user, span_info("I try to insert the [I.name] but there's already \a [initial(accepted_power_source.name)] inside!"))
 			playsound(src, 'sound/combat/hits/blunt/woodblunt (2).ogg', 100, TRUE)
 			shake_camera(user, 1, 1)
 		else
@@ -155,16 +155,17 @@
 /obj/item/contraption/proc/play_clock_sound()
 	playsound(src, 'sound/misc/clockloop.ogg', 25, TRUE)
 
-/obj/item/contraption/attack_obj(obj/O, mob/living/user)
+/obj/item/contraption/pre_attack(atom/A, mob/living/user, list/modifiers)
 	if(!current_charge)
 		flick(off_icon, src)
 		to_chat(user, span_info("The contraption beeps! It requires \a [initial(accepted_power_source.name)]!"))
 		playsound(src, 'sound/magic/magic_nulled.ogg', 100, TRUE)
-		return
+		return TRUE
+	. = ..()
 
 /obj/item/contraption/wood_metalizer
 	name = "wood metalizer"
-	desc = "A creation of genious or insanity. This cursed contraption is somehow able to turn wood into metal."
+	desc = "A creation of genius or insanity. This cursed contraption is somehow able to turn wood into metal."
 	icon_state = "metalizer"
 	on_icon = "metalizer_flick"
 	off_icon = "metalizer_off"
@@ -179,8 +180,12 @@
 	/// The smelting result, used by the smelter or by the portable smelter
 	var/smeltresult
 
-/obj/item/contraption/wood_metalizer/attack_obj(obj/O, mob/living/user)
-	..()
+/obj/item/contraption/wood_metalizer/attack_atom(atom/attacked_atom, mob/living/user)
+	if(!isobj(attacked_atom))
+		return ..()
+
+	var/obj/O = attacked_atom
+	. = TRUE
 	if(!current_charge)
 		return
 	if(!O.metalizer_result)
@@ -192,14 +197,17 @@
 		S.set_up(1, 1, front)
 		S.start()
 		return
-	var/skill = user.mind.get_skill_level(/datum/skill/craft/engineering)
-	if(istype(O, /obj/structure/mineral_door/wood)) //This is to ensure the new door will retain its lock
-		var/obj/structure/mineral_door/wood/I = O
-		var/obj/structure/mineral_door/wood/new_door = new I.metalizer_result(get_turf(I))
-		new_door.locked = I.locked
-		if(I.lockid)
-			new_door.lockid = I.lockid
-		qdel(I)
+	var/skill = GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/engineering)
+	if(istype(O, /obj/structure/door)) //This is to ensure the new door will retain its lock
+		var/obj/structure/door/door = O
+		var/obj/structure/door/new_door = new door.metalizer_result(get_turf(door))
+		if(door.lock?.uses_key)
+			var/datum/lock/key/oldlock = door.lock
+			var/datum/lock/key/newlock = new(new_door, oldlock.lockid_list)
+			newlock.locked = oldlock.locked
+			newlock.difficulty = oldlock.difficulty
+			new_door.lock = newlock
+		qdel(door)
 	else
 		var/obj/I = O
 		new I.metalizer_result(get_turf(I))
@@ -208,8 +216,8 @@
 	charge_deduction(O, user, 1)
 	shake_camera(user, 1, 1)
 	playsound(src, 'sound/magic/swap.ogg', 100, TRUE)
-	user.mind.add_sleep_experience(/datum/skill/craft/engineering, (user.STAINT / 2))
-	if(misfire_chance && prob(max(0, misfire_chance - user.stat_roll(STATKEY_LCK,2,10) - skill)))
+	user.mind.add_sleep_experience(/datum/attribute/skill/craft/engineering, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE) / 2))
+	if(misfire_chance && prob(max(0, misfire_chance - user.stat_roll(STAT_FORTUNE,2,10) - skill)))
 		misfire(O, user)
 	return
 
@@ -264,8 +272,12 @@
 	playsound(turf, pick('sound/combat/hits/onmetal/sheet (1).ogg', 'sound/combat/hits/onmetal/sheet (2).ogg'), 100, TRUE)
 	qdel(src)
 
-/obj/item/contraption/smelter/attack_obj(obj/O, mob/living/user)
-	..()
+/obj/item/contraption/smelter/attack_atom(atom/attacked_atom, mob/living/user)
+	if(!isobj(attacked_atom))
+		return ..()
+
+	var/obj/O = attacked_atom
+	. = TRUE
 	if(!current_charge)
 		return
 	if(!O.smeltresult)
@@ -277,19 +289,19 @@
 		S.set_up(1, 1, front)
 		S.start()
 		return
-	user.mind.add_sleep_experience(/datum/skill/craft/engineering, (user.STAINT / 3))
+	user.mind.add_sleep_experience(/datum/attribute/skill/craft/engineering, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE) / 3))
 	charge_deduction(O, user, 1)
 	flick(on_icon, src)
-	playsound(loc, 'sound/misc/machinevomit.ogg', 50, TRUE)
+	playsound(src, 'sound/misc/machinevomit.ogg', 50, TRUE)
 	addtimer(CALLBACK(src, PROC_REF(smelt_part2), O, user), 5)
 	return
 
 /obj/item/contraption/smelter/proc/smelt_part2(obj/O, mob/living/user)
-	var/skill = user.mind.get_skill_level(/datum/skill/craft/engineering)
+	var/skill = GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/engineering)
 	var/turf/turf = get_turf(O)
 	playsound(O, pick('sound/combat/hits/burn (1).ogg','sound/combat/hits/burn (2).ogg'), 100)
 	O.moveToNullspace()
-	if(misfire_chance && prob(max(0, misfire_chance - user.stat_roll(STATKEY_LCK,2,10) - skill)))
+	if(misfire_chance && prob(max(0, misfire_chance - user.stat_roll(STAT_FORTUNE,2,10) - skill)))
 		misfire(O, user)
 	addtimer(CALLBACK(O, PROC_REF(popcorn_smelt_result), turf), 20)
 	return
@@ -308,7 +320,7 @@
 /obj/item/contraption/shears/hammer_action(obj/item/I, mob/user)
 	return
 
-/obj/item/contraption/shears/attack(mob/living/amputee, mob/living/user)
+/obj/item/contraption/shears/attack(mob/living/amputee, mob/living/user, list/modifiers)
 	if(!current_charge)
 		return
 
@@ -336,15 +348,15 @@
 	var/amputation_speed_mod = 1
 
 	patient.visible_message(span_danger("[user] begins to secure [src] around [patient]'s [limb_snip_candidate.name]."), span_userdanger("[user] begins to secure [src] around your [limb_snip_candidate.name]!"))
-	playsound(get_turf(patient), 'sound/misc/ratchet.ogg', 20, TRUE)
+	playsound(patient, 'sound/misc/ratchet.ogg', 20, TRUE)
 	if(patient.stat >= UNCONSCIOUS || patient.buckled || locate(/obj/structure/table/optable) in get_turf(patient))
 		amputation_speed_mod *= 0.5
-	if(patient.stat != DEAD && (patient.jitteriness || patient.mobility_flags & MOBILITY_STAND)) //jittering will make it harder to secure the shears, even if you can't otherwise move
+	if(patient.stat != DEAD && (patient.has_status_effect(/datum/status_effect/jitter) || patient.body_position != LYING_DOWN)) //jittering will make it harder to secure the shears, even if you can't otherwise move
 		amputation_speed_mod *= 1.5 //15*0.5*1.5=11.25
 
-	var/skill_modifier = 1.5 - (user.mind?.get_skill_level(/datum/skill/craft/engineering) / 6)
+	var/skill_modifier = 1.5 - (GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/engineering) / 6)
 	if(do_after(user, 15 SECONDS * amputation_speed_mod * skill_modifier, target = patient))
-		playsound(get_turf(patient), 'sound/misc/guillotine.ogg', 20, TRUE)
+		playsound(patient, 'sound/misc/guillotine.ogg', 20, TRUE)
 		limb_snip_candidate.drop_limb()
 		user.visible_message(span_danger("[src] violently slams shut, amputating [patient]'s [limb_snip_candidate.name]."), span_notice("You amputate [patient]'s [limb_snip_candidate.name] with [src]."))
 		charge_deduction(amputee, user, 1)
@@ -373,14 +385,14 @@
 
 /obj/item/contraption/linker/examine(mob/user)
 	. = ..()
-	if(HAS_TRAIT(user, TRAIT_ENGINEERING_GOGGLES) || user.mind?.get_skill_level(/datum/skill/craft/engineering) >= 1)
+	if(HAS_TRAIT(user, TRAIT_ENGINEERING_GOGGLES) || GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/engineering) >= 1)
 		. += span_notice("Its buffer [buffer ? "contains [buffer]." : "is empty."]")
 	else
 		. += span_notice("All you can make out is a bunch of gibberish.")
 
-/obj/item/contraption/linker/attack_self(mob/user)
+/obj/item/contraption/linker/attack_self(mob/user, list/modifiers)
 	. = ..()
-	if(user.mind?.get_skill_level(/datum/skill/craft/engineering) >= 1)
+	if(GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/craft/engineering) >= 1)
 		to_chat(user, "You wipe [src] of its stored buffer.")
 		remove_buffer(src)
 	else
@@ -404,3 +416,125 @@
 	SEND_SIGNAL(src, COMSIG_MULTITOOL_REMOVE_BUFFER, source)
 	UnregisterSignal(buffer, COMSIG_PARENT_QDELETING)
 	buffer = null
+
+/obj/item/folding_table_stored
+	name = "folding table"
+	desc = "A folding table, useful for setting up a temporary workspace."
+	icon = 'icons/roguetown/items/gadgets.dmi'
+	icon_state = "folding_table_stored"
+	w_class = WEIGHT_CLASS_SMALL
+	resistance_flags = FIRE_PROOF
+	grid_height = 32
+	grid_width = 64
+
+/obj/item/folding_table_stored/attack_self(mob/user)
+	. = ..()
+	var/turf/target_turf = get_step(user,user.dir)
+	if(target_turf.is_blocked_turf(TRUE) || (locate(/mob/living) in target_turf))
+		to_chat(user, span_danger("I can't deploy the folding table here!"))
+		return NONE
+	if(isopenspace(target_turf))
+		return NONE
+	if(isopenturf(target_turf))
+		deploy_folding_table(user, target_turf)
+		return TRUE
+	return NONE
+
+/obj/item/folding_table_stored/proc/deploy_folding_table(mob/user, atom/location)
+	to_chat(user, "<span class='notice'>You deploy the folding table.</span>")
+	new /obj/structure/table/wood/folding(location)
+	qdel(src)
+
+/obj/structure/table/wood/folding
+	name = "folding table"
+	desc = "A folding table, useful for setting up a temporary workspace."
+	icon = 'icons/roguetown/items/gadgets.dmi'
+	icon_state = "folding_table_deployed"
+	resistance_flags = FLAMMABLE
+	max_integrity = 50
+	debris = list(/obj/item/grown/log/tree/small = 1)
+	climbable = TRUE
+	climb_offset = 10
+
+/obj/structure/table/wood/folding/examine()
+	. = ..()
+	. += span_blue("Right-Click to fold the table.")
+
+/obj/structure/table/wood/folding/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	user.visible_message(span_notice("[user] folds [src]."), span_notice("You fold [src]."))
+	new /obj/item/folding_table_stored(drop_location())
+	qdel(src)
+	return ..()
+
+/obj/machinery/light/fueled/hearth/mobilestove
+	name = "mobile stove"
+	desc = "A portable bronze stovetop. The underside is covered in an esoteric pattern of small tubes. Whatever heats the hob is hidden inside the body of the device"
+	icon_state = "hobostove1"
+	base_state = "hobostove"
+	brightness = 4
+	bulb_colour ="#4ac77e"
+	density = FALSE
+	anchored = TRUE
+	climbable = FALSE
+	climb_offset = FALSE
+	layer = TABLE_LAYER
+	on = FALSE
+	crossfire = FALSE
+
+/obj/machinery/light/fueled/hearth/mobilestove/MiddleClick(mob/user, list/modifiers)
+	. = ..()
+	if(.)
+		return
+
+	if(attachment)
+		if(!user.put_in_active_hand(attachment))
+			attachment.forceMove(user.loc)
+		attachment = null
+	if(!on)
+		user.visible_message(span_notice("[user] begins packing up \the [src]."))
+		if(!do_after(user, 2 SECONDS, TRUE, src))
+			return
+		var/obj/item/mobilestove/new_mobilestove = new /obj/item/mobilestove(get_turf(src))
+		new_mobilestove.color = src.color
+		qdel(src)
+		return
+
+	var/mob/living/carbon/human/H = user
+	if(!istype(user))
+		return
+	H.visible_message(span_notice("[user] begins packing up \the [src]. It's still hot!"))
+	if(!do_after(H, 4 SECONDS, src))
+		return
+	var/obj/item/bodypart/affecting = H.get_bodypart("[(user.active_hand_index % 2 == 0) ? "r" : "l" ]_arm")
+	to_chat(H, span_warning("HOT! I burned myself!"))
+	if(affecting && affecting.receive_damage(0, 5))
+		H.update_damage_overlays()
+	new /obj/item/mobilestove(get_turf(src))
+	burn_out()
+	qdel(src)
+
+/obj/item/mobilestove
+	name = "packed stove"
+	desc = "A portable bronze stovetop. The underside is covered in an esoteric pattern of small tubes. Whatever heats the hob is hidden inside the body of the device"
+	icon = 'icons/roguetown/misc/lighting.dmi'
+	icon_state = "hobostovep"
+	w_class = WEIGHT_CLASS_NORMAL
+	slot_flags = ITEM_SLOT_HIP | ITEM_SLOT_BACK
+	grid_width = 32
+	grid_height = 64
+
+/obj/item/mobilestove/attack_self(mob/user, list/modifiers)
+	..()
+	var/turf/T = get_turf(loc)
+	if(!isfloorturf(T))
+		to_chat(user, span_warning("I need ground to plant this on!"))
+		return
+	for(var/obj/A in T)
+		if(A.density && !(A.flags_1 & ON_BORDER_1))
+			to_chat(user, span_warning("There is already something here!</span>"))
+			return
+	user.visible_message(span_notice("[user] begins placing \the [src] down on the ground."))
+	if(do_after(user, 2 SECONDS, src))
+		new /obj/machinery/light/fueled/hearth/mobilestove(get_turf(src))
+		qdel(src)

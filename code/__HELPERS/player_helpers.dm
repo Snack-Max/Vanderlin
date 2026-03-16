@@ -1,14 +1,15 @@
 
 /proc/reopen_roundstart_suicide_roles()
 	var/list/valid_positions = list()
-	valid_positions += GLOB.youngfolk_positions
 	valid_positions += GLOB.noble_positions
 	valid_positions += GLOB.church_positions
+	valid_positions += GLOB.inquisition_positions
 	valid_positions += GLOB.garrison_positions
 	valid_positions += GLOB.serf_positions
 	valid_positions += GLOB.peasant_positions
 	valid_positions += GLOB.apprentices_positions
 	valid_positions += GLOB.youngfolk_positions
+	valid_positions += GLOB.company_positions
 
 
 	var/list/reopened_jobs = list()
@@ -28,8 +29,7 @@
 //////////////////////////
 /proc/display_roundstart_logout_report()
 	var/list/msg = list("<span class='boldnotice'>Roundstart logout report\n\n</span>")
-	for(var/i in GLOB.mob_living_list)
-		var/mob/living/L = i
+	for(var/mob/living/L as anything in GLOB.mob_living_list)
 		var/mob/living/carbon/C = L
 		if (istype(C) && !C.last_mind)
 			continue  // never had a client

@@ -41,7 +41,7 @@
 	icon = 'icons/obj/toy.dmi'
 	icon_state = "snappop"
 	w_class = WEIGHT_CLASS_TINY
-	var/ash_type = /obj/item/ash
+	var/ash_type = /obj/item/fertilizer/ash
 
 /obj/item/toy/snappop/proc/pop_burst(n=3, c=1)
 	var/datum/effect_system/spark_spread/s = new()
@@ -49,7 +49,7 @@
 	s.start()
 	new ash_type(loc)
 	visible_message(span_warning("[src] explodes!"),
-		span_hear("I hear a explosion!"))
+		span_hear("I hear an explosion!"))
 	playsound(src, 'sound/blank.ogg', 50, TRUE)
 	qdel(src)
 
@@ -70,16 +70,16 @@
 /obj/item/toy/snappop/phoenix
 	name = "magic powder pack"
 	desc = ""
-	ash_type = /obj/item/ash/snappop_phoenix
+	ash_type = /obj/item/fertilizer/ash/snappop_phoenix
 
-/obj/item/ash/snappop_phoenix
+/obj/item/fertilizer/ash/snappop_phoenix
 	var/respawn_time = 300
 
-/obj/item/ash/snappop_phoenix/Initialize()
+/obj/item/fertilizer/ash/snappop_phoenix/Initialize()
 	. = ..()
 	addtimer(CALLBACK(src, PROC_REF(respawn)), respawn_time)
 
-/obj/item/ash/snappop_phoenix/proc/respawn()
+/obj/item/fertilizer/ash/snappop_phoenix/proc/respawn()
 	new /obj/item/toy/snappop/phoenix(get_turf(src))
 	qdel(src)
 
@@ -94,6 +94,7 @@
 	var/card_throw_speed = 1
 	var/card_throw_range = 7
 	var/list/card_attack_verb = list("attacked")
+	w_class = WEIGHT_CLASS_TINY
 
 /obj/item/toy/cards/suicide_act(mob/living/carbon/user)
 	user.visible_message(span_suicide("[user] is slitting [user.p_their()] wrists with \the [src]! It looks like [user.p_they()] [user.p_have()] a crummy hand!"))
@@ -110,7 +111,7 @@
 	icon = 'icons/obj/toy.dmi'
 	deckstyle = "syndicate"
 	icon_state = "deck_syndicate_full"
-	w_class = WEIGHT_CLASS_SMALL
+	w_class = WEIGHT_CLASS_TINY
 	var/cooldown = 0
 	var/list/cards = list()
 
@@ -154,30 +155,36 @@
 	H.parentdeck = src
 	var/O = src
 	H.apply_card_vars(H,O)
-	src.cards -= choice
+	cards -= choice
 	H.pickup(user)
 	user.put_in_hands(H)
 	user.visible_message(span_notice("[user] draws a card from the deck."), span_notice("I draw a card from the deck."))
-	update_icon()
+	update_appearance(UPDATE_ICON_STATE)
 
-/obj/item/toy/cards/deck/update_icon()
-	if(cards.len > 26)
+/obj/item/toy/cards/deck/update_icon_state()
+	. = ..()
+	var/card_num = length(cards)
+	if(card_num > 26)
 		icon_state = "deck_[deckstyle]_full"
-	else if(cards.len > 10)
+	else if(card_num > 13)
 		icon_state = "deck_[deckstyle]_half"
-	else if(cards.len > 0)
+	else if(card_num > 6)
 		icon_state = "deck_[deckstyle]_low"
-	else if(cards.len == 0)
+	else if(card_num == 0)
 		icon_state = "deck_[deckstyle]_empty"
 
-/obj/item/toy/cards/deck/attack_self(mob/user)
+/obj/item/toy/cards/deck/attack_self(mob/user, list/modifiers)
 	if(cooldown < world.time - 50)
 		if(HAS_TRAIT(user, TRAIT_BLACKLEG))
 			var/outcome = alert(user, "How do you want to shuffle the deck?","XYLIX","False Shuffle","Force Top Card","Play fair")
 			switch(outcome)
 				if("False Shuffle")
+					record_featured_stat(FEATURED_STATS_CRIMINALS, user)
+					record_round_statistic(STATS_GAMES_RIGGED)
 					to_chat(user, span_notice("I shuffle the cards, then reverse the shuffle. Sneaky."))
 				if("Force Top Card")
+					record_featured_stat(FEATURED_STATS_CRIMINALS, user)
+					record_round_statistic(STATS_GAMES_RIGGED)
 					user.set_machine(src)
 					interact(user)
 				if("Play fair")
@@ -190,7 +197,7 @@
 		playsound(src, 'sound/blank.ogg', 50, TRUE)
 		cooldown = world.time
 
-/obj/item/toy/cards/deck/ui_interact(mob/user)
+/obj/item/toy/cards/deck/interact(mob/user)
 	. = ..()
 	var/dat = "The deck has<BR>"
 	for(var/t in cards)
@@ -210,14 +217,14 @@
 		return
 	if(href_list["pick"] && HAS_TRAIT(cardUser, TRAIT_BLACKLEG))
 		var/choice = href_list["pick"]
-		src.cards -= choice
+		cards -= choice
 		cards = shuffle(cards)
 		cards.Insert(1,choice)
 		to_chat(cardUser, span_notice("I shuffle the deck, sneakily putting the [choice] on top."))
 		cardUser << browse(null, "window=deck")
 		return
 
-/obj/item/toy/cards/deck/attackby(obj/item/I, mob/living/user, params)
+/obj/item/toy/cards/deck/attackby(obj/item/I, mob/living/user, list/modifiers)
 	if(istype(I, /obj/item/toy/cards/singlecard))
 		var/obj/item/toy/cards/singlecard/SC = I
 		if(SC.parentdeck == src)
@@ -229,7 +236,7 @@
 			qdel(SC)
 		else
 			to_chat(user, span_warning("I can't mix cards from other decks!"))
-		update_icon()
+		update_appearance(UPDATE_ICON_STATE)
 	else if(istype(I, /obj/item/toy/cards/cardhand))
 		var/obj/item/toy/cards/cardhand/CH = I
 		if(CH.parentdeck == src)
@@ -241,7 +248,7 @@
 			qdel(CH)
 		else
 			to_chat(user, span_warning("I can't mix cards from other decks!"))
-		update_icon()
+		update_appearance(UPDATE_ICON_STATE)
 	else
 		return ..()
 
@@ -275,11 +282,11 @@
 	var/choice = null
 
 
-/obj/item/toy/cards/cardhand/attack_self(mob/user)
+/obj/item/toy/cards/cardhand/attack_self(mob/user, list/modifiers)
 	user.set_machine(src)
 	interact(user)
 
-/obj/item/toy/cards/cardhand/ui_interact(mob/user)
+/obj/item/toy/cards/cardhand/interact(mob/user)
 	. = ..()
 	var/dat = "You have:<BR>"
 	for(var/t in currenthand)
@@ -303,8 +310,8 @@
 		if (cardUser.is_holding(src))
 			var/choice = href_list["pick"]
 			var/obj/item/toy/cards/singlecard/C = new/obj/item/toy/cards/singlecard(cardUser.loc)
-			src.currenthand -= choice
-			C.parentdeck = src.parentdeck
+			currenthand -= choice
+			C.parentdeck = parentdeck
 			C.cardname = choice
 			C.apply_card_vars(C,O)
 			C.pickup(cardUser)
@@ -312,16 +319,16 @@
 			cardUser.visible_message(span_notice("[cardUser] draws a card from [cardUser.p_their()] hand."), span_notice("I take the [C.cardname] from your hand."))
 
 			interact(cardUser)
-			if(src.currenthand.len < 3)
-				src.icon_state = "[deckstyle]_hand2"
-			else if(src.currenthand.len < 4)
-				src.icon_state = "[deckstyle]_hand3"
-			else if(src.currenthand.len < 5)
-				src.icon_state = "[deckstyle]_hand4"
-			if(src.currenthand.len == 1)
-				var/obj/item/toy/cards/singlecard/N = new/obj/item/toy/cards/singlecard(src.loc)
-				N.parentdeck = src.parentdeck
-				N.cardname = src.currenthand[1]
+			if(currenthand.len < 3)
+				icon_state = "[deckstyle]_hand2"
+			else if(currenthand.len < 4)
+				icon_state = "[deckstyle]_hand3"
+			else if(currenthand.len < 5)
+				icon_state = "[deckstyle]_hand4"
+			if(currenthand.len == 1)
+				var/obj/item/toy/cards/singlecard/N = new/obj/item/toy/cards/singlecard(loc)
+				N.parentdeck = parentdeck
+				N.cardname = currenthand[1]
 				N.apply_card_vars(N,O)
 				qdel(src)
 				N.pickup(cardUser)
@@ -330,19 +337,19 @@
 				cardUser << browse(null, "window=cardhand")
 		return
 
-/obj/item/toy/cards/cardhand/attackby(obj/item/toy/cards/singlecard/C, mob/living/user, params)
+/obj/item/toy/cards/cardhand/attackby(obj/item/toy/cards/singlecard/C, mob/living/user, list/modifiers)
 	if(istype(C))
-		if(C.parentdeck == src.parentdeck)
-			src.currenthand += C.cardname
+		if(C.parentdeck == parentdeck)
+			currenthand += C.cardname
 			user.visible_message(span_notice("[user] adds a card to [user.p_their()] hand."), span_notice("I add the [C.cardname] to your hand."))
 			qdel(C)
 			interact(user)
 			if(currenthand.len > 4)
-				src.icon_state = "[deckstyle]_hand5"
+				icon_state = "[deckstyle]_hand5"
 			else if(currenthand.len > 3)
-				src.icon_state = "[deckstyle]_hand4"
+				icon_state = "[deckstyle]_hand4"
 			else if(currenthand.len > 2)
-				src.icon_state = "[deckstyle]_hand3"
+				icon_state = "[deckstyle]_hand3"
 		else
 			to_chat(user, span_warning("I can't mix cards from other decks!"))
 	else
@@ -368,8 +375,7 @@
 	w_class = WEIGHT_CLASS_TINY
 	var/cardname = null
 	var/flipped = 0
-	pixel_x = -5
-
+	SET_BASE_PIXEL(-5, 0)
 
 /obj/item/toy/cards/singlecard/examine(mob/user)
 	. = ..()
@@ -387,33 +393,34 @@
 	set name = "Flip Card"
 	set hidden = 1
 	set src in range(1)
-	if(!ishuman(usr) || !usr.canUseTopic(src, BE_CLOSE))
+
+	if(!ishuman(usr) || !usr.can_perform_action(src, NEED_DEXTERITY))
 		return
 	if(!flipped)
-		src.flipped = 1
+		flipped = 1
 		if (cardname)
-			src.icon_state = "sc_[cardname]_[deckstyle]"
-			src.name = src.cardname
+			icon_state = "sc_[cardname]_[deckstyle]"
+			name = cardname
 		else
-			src.icon_state = "sc_Ace of Spades_[deckstyle]"
-			src.name = "What Card"
-		src.pixel_x = 5
+			icon_state = "sc_Ace of Spades_[deckstyle]"
+			name = "What Card"
+		pixel_x = base_pixel_x + 5
 	else if(flipped)
-		src.flipped = 0
-		src.icon_state = "singlecard_down_[deckstyle]"
-		src.name = "card"
-		src.pixel_x = -5
+		flipped = 0
+		icon_state = "singlecard_down_[deckstyle]"
+		name = "card"
+		pixel_x = base_pixel_x - 5
 
-/obj/item/toy/cards/singlecard/attackby(obj/item/I, mob/living/user, params)
+/obj/item/toy/cards/singlecard/attackby(obj/item/I, mob/living/user, list/modifiers)
 	if(istype(I, /obj/item/toy/cards/singlecard/))
 		var/obj/item/toy/cards/singlecard/C = I
-		if(C.parentdeck == src.parentdeck)
+		if(C.parentdeck == parentdeck)
 			var/obj/item/toy/cards/cardhand/H = new/obj/item/toy/cards/cardhand(user.loc)
 			H.currenthand += C.cardname
-			H.currenthand += src.cardname
+			H.currenthand += cardname
 			H.parentdeck = C.parentdeck
 			H.apply_card_vars(H,C)
-			to_chat(user, span_notice("I combine the [C.cardname] and the [src.cardname] into a hand."))
+			to_chat(user, span_notice("I combine the [C.cardname] and the [cardname] into a hand."))
 			qdel(C)
 			qdel(src)
 			H.pickup(user)
@@ -439,7 +446,7 @@
 	else
 		return ..()
 
-/obj/item/toy/cards/singlecard/attack_self(mob/living/carbon/human/user)
+/obj/item/toy/cards/singlecard/attack_self(mob/living/carbon/human/user, list/modifiers)
 	if(!ishuman(user) || !(user.mobility_flags & MOBILITY_USE))
 		return
 	Flip()
@@ -468,7 +475,7 @@
 
 /obj/item/toy/cards/deck/syndicate
 	name = "cards"
-	desc = "a pack of cards."
+	desc = "A pack of cards."
 	icon_state = "deck_syndicate_full"
 	deckstyle = "syndicate"
 	card_hitsound = 'sound/blank.ogg'

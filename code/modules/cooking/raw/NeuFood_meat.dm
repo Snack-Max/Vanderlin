@@ -13,49 +13,57 @@
 // Template
 /obj/item/reagent_containers/food/snacks/meat
 	eat_effect = /datum/status_effect/debuff/uncookedfood
-	list_reagents = list(/datum/reagent/consumable/nutriment = RAWMEAT_NUTRITION)
-	icon_state = "meat"
+	name = "bugged meat"
+	icon_state = "bad_mapper"
 	slice_batch = TRUE // so it takes more time, changed from FALSE
 	filling_color = "#8f433a"
-	bitesize = 1
+	bitesize = 3
 	rotprocess = SHELFLIFE_SHORT
 	chopping_sound = TRUE
-	foodtype = RAW | MEAT
 	drop_sound = 'sound/foley/dropsound/gen_drop.ogg'
 	become_rot_type = /obj/item/reagent_containers/food/snacks/rotten/meat
+	nutrition = RAWMEAT_NUTRITION
+	foodtype = RAW | MEAT
+	faretype = FARE_IMPOVERISHED
+	var/cannibalism = FALSE
+	var/list/cannibalism_for = list()
+	tastes = list("meat" = 1)
+	gender = PLURAL
+
+/obj/item/reagent_containers/food/snacks/meat/on_consume(mob/living/eater)
+	var/reset_eat_effect = FALSE
+	if(cannibalism && iscarbon(eater))
+		if(HAS_TRAIT(eater, TRAIT_ORGAN_EATER) && eat_effect != /datum/status_effect/debuff/rotfood)
+			eat_effect = /datum/status_effect/buff/foodbuff
+			reset_eat_effect = TRUE
+		if(bitecount >= bitesize)
+			record_featured_stat(FEATURED_STATS_CRIMINALS, eater)
+			record_round_statistic(STATS_ORGANS_EATEN)
+	..()
+	if(reset_eat_effect)
+		eat_effect = initial(eat_effect)
 
 /*	.............   Raw meat   ................ */
 /obj/item/reagent_containers/food/snacks/meat/steak
 	ingredient_size = 2
 	name = "raw meat"
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/frysteak
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/frysteak
-	cooked_smell = /datum/pollutant/food/fried_meat
+	icon_state = "meat"
 	slices_num = 2
 	slice_path = /obj/item/reagent_containers/food/snacks/meat/mince/beef
 	slice_bclass = BCLASS_CHOP
-
-/obj/item/reagent_containers/food/snacks/meat/human
-	name = "manflesh"
-	foodtype = RAW | MEAT | GROSS
 
 /*	.............   Pigflesh, strange meat, birdmeat   ................ */
 /obj/item/reagent_containers/food/snacks/meat/fatty
 	name = "raw pigflesh"
 	icon_state = "pigflesh"
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/ham
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/ham
-	cooked_smell = /datum/pollutant/food/bacon
 	slices_num = 2
 	slice_path = /obj/item/reagent_containers/food/snacks/meat/mince/beef
 	chopping_sound = TRUE
+	tastes = list("meat" = 1, "fat" = 1)
 
 /obj/item/reagent_containers/food/snacks/meat/strange // Low-nutrient, kind of gross. Survival food.
 	name = "strange meat"
 	icon_state = "strange_meat"
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/strange
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/strange
-	cooked_smell = /datum/pollutant/food/fried_meat
 	slice_path = null
 	slices_num = 0
 
@@ -63,9 +71,7 @@
 	name = "plucked bird"
 	icon_state = "poultry"
 	slice_path = /obj/item/reagent_containers/food/snacks/meat/poultry/cutlet
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/roastchicken
-	cooked_smell = /datum/pollutant/food/fried_chicken
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/roastchicken
+	nutrition = RAWMEAT_NUTRITION * 2
 	slices_num = 2
 	slice_sound = TRUE
 	ingredient_size = 4
@@ -75,25 +81,132 @@
 	name = "bird meat"
 	icon_state = "chickencutlet"
 	ingredient_size = 2
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/frybird
 	slices_num = 2
 	slice_bclass = BCLASS_CHOP
+	nutrition = RAWMEAT_NUTRITION
 	slice_path = /obj/item/reagent_containers/food/snacks/meat/mince/poultry
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/frybird
-	cooked_smell = /datum/pollutant/food/fried_chicken
 	become_rot_type = /obj/item/reagent_containers/food/snacks/rotten/chickenleg
 
 /*	........   Fish sounds   ................ */
 /obj/item/reagent_containers/food/snacks/fish
 	chopping_sound = TRUE
 	slices_num = 2
+	faretype = FARE_POOR
+	var/rare = FALSE
+	/// Number representing how rare the fish is, 0 is the lowest common fish
+	var/rarity_rank = 0
+
+/obj/item/reagent_containers/food/snacks/fish/dead
+	abstract_type = /obj/item/reagent_containers/food/snacks/fish/dead
+	status = FISH_DEAD
+	fish_id = "dead"
+
+/*	.............   Cannibalism  / Organs ................ */
+/obj/item/reagent_containers/food/snacks/meat/steak/human
+	name = "raw manflesh"
+	gender = PLURAL
+	foodtype = RAW | MEAT | GROSS
+	bitesize = 3
+	list_reagents = list(/datum/reagent/organpoison/human = 1)
+	grind_results = list(/datum/reagent/organpoison/human = 2)
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBAL_MEN
+
+/obj/item/reagent_containers/food/snacks/meat/fatty/dwarf
+	name = "fatty manflesh" // porky
+	list_reagents = list(/datum/reagent/organpoison/human = 1)
+	grind_results = list(/datum/reagent/organpoison/human = 2)
+	nutrition = RAWMEAT_NUTRITION
+	foodtype = RAW | MEAT | GROSS
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBAL_MEN
+
+/obj/item/reagent_containers/food/snacks/meat/fatty/kobold
+	name = "raw wyrmflesh"
+	foodtype = RAW | MEAT | GROSS
+	list_reagents = list(/datum/reagent/organpoison/kobold = 1)
+	grind_results = list(/datum/reagent/organpoison/kobold = 2)
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBALISM_KOBOLD
+	tastes = list("gamey meat" = 1, "crunchy bits" = 1, "ash" = 1)
+	transfers_tastes = TRUE
+
+/obj/item/reagent_containers/food/snacks/meat/poultry/cutlet/harpy
+	name = "harpy cutlet"
+	list_reagents = list(/datum/reagent/organpoison/human = 1)
+	grind_results = list(/datum/reagent/organpoison/human = 2)
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBAL_MEN
+
+/obj/item/reagent_containers/food/snacks/meat/triton
+	name = "deepflesh"
+	icon_state = "fishfillet"
+	slice_path = /obj/item/reagent_containers/food/snacks/meat/mince/fish
+	list_reagents = list(/datum/reagent/organpoison/human = 1)
+	grind_results = list(/datum/reagent/organpoison/human = 2)
+	slices_num = 2
+	become_rot_type = null
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBAL_MEN
+
+/obj/item/reagent_containers/food/snacks/meat/strange/inhumen
+	name = "foul manflesh"
+	cannibalism = TRUE
+	cannibalism_for = SPECIES_CANNIBAL_MEN
+	list_reagents = list(/datum/reagent/organpoison/human = 1)
+	grind_results = list(/datum/reagent/organpoison/human = 2)
+
+
+/obj/item/reagent_containers/food/snacks/meat/organ
+	name = "organ"
+	icon_state = "guts"
+	icon = 'icons/obj/surgery.dmi'
+	list_reagents = list(/datum/reagent/organpoison = 0.5)
+	grind_results = list(/datum/reagent/organpoison = 1)
+	gender = NEUTER
+	nutrition = MINCE_NUTRITION
+	foodtype = RAW | MEAT | GROSS
+	rotprocess = SHELFLIFE_TINY
+	cannibalism = TRUE
+	cannibalism_for = ALL_RACES_LIST
+	var/obj/item/organ/organ_inside
+
+/obj/item/reagent_containers/food/snacks/meat/organ/on_consume(mob/living/eater)
+	if(bitecount >= bitesize)
+		SEND_SIGNAL(eater, COMSIG_ORGAN_CONSUMED, type, organ_inside)
+	. = ..()
+
+/obj/item/reagent_containers/food/snacks/meat/organ/Destroy()
+	QDEL_NULL(organ_inside)
+	return ..()
+
+/obj/item/reagent_containers/food/snacks/meat/organ/heart
+	name = "heart"
+	icon_state = "heart"
+	list_reagents = list(/datum/reagent/organpoison = 1)
+	grind_results = list(/datum/reagent/organpoison = 2)
+	nutrition = RAWMEAT_NUTRITION
+
+/obj/item/reagent_containers/food/snacks/meat/organ/lungs
+	name = "lungs"
+	icon_state = "lungs"
+	list_reagents = list(/datum/reagent/organpoison = 1)
+	grind_results = list(/datum/reagent/organpoison = 2)
+	nutrition = RAWMEAT_NUTRITION
+
+/obj/item/reagent_containers/food/snacks/meat/organ/liver
+	name = "liver"
+	icon_state = "liver"
+	list_reagents = list(/datum/reagent/organpoison = 1)
+	grind_results = list(/datum/reagent/organpoison = 2)
+	nutrition = RAWMEAT_NUTRITION
 
 /*	........   Cooked food template   ................ */ // No choppping double cooking etc prefixed
 /obj/item/reagent_containers/food/snacks/cooked
 	name = "cooked meat"
 	desc = ""
 	icon_state = "frysteak"
-	list_reagents = list(/datum/reagent/consumable/nutriment = COOKED_MEAT_NUTRITION)
+	nutrition = COOKED_MEAT_NUTRITION
 	rotprocess = SHELFLIFE_DECENT
 	filling_color = "#8f433a"
 	foodtype = MEAT
@@ -112,85 +225,60 @@
 	slice_path = null
 	filling_color = "#8a0000"
 	rotprocess = SHELFLIFE_TINY
-	cooked_type = null
 	become_rot_type = /obj/item/reagent_containers/food/snacks/rotten/mince
+	nutrition = MINCE_NUTRITION
+
 /obj/item/reagent_containers/food/snacks/meat/mince/throw_impact(atom/hit_atom, datum/thrownthing/thrownthing)
 	new /obj/effect/decal/cleanable/food/mess(get_turf(src))
-	playsound(get_turf(src), 'sound/foley/meatslap.ogg', 100, TRUE, -1)
+	playsound(src, 'sound/foley/meatslap.ogg', 100, TRUE, -1)
 	..()
 	qdel(src)
-/obj/item/reagent_containers/food/snacks/meat/mince/attackby(obj/item/I, mob/living/user, params)
-	if(user.mind)
-		short_cooktime = (50 - ((user.mind.get_skill_level(/datum/skill/craft/cooking))*8))
-		long_cooktime = (90 - ((user.mind.get_skill_level(/datum/skill/craft/cooking))*15))
-	var/found_table = locate(/obj/structure/table) in (loc)
-	if(istype(I, /obj/item/reagent_containers/food/snacks/meat/mince) && (!modified))
-		if(isturf(loc)&& (found_table))
-			to_chat(user, "<span class='notice'>Stuffing a wiener...</span>")
-			playsound(get_turf(user), 'sound/foley/dropsound/food_drop.ogg', 40, TRUE, -1)
-			if(do_after(user, long_cooktime, src))
-				new /obj/item/reagent_containers/food/snacks/meat/sausage(loc)
-				user.mind.add_sleep_experience(/datum/skill/craft/cooking, (user.STAINT*0.5))
-				qdel(I)
-				qdel(src)
-		else
-			to_chat(user, "<span class='warning'>You need to put [src] on a table to work on it.</span>")
-	if(istype(I, /obj/item/reagent_containers/food/snacks/fat) && (!modified))
-		if(isturf(loc)&& (found_table))
-			to_chat(user, "<span class='notice'>Stuffing a wiener...</span>")
-			playsound(get_turf(user), 'sound/foley/dropsound/food_drop.ogg', 40, TRUE, -1)
-			if(do_after(user, long_cooktime, src))
-				new /obj/item/reagent_containers/food/snacks/meat/sausage(loc)
-				user.mind.add_sleep_experience(/datum/skill/craft/cooking, (user.STAINT*0.5))
-				qdel(I)
-				qdel(src)
-		else
-			to_chat(user, "<span class='warning'>You need to put [src] on a table to work on it.</span>")
-	else
-		return ..()
 
 
 /obj/item/reagent_containers/food/snacks/meat/mince/beef
 	name = "minced meat"
 	icon_state = "meatmince"
-	fried_type = /obj/item/reagent_containers/food/snacks/meat/mince/beef/cooked
+
 /obj/item/reagent_containers/food/snacks/meat/mince/beef/cooked
+	name = "cooked minced meat"
 	eat_effect = null
 	foodtype = MEAT
 	rotprocess = SHELFLIFE_DECENT
-	list_reagents = list(/datum/reagent/consumable/nutriment = SNACK_DECENT)
+	nutrition = MINCE_NUTRITION * COOK_MOD
 	color = "#a0655f"
 
 /obj/item/reagent_containers/food/snacks/meat/mince/fish
 	name = "minced fish"
 	icon_state = "fishmince"
-	fried_type = /obj/item/reagent_containers/food/snacks/meat/mince/fish/cooked
+
 /obj/item/reagent_containers/food/snacks/meat/mince/fish/cooked
+	name = "cooked minced fish"
 	eat_effect = null
 	foodtype = MEAT
 	rotprocess = SHELFLIFE_DECENT
-	list_reagents = list(/datum/reagent/consumable/nutriment = SNACK_DECENT)
+	nutrition = MINCE_NUTRITION * COOK_MOD
 	color = "#a0655f"
 
 /obj/item/reagent_containers/food/snacks/meat/mince/poultry
-	name = "mince poultry"
+	name = "minced poultry"
 	icon_state = "birdmince"
-	fried_type = /obj/item/reagent_containers/food/snacks/meat/mince/poultry/cooked
+
 /obj/item/reagent_containers/food/snacks/meat/mince/poultry/cooked
+	name = "cooked minced poultry"
 	eat_effect = null
 	foodtype = MEAT
 	rotprocess = SHELFLIFE_DECENT
-	list_reagents = list(/datum/reagent/consumable/nutriment = SNACK_DECENT)
+	nutrition = MINCE_NUTRITION * COOK_MOD
 	color = "#a0655f"
 
 /*	..................   METT   ................... */
 /obj/item/reagent_containers/food/snacks/meat/mince/beef/mett
 	name = "grenzel mett"
-	desc = "A popular toping for bread in Grenzelhoft, while simply bizarr to people from vanderlin"
+	desc = "A popular topping for bread in Grenzelhoft, while simply bizarre to people from Vanderlin."
 	icon_state = "mett_minced"
-	list_reagents = list(/datum/reagent/consumable/nutriment = SNACK_NUTRITIOUS)
 	bitesize = 3
 	slice_path = /obj/item/reagent_containers/food/snacks/meat/mince/beef/mett/slice
+	nutrition = MINCE_NUTRITION + VEGGIE_NUTRITION
 	slices_num = 3
 	slice_batch = TRUE
 	slice_sound = TRUE
@@ -204,41 +292,18 @@
 	bitesize = 1
 	slices_num = FALSE
 	slice_path = FALSE
-	list_reagents = list(/datum/reagent/consumable/nutriment = SNACK_POOR)
-
-/obj/item/reagent_containers/food/snacks/meat/mince/beef/attackby(obj/item/I, mob/living/user, params)
-	..()
-	if(user.mind)
-		short_cooktime = (50 - ((user.mind.get_skill_level(/datum/skill/craft/cooking))*7))
-		long_cooktime = (90 - ((user.mind.get_skill_level(/datum/skill/craft/cooking))*14))
-	var/found_table = locate(/obj/structure/table) in (loc)
-	if(istype(I, /obj/item/reagent_containers/food/snacks/veg/onion_sliced))
-		if(isturf(loc)&& (found_table))
-			playsound(get_turf(user), 'sound/foley/kneading_alt.ogg', 90, TRUE, -1)
-			to_chat(user, span_notice("Kneading onions into the mince..."))
-			if(do_after(user,long_cooktime, src))
-				new /obj/item/reagent_containers/food/snacks/meat/mince/beef/mett(loc)
-				user.mind.add_sleep_experience(/datum/skill/craft/cooking, (user.STAINT*0.5))
-				qdel(I)
-				qdel(src)
+	nutrition = (MINCE_NUTRITION + VEGGIE_NUTRITION) / 3
 
 /*	..................   Sausage & Wiener   ................... */
 /obj/item/reagent_containers/food/snacks/meat/sausage
 	name = "raw sausage"
 	icon_state = "raw_wiener"
 	ingredient_size = 1
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/sausage
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/sausage
-	cooked_smell = /datum/pollutant/food/sausage
 	become_rot_type = /obj/item/reagent_containers/food/snacks/rotten/sausage
+	nutrition = RAWMEAT_NUTRITION
 
-/obj/item/reagent_containers/food/snacks/meat/wiener
+/obj/item/reagent_containers/food/snacks/meat/sausage/wiener
 	name = "raw wiener"
-	icon_state = "raw_wiener"
-	ingredient_size = 1
-	fried_type = /obj/item/reagent_containers/food/snacks/cooked/sausage/wiener
-	cooked_type = /obj/item/reagent_containers/food/snacks/cooked/sausage/wiener
-	cooked_smell = /datum/pollutant/food/sausage
-	become_rot_type = /obj/item/reagent_containers/food/snacks/rotten/sausage
+	nutrition = FATTYMEAT_NUTRITION
 
 

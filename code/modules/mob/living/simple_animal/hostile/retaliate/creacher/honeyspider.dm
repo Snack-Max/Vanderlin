@@ -7,7 +7,6 @@
 	icon_dead = "honeys-dead"
 
 	faction = list("bugs")
-	turns_per_move = 4
 	move_to_delay = 2
 	vision_range = 5
 	aggro_vision_range = 5
@@ -20,12 +19,14 @@
 	perfect_butcher_results = list(/obj/item/reagent_containers/food/snacks/meat/strange = 2,
 							/obj/item/reagent_containers/food/snacks/spiderhoney = 2,
 							/obj/item/natural/silk = 3)
+	head_butcher = /obj/item/natural/head/spider
 
 	health = SPIDER_HEALTH
 	maxHealth = SPIDER_HEALTH
 	food_type = list(/obj/item/bodypart,
 					/obj/item/organ,
 					/obj/item/reagent_containers/food/snacks/meat)
+	pooptype = /obj/structure/spider/stickyweb
 
 	base_intents = list(/datum/intent/simple/bite)
 	attack_sound = list('sound/vo/mobs/spider/attack (1).ogg','sound/vo/mobs/spider/attack (2).ogg','sound/vo/mobs/spider/attack (3).ogg','sound/vo/mobs/spider/attack (4).ogg')
@@ -34,16 +35,15 @@
 
 	tame_chance = 25
 
-	TOTALCON = 6
-	TOTALSTR = 10
-	TOTALSPD = 10
+	base_constitution = 6
+	base_strength = 10
+	base_speed = 10
 
 	retreat_distance = 0
 	minimum_distance = 0
 	deaggroprob = 0
 	defprob = 35
 	defdrain = 5
-	attack_same = FALSE
 	retreat_health = 0.2
 
 	aggressive = TRUE
@@ -51,23 +51,25 @@
 	body_eater = TRUE
 
 	ai_controller = /datum/ai_controller/spider
-	AIStatus = AI_OFF
-	can_have_ai = FALSE
+
+	var/production = 0
 
 	var/static/list/pet_commands = list(
 		/datum/pet_command/idle,
 		/datum/pet_command/free,
 		/datum/pet_command/good_boy,
 		/datum/pet_command/follow,
-		/datum/pet_command/point_targeting/home,
+		/datum/pet_command/home,
 		/datum/pet_command/go_home,
-		/datum/pet_command/point_targeting/attack,
-		/datum/pet_command/point_targeting/fetch,
+		/datum/pet_command/attack,
+		/datum/pet_command/fetch,
 		/datum/pet_command/play_dead,
 		/datum/pet_command/protect_owner,
 		/datum/pet_command/aggressive,
 		/datum/pet_command/calm,
 	)
+
+	var/has_glowy_eyes = TRUE
 
 /mob/living/simple_animal/hostile/retaliate/spider/mutated
 	icon = 'icons/roguetown/mob/monster/spider.dmi'
@@ -82,40 +84,42 @@
 	base_intents = list(/datum/intent/simple/bite)
 
 /mob/living/simple_animal/hostile/retaliate/spider/Initialize()
+	AddComponent(/datum/component/obeys_commands, pet_commands) // here due to signal overridings from pet commands // due to signal overridings from pet commands
 	. = ..()
 	gender = MALE
 	if(prob(33))
 		gender = FEMALE
-	update_icon()
 
-	AddComponent(/datum/component/obeys_commands, pet_commands)
+	update_appearance(UPDATE_OVERLAYS)
+
 	AddElement(/datum/element/ai_flee_while_injured, 0.75, retreat_health)
-	ai_controller.set_blackboard_key(BB_BASIC_FOODS, food_type)
+
 	ADD_TRAIT(src, TRAIT_WEBWALK, TRAIT_GENERIC)
 
-/mob/living/simple_animal/hostile/retaliate/spider/UnarmedAttack(atom/A)
+/mob/living/simple_animal/hostile/retaliate/spider/UnarmedAttack(atom/A, proximity_flag, list/modifiers, atom/source)
 	if(!..())
 		return
-	production += rand(30, 50)
+	production += 50
 
 /mob/living/simple_animal/hostile/retaliate/spider/AttackingTarget()
 	. = ..()
 	if(. && isliving(target))
 		var/mob/living/L = target
+		production += 10
 		if(L.reagents)
 			L.reagents.add_reagent(/datum/reagent/toxin/venom, 1)
 
-/mob/living/simple_animal/hostile/retaliate/spider/find_food()
-	. = ..()
-	if(!.)
-		return eat_bodies()
-
-/mob/living/simple_animal/hostile/retaliate/spider/try_tame(obj/item/O, mob/user)
+/mob/living/simple_animal/hostile/retaliate/spider/try_tame(obj/item/O, mob/living/carbon/human/user)
 	if(!stat)
 		user.visible_message("<span class='info'>[user] hand-feeds [O] to [src].</span>", "<span class='notice'>I hand-feed [O] to [src].</span>")
-		playsound(loc,'sound/misc/eat.ogg', rand(30,60), TRUE)
+		playsound(src,'sound/misc/eat.ogg', rand(30,60), TRUE)
+		SEND_SIGNAL(src, COMSIG_MOB_FEED, O, 30, user)
+		SEND_SIGNAL(src, COMSIG_FRIENDSHIP_CHANGE, user, 10)
 		qdel(O)
-		food = min(food + 30, 100)
+		if(is_species(user, /datum/species/elf/dark))
+			production += 50
+		else
+			production += 25
 		if(tame && owner == user)
 			return TRUE
 		var/realchance = tame_chance
@@ -123,26 +127,24 @@
 			realchance += 15
 		if(realchance)
 			if(user.mind)
-				realchance += (user.mind.get_skill_level(/datum/skill/labor/taming) * 20)
+				realchance += (GET_MOB_SKILL_VALUE_OLD(user, /datum/attribute/skill/labor/taming) * 20)
 			if(prob(realchance))
 				tamed(user)
+				var/boon = user.get_learning_boon(/datum/attribute/skill/labor/taming)
+				user.adjust_experience(/datum/attribute/skill/labor/taming, (GET_MOB_ATTRIBUTE_VALUE(user, STAT_INTELLIGENCE)*10) * boon)
 			else
 				tame_chance += bonus_tame_chance
 		return TRUE
 
 /mob/living/simple_animal/hostile/retaliate/spider/death(gibbed)
 	..()
-	update_icon()
+	update_appearance(UPDATE_OVERLAYS)
 
-
-/mob/living/simple_animal/hostile/retaliate/spider/update_icon()
-	cut_overlays()
-	..()
-	if(stat != DEAD)
-		var/mutable_appearance/eye_lights = mutable_appearance(icon, "honeys-eyes")
-		eye_lights.plane = 19
-		eye_lights.layer = 19
-		add_overlay(eye_lights)
+/mob/living/simple_animal/hostile/retaliate/spider/update_overlays()
+	. = ..()
+	if(stat == DEAD || !has_glowy_eyes)
+		return
+	. += emissive_appearance(icon, "honeys-eyes")
 
 /mob/living/simple_animal/hostile/retaliate/spider/get_sound(input)
 	switch(input)
@@ -157,8 +159,6 @@
 
 /mob/living/simple_animal/hostile/retaliate/spider/taunted(mob/user)
 	emote("aggro")
-	Retaliate()
-	GiveTarget(user)
 	return
 
 /mob/living/simple_animal/hostile/retaliate/spider/simple_limb_hit(zone)
@@ -224,23 +224,32 @@
 	var/total_processed = 0
 	var/process_cap = 500
 
-	var/datum/proximity_monitor/advanced/spider_nest/field
+	var/datum/proximity_monitor/proximity_monitor
 
 	var/last_disturbed = 0
 
+/obj/structure/spider/nest/attack_hand(mob/user)
+	. = ..()
+	var/honey = FLOOR(total_processed * 0.01, 1)
+	if(!honey)
+		return
+	user.visible_message(span_warning("[user] starts to collect the honey from [src]!"), span_warning("You start to collect the honey from [src]!"))
+	if(!do_after(user, 5 SECONDS * honey, src))
+		return
+	for(var/i = 1 to honey)
+		new /obj/item/reagent_containers/food/snacks/spiderhoney(get_turf(src))
+	total_processed -= honey * 100
+
 /obj/structure/spider/nest/Initialize()
 	. = ..()
+	proximity_monitor = new(src, 2)
 	AddComponent(/datum/component/mob_home, 6)
 	START_PROCESSING(SSobj, src)
-	return INITIALIZE_HINT_LATELOAD
-
-/obj/structure/spider/nest/LateInitialize()
-	. = ..()
-	field = make_field(/datum/proximity_monitor/advanced/spider_nest, list("parent" = src, "host" = src))
 
 /obj/structure/spider/nest/Destroy()
-	. = ..()
+	QDEL_NULL(proximity_monitor)
 	STOP_PROCESSING(SSobj, src)
+	return ..()
 
 /obj/structure/spider/nest/examine(mob/user)
 	. = ..()
@@ -259,9 +268,9 @@
 			string = "completely full"
 	. += span_notice("The nest looks [string].")
 
-/obj/structure/spider/nest/attackby(obj/item/I, mob/user, params)
+/obj/structure/spider/nest/attackby(obj/item/I, mob/user, list/modifiers)
 	. = ..()
-	check_crossed(user)
+	disturb(user)
 
 /obj/structure/spider/nest/process()
 	if(total_processed >= process_cap)
@@ -272,7 +281,10 @@
 	to_process -= process_amount
 	total_processed += process_amount
 
-/obj/structure/spider/nest/proc/check_crossed(atom/movable/movable)
+/obj/structure/spider/nest/HasProximity(atom/movable/movable)
+	disturb(movable)
+
+/obj/structure/spider/nest/proc/disturb(atom/movable/movable)
 	if(last_disturbed > world.time)
 		return
 	if(!isliving(movable))
@@ -292,17 +304,3 @@
 		spider.ai_controller.queue_behavior(/datum/ai_behavior/basic_melee_attack, BB_BASIC_MOB_CURRENT_TARGET, BB_PET_TARGETING_DATUM)
 
 	last_disturbed = world.time + 12 SECONDS
-
-/datum/proximity_monitor/advanced/spider_nest
-	field_shape = FIELD_SHAPE_RADIUS_SQUARE
-	current_range = 2
-
-	setup_field_turfs = TRUE
-	setup_edge_turfs = TRUE
-
-	var/obj/structure/spider/nest/parent
-
-
-/datum/proximity_monitor/advanced/spider_nest/field_turf_crossed(atom/movable/AM, obj/effect/abstract/proximity_checker/advanced/field_turf/F)
-	. = ..()
-	parent.check_crossed(AM)

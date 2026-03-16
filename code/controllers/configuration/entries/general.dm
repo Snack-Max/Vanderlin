@@ -23,6 +23,8 @@
 
 /datum/config_entry/string/servername	// server name (the name of the game window)
 
+/datum/config_entry/string/serversubtitle	// server subtitle (shows in the hub)
+
 /datum/config_entry/string/serversqlname	// short form server name used for the DB
 
 /datum/config_entry/string/stationname	// station name (the name of the station in-game)
@@ -90,6 +92,8 @@
 /datum/config_entry/flag/allow_admin_ooccolor	// Allows admins with relevant permissions to have their own ooc colour
 
 /datum/config_entry/flag/allow_admin_asaycolor //Allows admins with relevant permissions to have a personalized asay color
+
+/datum/config_entry/flag/asay_simple_titles	// Use admin rank names as titles in asay/PMs
 
 /datum/config_entry/flag/allow_vote_restart	// allow votes to restart
 
@@ -205,16 +209,12 @@
 /datum/config_entry/string/banappeals
 
 /datum/config_entry/string/wikiurl
-	config_entry_value = "https://wiki.monkestation.com/en/vanderlin"
 
 /datum/config_entry/string/forumurl
-	config_entry_value = ""
 
 /datum/config_entry/string/rulesurl
-	config_entry_value = "https://wiki.monkestation.com/vanderlin/rules"
 
 /datum/config_entry/string/githuburl
-	config_entry_value = "https://github.com/Vanderlin-Tales-Of-Wine/Vanderlin"
 
 /datum/config_entry/string/roundstatsurl
 
@@ -500,3 +500,28 @@
 
 /datum/config_entry/flag/reopen_roundstart_suicide_roles_command_report
 
+/datum/config_entry/flag/hard_deletes_enabled
+
+/datum/config_entry/number/hard_deletes_overrun_threshold
+	integer = FALSE
+	min_val = 0
+	default = 0.5
+
+/datum/config_entry/number/hard_deletes_overrun_limit
+	min_val = 0
+	default = 0
+
+//API key for Github Issues.
+/datum/config_entry/string/issue_key
+	protection = CONFIG_ENTRY_HIDDEN
+
+//Endpoint for Github Issues, the `owner/repo` part.
+/datum/config_entry/string/issue_slug
+	protection = CONFIG_ENTRY_LOCKED
+
+/**
+ * Tgui ui_act payloads larger than 2kb are split into chunks a maximum of 1kb in size.
+ * This flag represents the maximum chunk count the server is willing to receive.
+ */
+/datum/config_entry/number/tgui_max_chunk_count
+	default = 32

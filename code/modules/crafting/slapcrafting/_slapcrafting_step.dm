@@ -26,7 +26,7 @@
 	/// Whether we insert the item into the resulting item's contents
 	var/insert_item_into_result = FALSE
 	///the required skill type needed for this
-	var/datum/skill/skill_type
+	var/datum/attribute/skill/skill_type
 	/// How long does it take to perform the step.
 	var/perform_time = 2 SECONDS
 	/// Whether we should check the types of the item, if FALSE then make sure `can_perform()` checks conditions.
@@ -107,7 +107,7 @@
 	return TRUE
 
 /// Make a user perform this step, by using an item on the assembly, trying to progress the assembly.
-/datum/slapcraft_step/proc/perform(mob/living/user, obj/item/item, obj/item/slapcraft_assembly/assembly, instant = FALSE, silent = FALSE, list/error_list = list())
+/datum/slapcraft_step/proc/perform(mob/living/user, obj/item/item, obj/item/slapcraft_assembly/assembly, instant = FALSE, silent = FALSE, list/error_list = list(), minimum_perform_time)
 	if(!perform_check(user, item, assembly, error_list = error_list) || !assembly.recipe.check_correct_step(type, assembly.step_states))
 		return FALSE
 
@@ -117,7 +117,7 @@
 				span_small(step_replace_text(start_msg, user, item, assembly)),
 				span_small(step_replace_text(start_msg_self, user, item, assembly))
 				)
-		if(!perform_do_after(user, item, assembly, perform_time * get_speed_multiplier(user, item, assembly)))
+		if(!perform_do_after(user, item, assembly, max(perform_time * get_speed_multiplier(user, item, assembly), minimum_perform_time)))
 			return FALSE
 
 		// Do checks again because we spent time in a do_after(), this time also check deletions.
@@ -183,7 +183,10 @@
 /// Proc to perform handling a do_after, return FALSE if it failed, TRUE if succeeded.
 /datum/slapcraft_step/proc/perform_do_after(mob/living/user, obj/item/item, obj/item/slapcraft_assembly/assembly, time_to_do)
 	if(skill_type)
-		time_to_do *=  (2 / max(1, user.mind?.get_skill_level(skill_type)))
+		time_to_do *=  (2 / max(1, GET_MOB_SKILL_VALUE_OLD(user, skill_type)))
+
+	if(HAS_TRAIT(user, TRAIT_QUICK_HANDS))
+		time_to_do *= 0.9
 
 	if(!do_after(user, time_to_do, item))
 		return FALSE

@@ -1,10 +1,8 @@
-#define ALCOHOL_THRESHOLD_MODIFIER 1 //Greater numbers mean that less alcohol has greater intoxication potential
-#define ALCOHOL_RATE 0.005 //The rate at which alcohol affects you
-#define ALCOHOL_EXPONENT 1.6 //The exponent applied to boozepwr to make higher volume alcohol at least a little bit damaging to the liver
-
 ////////////// I don't know who made this header before I refactored alcohols but I'm going to fucking strangle them because it was so ugly, holy Christ
 // ALCOHOLS //
 //////////////
+#define ALCOHOL_THRESHOLD_MODIFIER 1 //Greater numbers mean that less alcohol has greater intoxication potential
+#define ALCOHOL_EXPONENT 1.6 //The exponent applied to boozepwr to make higher volume alcohol at least a little bit damaging to the liver
 
 /datum/reagent/consumable/ethanol
 	name = "Ethanol"
@@ -16,7 +14,32 @@
 	liquid_fire_power = 10
 	hydration_factor = 10
 	var/boozepwr = 65 //Higher numbers equal higher hardness, higher hardness equals more intense alcohol poisoning
+	var/datum/reagent/age_path
+	var/age_time = 10 MINUTES
+	var/age_timer
 
+/datum/reagent/consumable/ethanol/New()
+	. = ..()
+	if(age_path && holder)
+		age_timer = addtimer(CALLBACK(src, PROC_REF(age_beer)), age_time, TIMER_OVERRIDE | TIMER_STOPPABLE | TIMER_UNIQUE)
+
+/datum/reagent/consumable/ethanol/on_merge(data, amount)
+	. = ..()
+	if(age_path && holder)
+		var/timeleft = timeleft(age_timer)
+		var/total_amount = volume + amount
+
+		var/existing_progress = (volume / total_amount) * (age_time - timeleft)
+		var/new_progress = (amount / total_amount) * age_time
+		var/adjusted_progress = existing_progress + new_progress
+
+		age_timer = addtimer(CALLBACK(src, PROC_REF(age_beer)), adjusted_progress, TIMER_OVERRIDE | TIMER_STOPPABLE | TIMER_UNIQUE)
+
+/datum/reagent/consumable/ethanol/proc/age_beer()
+	var/old_volume = volume
+	var/datum/reagents/old_holder = holder
+	holder?.remove_reagent(src.type, volume)
+	old_holder?.add_reagent(age_path, old_volume)
 /*
 Boozepwr Chart
 Note that all higher effects of alcohol poisoning will inherit effects for smaller amounts (i.e. light poisoning inherts from slight poisoning)
@@ -87,14 +110,15 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	boozepwr = 40
 	taste_description = "cider"
 	glass_name = "glass of cider"
-	color = "#6aa945"
+	color = "#d8a175"
 	quality = DRINK_NICE
 
 /datum/reagent/consumable/ethanol/cider/pear
 	name = "Pear Cider"
+	color = "#6aa945"
 
 /datum/reagent/consumable/ethanol/cider/strawberry
-	name = "Starwberry Cider"
+	name = "Strawberry Cider"
 	color = "#da4d4d"
 	taste_description = "strawberry cider"
 
@@ -134,31 +158,6 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "wine"
 	glass_name = "glass of wine"
 	color = "#8a0b0b"
-
-/datum/reagent/consumable/ethanol/light
-	name = "Light Beer"
-	description = "An alcoholic beverage brewed since ancient times on Old Earth. This variety has reduced calorie and alcohol content."
-	boozepwr = 5 //Space Europeans hate it
-	taste_description = "dish water"
-	glass_name = "glass of light beer"
-	glass_desc = ""
-
-/datum/reagent/consumable/ethanol/green
-	name = "Green Beer"
-	description = "An alcoholic beverage brewed since ancient times on Old Earth. This variety is dyed a festive green."
-	color = "#A8E61D"
-	taste_description = "green piss water"
-	glass_icon_state = "greenbeerglass"
-	glass_name = "glass of green beer"
-	glass_desc = ""
-
-/datum/reagent/consumable/ethanol/green/on_mob_life(mob/living/carbon/M)
-	if(M.color != color)
-		M.add_atom_colour(color, TEMPORARY_COLOUR_PRIORITY)
-	return ..()
-
-/datum/reagent/consumable/ethanol/green/on_mob_end_metabolize(mob/living/M)
-	M.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, color)
 
 /datum/reagent/consumable/ethanol/ale
 	name = "Ale"
@@ -215,7 +214,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 /datum/reagent/consumable/ethanol/aurorian
 	name = "Aurorian"
 	boozepwr = 5
-	taste_description = "subtle herbacious undertones"
+	taste_description = "subtle herbaceous undertones"
 	color = "#5D8A8A"
 	quality = DRINK_NICE
 
@@ -281,25 +280,29 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	quality = DRINK_NICE
 
 /datum/reagent/consumable/ethanol/jackberrywine
-	name = "Jackberry Wine"
+	name = "Jacksberry Wine"
 	boozepwr = 15
 	taste_description = "sickly sweet young wine"
 	color = "#3b2342"
 	quality = DRINK_NICE
+	age_path = /datum/reagent/consumable/ethanol/jackberrywine/aged
+	age_time = 10 MINUTES
 
 /datum/reagent/consumable/ethanol/jackberrywine/aged
-	name = "Aged Jackberry Wine"
+	name = "Aged Jacksberry Wine"
 	boozepwr = 30
 	taste_description = "sickly sweet aged wine"
 	color = "#402249"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/jackberrywine/delectable
 
 /datum/reagent/consumable/ethanol/jackberrywine/delectable
-	name = "Delectable Jackberry Wine"
+	name = "Delectable Jacksberry Wine"
 	boozepwr = 30
 	taste_description = "sickly sweet delectably aged wine"
 	color = "#652679"
 	quality = DRINK_VERYGOOD
+	age_path = null
 
 /datum/reagent/consumable/ethanol/plum_wine
 	name = "Umeshu"
@@ -307,6 +310,8 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "sickly sweet young wine"
 	color = "#c997d8"
 	quality = DRINK_NICE
+	age_path = /datum/reagent/consumable/ethanol/plum_wine/aged
+	age_time = 10 MINUTES
 
 /datum/reagent/consumable/ethanol/plum_wine/aged
 	name = "Aged Umeshu"
@@ -314,6 +319,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "sickly sweet aged wine"
 	color = "#c27cd8"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/plum_wine/delectable
 
 /datum/reagent/consumable/ethanol/plum_wine/delectable
 	name = "Delectable Umeshu"
@@ -321,48 +327,55 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "sickly sweet delectably aged wine"
 	color = "#a854c2"
 	quality = DRINK_VERYGOOD
+	age_path = null
 
 /datum/reagent/consumable/ethanol/tangerine
 	name = "Tangerine Wine"
 	boozepwr = 15
-	taste_description = "bitter sweet young wine"
+	taste_description = "bittersweet young wine"
 	color = "#e7aa59"
 	quality = DRINK_NICE
+	age_path = /datum/reagent/consumable/ethanol/tangerine/aged
 
 /datum/reagent/consumable/ethanol/tangerine/aged
 	name = "Aged Tangerine Wine"
 	boozepwr = 30
-	taste_description = "bitter sweet aged wine"
+	taste_description = "bittersweet aged wine"
 	color = "#d68d2d"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/tangerine/delectable
 
 /datum/reagent/consumable/ethanol/tangerine/delectable
 	name = "Delectable Tangerine Wine"
 	boozepwr = 30
-	taste_description = "bitter sweet delectably aged wine"
+	taste_description = "bittersweet delectably aged wine"
 	color = "#eb9321"
 	quality = DRINK_VERYGOOD
+	age_path = null
 
 /datum/reagent/consumable/ethanol/raspberry
 	name = "Raspberry Wine"
 	boozepwr = 15
-	taste_description = "bitter sweet young wine"
+	taste_description = "bittersweet young wine"
 	color = "#ee5ea6"
 	quality = DRINK_NICE
+	age_path = /datum/reagent/consumable/ethanol/raspberry/aged
 
 /datum/reagent/consumable/ethanol/raspberry/aged
 	name = "Aged Raspberry Wine"
 	boozepwr = 30
-	taste_description = "bitter sweet aged wine"
+	taste_description = "bittersweet aged wine"
 	color = "#d83788"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/raspberry/delectable
 
 /datum/reagent/consumable/ethanol/raspberry/delectable
 	name = "Delectable Raspberry Wine"
 	boozepwr = 30
-	taste_description = "bitter sweet delectably aged wine"
+	taste_description = "bittersweet delectably aged wine"
 	color = "#db0d74"
 	quality = DRINK_VERYGOOD
+	age_path = null
 
 /datum/reagent/consumable/ethanol/blackberry
 	name = "Blackberry Wine"
@@ -370,6 +383,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "bitter tart young wine"
 	color = "#861491"
 	quality = DRINK_NICE
+	age_path = /datum/reagent/consumable/ethanol/blackberry/aged
 
 /datum/reagent/consumable/ethanol/blackberry/aged
 	name = "Aged Blackberry Wine"
@@ -377,6 +391,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "bitter tart aged wine"
 	color = "#58065f"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/blackberry/delectable
 
 /datum/reagent/consumable/ethanol/blackberry/delectable
 	name = "Delectable Blackberry Wine"
@@ -384,6 +399,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "bitter tart delectably aged wine"
 	color = "#330038"
 	quality = DRINK_VERYGOOD
+	age_path = null
 
 /datum/reagent/consumable/ethanol/tiefling
 	name = "Tiefling Blood Wine"
@@ -392,6 +408,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	color = "#b32525"
 	quality = DRINK_NICE
 	glows = TRUE
+	age_path = /datum/reagent/consumable/ethanol/tiefling/aged
 
 /datum/reagent/consumable/ethanol/tiefling/aged
 	name = "Aged Tiefling Blood Wine"
@@ -399,6 +416,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "bitter aged wine"
 	color = "#e21313"
 	quality = DRINK_GOOD
+	age_path = /datum/reagent/consumable/ethanol/tiefling/delectable
 
 /datum/reagent/consumable/ethanol/tiefling/delectable
 	name = "Delectable Tiefling Blood Wine"
@@ -406,6 +424,8 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	taste_description = "bitter delectably aged wine"
 	color = "#ff0000"
 	quality = DRINK_VERYGOOD
+	age_path = null
+
 // Elf Production - Berries & Herbal
 
 /datum/reagent/consumable/ethanol/elfred
@@ -516,3 +536,126 @@ All effects don't start immediately, but rather get worse over time; the rate is
 /datum/reagent/consumable/ethanol/mead/spider
 	color = "#660061"
 	glows = TRUE
+
+
+/datum/status_effect/buff/murkwine
+	id = "Murk-Knowledge"
+	alert_type = /atom/movable/screen/alert/status_effect/buff/drunkmurk
+	effectedstats = list(STAT_INTELLIGENCE = 5)
+	duration = 2 MINUTES
+
+/datum/status_effect/buff/nocshine
+	id = "Noc-Shine Strength"
+	alert_type = /atom/movable/screen/alert/status_effect/buff/drunknoc
+	effectedstats = list(STAT_STRENGTH = 1, STAT_ENDURANCE = 1)
+	duration = 2 MINUTES
+
+/atom/movable/screen/alert/status_effect/buff/drunkmurk
+	name = "Murk-Knowledge"
+	desc = ""
+	icon_state = "drunk"
+
+/atom/movable/screen/alert/status_effect/buff/drunknoc
+	name = "Noc-Shine Strength"
+	desc = ""
+	icon_state = "drunk"
+
+/datum/reagent/consumable/ethanol/murkwine // not Toilet wine
+	name = "Mürkwine"
+	boozepwr = 50  // bubba's best
+	taste_description = "hints of questionable choices--a bouquet of murkwater and pure ethanol"
+	color = "#4b1e00"
+
+/datum/reagent/consumable/ethanol/murkwine/on_mob_life(mob/living/carbon/M)
+	M.apply_status_effect(/datum/status_effect/buff/murkwine)
+	M.adjust_stamina(0.1)
+	..()
+	. = 1
+
+/datum/reagent/consumable/ethanol/murkwine/on_mob_end_metabolize(mob/living/M)
+	M.remove_status_effect(/datum/status_effect/buff/murkwine)
+
+/datum/reagent/consumable/ethanol/nocshine // wait, no, NOCSHINE
+	name = "Noc's Shine"
+	boozepwr = 70  // YEEEEEHAAAWWWWWW
+	taste_description = "what might be my throat melting and nose hair burning"
+	color = "#d8fbfd63"
+	quality = DRINK_NICE
+
+
+/datum/reagent/consumable/ethanol/nocshine/on_mob_life(mob/living/carbon/M)
+	M.apply_status_effect(/datum/status_effect/buff/nocshine)
+	if(HAS_TRAIT(M, TRAIT_CRACKHEAD))
+		M.adjustToxLoss(0.1, 0)
+	else
+		M.adjustToxLoss(0.75, 0)
+	..()
+	. = 1
+
+/datum/reagent/consumable/ethanol/nocshine/on_mob_end_metabolize(mob/living/M)
+	M.remove_status_effect(/datum/status_effect/buff/nocshine)
+
+/datum/reagent/consumable/ethanol/luxwine // oh no.
+	name = "Luxintenebre" // lux left w/ sugar in a darkened place for quite some time... U could say... Light in Darkness.....
+	description = "A fermented form of vitae, highly alcoholic, and with a particularly grim taste. Often sought out by the daring, foolhardy, and heretical..."
+	boozepwr = 80 // THE END OF THE FUCKING WORLD.
+	taste_description = "a green numbness, then a burning vigor in the heart" // heartburn (healing)
+	color = "#86cca3"
+	quality = DRINK_VERYGOOD // good stuff!
+
+/datum/reagent/consumable/ethanol/luxwine/on_mob_life(mob/living/carbon/M) // stolen healthpot code. i am shameless.
+	if(volume > 0.99) // i have no clue if this works.
+		M.adjustBruteLoss(-1*REM, 0)
+		M.adjustFireLoss(-1*REM, 0)
+	..()
+
+/datum/reagent/consumable/ethanol/whipwine // dont ask
+	name = "Magickal Whip Wine"
+	description = "A recipe recently floated into the Peaks. Magickal Whip Wine is said to increase one's potence and stamina sevenfold."
+	boozepwr = 10 // it's a whip. it's an actual whip.
+	taste_description = "leather, bitter herbs, and regret" // what did you expect
+	color = "#3a1d18"
+
+/datum/reagent/consumable/ethanol/komuchisake // if you put this outside the lich dungeon i'll kill you
+	name = "Divine Snake Wine"
+	description = "The True Form of the Whipwine. The Magickal Snake Wine was an exclusively produced medicinal wine from over three centuries ago in the Kazengun Shogunate..."
+	boozepwr = 60 // ancient lichebrau...
+	taste_description = "bitterness, pain, iron, and ancient mistakes" // what did you expect [2]
+	color = "#553837"
+
+/datum/reagent/consumable/ethanol/huangjiu
+	name = "Huangjiu"
+	boozepwr = 30
+	taste_description = "a mix of sweet and sour"
+	color = "#d8b84c"
+
+/datum/reagent/consumable/ethanol/baijiu
+	name = "Baijiu"
+	boozepwr = 60
+	taste_description = "fiery and pungent alcohol with a hint of sweetness"
+	color = "#f8fdfc"
+	quality = DRINK_GOOD
+
+/datum/reagent/consumable/ethanol/yaojiu
+	name = "Yaojiu"
+	boozepwr = 50
+	taste_description = "bittersweet alcohol with deep herbal notes"
+	color = "#8C4B1F"
+	quality = DRINK_VERYGOOD
+
+/datum/reagent/consumable/ethanol/shejiu
+	name = "Shejiu"
+	boozepwr = 50
+	taste_description = "musky and strong alcohol with a hint of gaminess"
+	color = "#C49A6C"
+	quality = DRINK_VERYGOOD
+
+/datum/reagent/consumable/ethanol/kgunshochu
+	name = "Shochu"
+	boozepwr = 60
+	taste_description = "dry, clean finish"
+	color = "#F8FDFC"
+	quality = DRINK_VERYGOOD
+
+#undef ALCOHOL_THRESHOLD_MODIFIER
+#undef ALCOHOL_EXPONENT

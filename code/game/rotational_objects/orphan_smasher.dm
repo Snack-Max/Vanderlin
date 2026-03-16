@@ -4,12 +4,12 @@
 
 /obj/structure/orphan_smasher
 	name = "auto anvil"
-	desc ="An unholy amalgamation of buttons and levers built purposely to go against gods will."
+	desc = "A holy amalgamation of buttons and levers built purposely to fulfill Malum's will."
 
 	icon = 'icons/obj/autosmithy.dmi'
 	icon_state = "1"
 	rotation_structure = TRUE
-	stress_use = 128
+	initialize_dirs = CONN_DIR_FORWARD | CONN_DIR_LEFT | CONN_DIR_FLIP | CONN_DIR_Z_DOWN
 
 	var/list/anvil_recipes_to_craft = list()
 	var/list/completed_items = list()
@@ -32,20 +32,48 @@
 	var/list/pre_start_list = list(STEP_FIDDLE, STEP_BUTTON, STEP_LEVER)
 	var/list/post_start_list = list(STEP_BUTTON, STEP_LEVER, STEP_FIDDLE)
 
-	var/sound/anvil_smash
-
 /obj/structure/orphan_smasher/Initialize()
 	. = ..()
 	var/turf/turf = get_step(src, EAST)
 	bin = new /obj/structure/material_bin(turf)
 	bin.parent = src
+	LAZYINITLIST(regular_recipes)
 	if(!length(regular_recipes))
 		for(var/datum/anvil_recipe/recipe_path as anything in subtypesof(/datum/anvil_recipe))
-			if(is_abstract(recipe_path))
+			if(IS_ABSTRACT(recipe_path))
 				continue
 			regular_recipes |= new recipe_path
 
 	START_PROCESSING(SSobj, src)
+
+/obj/structure/orphan_smasher/Destroy()
+	if(current)
+		QDEL_NULL(current)
+	for(var/datum/anvil_recipe/recipe as anything in regular_recipes)
+		LAZYREMOVE(regular_recipes, recipe)
+		QDEL_NULL(recipe)
+	QDEL_NULL(bin)
+	current_requirements.Cut()
+	anvil_recipes_to_craft.Cut()
+	completed_items.Cut()
+	return ..()
+
+/obj/structure/orphan_smasher/examine(mob/user)
+	. = ..()
+	var/next_step
+	if(!working)
+		next_step = pre_start_list[length(step_list) + 1]
+		. += span_notice("[src] is currently OFF.")
+	else
+		next_step = post_start_list[length(step_list) + 1]
+		. += span_notice("[src] is currently ON.")
+	switch(next_step)
+		if(STEP_FIDDLE)
+			. += span_notice("To toggle the machine, use RMB.")
+		if(STEP_BUTTON)
+			. += span_notice("To toggle the machine, use Ctrl+Click.")
+		if(STEP_LEVER)
+			. += span_notice("To toggle the machine, use MMB.")
 
 /obj/structure/orphan_smasher/process()
 	if(!working)
@@ -71,7 +99,7 @@
 	if(progress >= needed_progress)
 		create_current()
 
-/obj/structure/orphan_smasher/attackby(obj/item/I, mob/living/user)
+/obj/structure/orphan_smasher/attackby(obj/item/I, mob/living/user, list/modifiers)
 	. = ..()
 	if(!working)
 		return
@@ -87,27 +115,26 @@
 		return
 
 	victim.apply_damage(10 * (rotations_per_minute / 8), BRUTE, BODY_ZONE_HEAD)
-	playsound(src.loc, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
+	playsound(src, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
 	bloodied = TRUE
 	update_animation_effect()
 
-/obj/structure/orphan_smasher/MiddleClick(mob/user, params)
-	if(!user.Adjacent(src))
-		return
+/obj/structure/orphan_smasher/MiddleClick(mob/user, list/modifiers)
 	try_step(STEP_LEVER, user)
 	return TRUE
 
-/obj/structure/orphan_smasher/CtrlClick(mob/user)
+/obj/structure/orphan_smasher/CtrlClick(mob/user, list/modifiers)
 	if(!user.Adjacent(src))
 		return
 	try_step(STEP_BUTTON, user)
 	return TRUE
 
-/obj/structure/orphan_smasher/attack_right(mob/user)
-	if(!user.Adjacent(src))
+/obj/structure/orphan_smasher/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
 		return
 	try_step(STEP_FIDDLE, user)
-	return TRUE
+	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 
 /obj/structure/orphan_smasher/attack_hand(mob/user)
 	. = ..()
@@ -176,8 +203,10 @@
 			animate(icon_state = "b1", time = frame_stage)
 
 /obj/structure/orphan_smasher/set_rotations_per_minute(speed)
-	set_stress_use(128 * (speed / 8))
 	. = ..()
+	if(!.)
+		return
+	set_stress_use(128 * (speed / 8))
 
 /obj/structure/orphan_smasher/proc/try_set_recipe_stuff()
 
@@ -210,14 +239,10 @@
 				material_copy -= listed_atom.type
 
 	var/atom/new_atom
-	if(current.createmultiple)
-		for(var/i=1 to current.createditem_num)
-			new_atom = new current.created_item(get_turf(bin))
-			SEND_SIGNAL(bin, COMSIG_TRY_STORAGE_INSERT, new_atom, null, TRUE, FALSE)
-
-	else
+	for(var/i in 1 to current.createditem_extra + 1)
 		new_atom = new current.created_item(get_turf(bin))
-		SEND_SIGNAL(bin, COMSIG_TRY_STORAGE_INSERT, new_atom, null, TRUE, FALSE)
+		new_atom.update_integrity(new_atom.max_integrity, update_atom = FALSE)
+		SEND_SIGNAL(bin, COMSIG_TRY_STORAGE_INSERT, new_atom, null, TRUE, TRUE)
 
 	visible_message(span_notice("[new_atom] falls into the hopper of [src]."))
 	anvil_recipes_to_craft -= current
@@ -235,7 +260,7 @@
 		body_zone = BODY_ZONE_L_ARM
 	if(working)
 		user.apply_damage(15 * (rotations_per_minute / 8), BRUTE, body_zone)
-		playsound(src.loc, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
+		playsound(src, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
 		user.visible_message(span_danger("[user] gets their arm crushed by [src]!"), span_danger("You get your arm crushed by [src]!"))
 		bloodied = TRUE
 		update_animation_effect()
@@ -245,13 +270,13 @@
 	switch(step_on)
 		if(STEP_FIDDLE)
 			user.apply_damage(5 * (rotations_per_minute / 8), BRUTE, body_zone)
-			playsound(src.loc, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
+			playsound(src, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
 			user.visible_message(span_danger("[user] get their hand caught in [src]'s cogs!"), span_danger("You get your hand caught in [src]'s cogs!"))
 		if(STEP_LEVER)
 			return
 		if(STEP_BUTTON)
 			user.apply_damage(8 * (rotations_per_minute / 8), BRUTE, body_zone)
-			playsound(src.loc, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
+			playsound(src, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
 			user.visible_message(span_danger("[user] gets their hand flattened by [src]!"), span_danger("You get your hand flattened by[src]!"))
 
 /obj/structure/orphan_smasher/proc/try_step(step_type, mob/living/user)
@@ -269,7 +294,7 @@
 		if(user.active_hand_index == 1)
 			body_zone = BODY_ZONE_L_ARM
 		user.apply_damage(4 * max(1, (rotations_per_minute / 8)), BRUTE, body_zone)
-		playsound(src.loc, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
+		playsound(src, pick('sound/combat/gib (1).ogg','sound/combat/gib (2).ogg'), 200, FALSE, 3)
 		return
 
 	if(!do_after(user, 1.2 SECONDS, src))
@@ -291,7 +316,7 @@
 
 /obj/structure/material_bin
 	name = "auto anvil hopper"
-	desc = ""
+	desc = "The storage can be opened and closed with RMB."
 
 	icon = 'icons/obj/autosmithy.dmi'
 	icon_state = "material"
@@ -303,6 +328,10 @@
 	. = ..()
 	AddComponent(/datum/component/storage/concrete/grid/anvil_bin)
 
+/obj/structure/material_bin/Destroy()
+	parent = null
+	return ..()
+
 /obj/structure/material_bin/update_icon_state()
 	. = ..()
 	if(opened)
@@ -310,10 +339,15 @@
 	else
 		icon_state = initial(icon_state)
 
-/obj/structure/material_bin/attack_right(mob/user)
-	. = ..()
-	user.visible_message(span_danger("[user] starts to [opened ? "close" : "open"] [src]!"), span_danger("You start to [opened ? "close" : "open"] [src]!"))
+/obj/structure/material_bin/attack_hand_secondary(mob/user, list/modifiers)
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+	user.visible_message(span_danger("[user] starts to [opened ? "close" : "open"] [src]."), span_danger("You start to [opened ? "close" : "open"] [src]."))
 	if(!do_after(user, 2.5 SECONDS, src))
 		return
 	opened = !opened
-	update_icon_state()
+	update_appearance(UPDATE_ICON_STATE)
+	SEND_SIGNAL(src, COMSIG_TRY_STORAGE_HIDE_ALL)
+
+#undef STEP_FIDDLE
+#undef STEP_LEVER
+#undef STEP_BUTTON

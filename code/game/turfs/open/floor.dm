@@ -4,15 +4,14 @@
 	//- floor_tile is now a path, and not a tile obj
 	name = "floor"
 	desc = ""
-	icon = 'icons/turf/roguefloor.dmi'
-	baseturfs = /turf/open/transparent/openspace
-	smooth = SMOOTH_FALSE
-	neighborlay = ""
-	canSmoothWith = null
+	icon = 'icons/turf/floors.dmi'
+	baseturfs = /turf/open/openspace
 	footstep = FOOTSTEP_FLOOR
 	barefootstep = FOOTSTEP_HARD_BAREFOOT
 	clawfootstep = FOOTSTEP_HARD_CLAW
 	heavyfootstep = FOOTSTEP_GENERIC_HEAVY
+
+	smoothing_groups = SMOOTH_GROUP_OPEN_FLOOR
 
 	var/icon_regular_floor = "floor" //used to remember what icon the tile should have by default
 	var/icon_plating = "plating"
@@ -23,23 +22,18 @@
 	var/list/broken_states
 	var/list/burnt_states
 
-	///the chance this turf has to spread, basically 1.5% by default
-	spread_chance = 1.5
-	///means fires last at base 9 seconds
-	burn_power = 9
-
-	tiled_dirt = TRUE
-
-	var/smooth_icon = null
-	var/prettifyturf = FALSE
+	spread_chance = 1.35
+	burn_power = 50
 
 /turf/open/floor/Initialize(mapload)
-	if(smooth_icon)
-		icon = smooth_icon
 	if (!broken_states)
 		broken_states = typelist("broken_states", list("damaged1", "damaged2", "damaged3", "damaged4", "damaged5"))
 	else
 		broken_states = typelist("broken_states", broken_states)
+	if (!attacked_sound)
+		attacked_sound = typelist("attacked_sound", list('sound/combat/hits/onwood/woodimpact (1).ogg','sound/combat/hits/onwood/woodimpact (2).ogg'))
+	else
+		attacked_sound = typelist("attacked_sound", attacked_sound)
 	burnt_states = typelist("burnt_states", burnt_states)
 	if(!broken && broken_states && (icon_state in broken_states))
 		broken = TRUE
@@ -64,9 +58,6 @@
 		icon_regular_floor = "floor"
 	else
 		icon_regular_floor = icon_state
-
-/turf/open/floor/turf_destruction(damage_flag)
-	return
 
 /turf/open/floor/ex_act(severity, target, epicenter, devastation_range, heavy_impact_range, light_impact_range, flame_range)
 	var/shielded = is_shielded()
@@ -131,10 +122,9 @@
 	var/turf/open/floor/W = ..()
 	W.icon_regular_floor = old_icon
 	W.setDir(old_dir)
-	W.update_icon()
 	return W
 
-/turf/open/floor/attackby(obj/item/C, mob/user, params)
+/turf/open/floor/attackby(obj/item/C, mob/user, list/modifiers)
 	if(!C || !user)
 		return 1
 	if(..())

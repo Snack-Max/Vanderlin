@@ -10,8 +10,11 @@
 /obj/item/reagent_containers/glass/cup/wooden/crafted
 	sellprice = 3
 
-/obj/item/weapon/mace/woodclub/crafted
+/obj/item/weapon/mace/woodclub
 	sellprice = 4
 
 /obj/item/weapon/shield/heater/crafted
 	sellprice = 6
+
+/obj/item/fishingrod/crafted
+	sellprice = 8

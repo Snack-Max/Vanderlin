@@ -87,12 +87,18 @@
 	attunements_to_generate = null
 	negative_attunements = null
 
-	QDEL_NULL(transfer_rates)
-	QDEL_NULL(transfer_caps)
-	QDEL_NULL(transferring_to)
-	QDEL_NULL(transferring_from) // we already have a signal registered, so if we qdel we stop transfers
+	transfer_rates = null
+	transfer_caps = null
+	transferring_to = null
+	transferring_from = null
 
 	STOP_PROCESSING(SSmagic, src)
+
+	if(parent && ismob(parent))
+		var/mob/holder = parent
+		var/datum/hud/human/hud_used = holder.hud_used
+		if(hud_used?.mana)
+			hud_used.mana.icon_state = initial(hud_used.mana.icon_state)
 
 	if (parent.mana_pool != src)
 		stack_trace("[parent].mana_pool was not [src] when src had parent registered!")
@@ -104,14 +110,13 @@
 
 /datum/mana_pool/proc/set_parent(atom/parent)
 	src.parent = parent
-	if(parent)
-		if(ismob(parent))
-			if(parent:hud_used)
-				var/datum/hud/human/hud_used = parent:hud_used
-				if(istype(hud_used))
-					var/filled = round((src.amount / get_softcap()) * 100, 10)
-					filled = min(filled, 120)
-					hud_used.mana.icon_state = "mana[filled]"
+	if(parent && ismob(parent))
+		var/mob/holder = parent
+		var/datum/hud/human/hud_used = holder.hud_used
+		if(hud_used?.mana)
+			var/filled = round((src.amount / get_softcap()) * 100, 10)
+			filled = min(filled, 120)
+			hud_used.mana.icon_state = "mana[filled]"
 
 /datum/mana_pool/proc/mana_status_report(datum/source, list/status_tab)
 	SIGNAL_HANDLER
@@ -189,11 +194,11 @@
 // 1. we recharge
 // 2. we transfer mana
 // 3. we discharge excess mana
-/datum/mana_pool/process(seconds_per_tick)
+/datum/mana_pool/process()
 
 	donation_budget_this_tick = (max_donation_rate_per_second)
 
-	if (ethereal_recharge_rate != 0)
+	if (ethereal_recharge_rate != 0 && (amount < get_softcap()))
 		adjust_mana(ethereal_recharge_rate, attunements_to_generate)
 	if((intrinsic_recharge_sources & MANA_ALL_LEYLINES) && amount < get_softcap())
 		var/list/leylines = list()
@@ -381,14 +386,18 @@
 	var/result = clamp(src.amount + amount, 0, maximum_mana_capacity)
 	. = result - src.amount // Return the amount that was used
 	src.amount = result
+	if(parent && ismob(parent))
+		var/mob/holder = parent
+		SEND_SIGNAL(holder, COMSIG_LIVING_MANA_CHANGED, amount)
+		var/datum/hud/human/hud_used = holder.hud_used
+		if(hud_used?.mana)
+			var/filled = round((src.amount / get_softcap()) * 100, 10)
+			if(filled < 10)
+				return
+			filled = clamp(filled, 0, 120)
+			hud_used.mana.icon_state = "mana[filled]"
 	if(parent)
-		if(ismob(parent))
-			if(parent:hud_used)
-				var/datum/hud/human/hud_used = parent:hud_used
-				if(istype(hud_used))
-					var/filled = round((src.amount / get_softcap()) * 100, 20)
-					filled = min(filled, 120)
-					hud_used.mana.icon_state = "mana[filled]"
+		SEND_SIGNAL(parent, COMSIG_MANA_POOL_ADJUSTED, result - src.amount)
 
 ///this takes a string and adds it to our halters creates the list if it doesn't exist
 /datum/mana_pool/proc/halt_mana_disperse(string)
@@ -455,11 +464,10 @@
 
 /datum/mana_pool/proc/set_max_mana(new_max, change_amount = FALSE, change_softcap = TRUE)
 	var/percent = get_percent_to_max() //originally this was a duplicate redefinition- see change_amount
-	var/softcap_percent = get_percent_of_softcap_to_max()
+	var/softcap_increase = new_max - maximum_mana_capacity
 
 	if (change_softcap)
-		softcap_percent = get_percent_of_softcap_to_max() // originally softcap_percent was defined here
-		softcap = new_max * (softcap_percent / 100)
+		softcap += softcap_increase
 
 	if (change_amount)
 		percent = get_percent_to_max() // this used to be var/percent. why?
@@ -483,7 +491,7 @@
 	if(!istype(L) || !L.mind)
 		return softcap
 
-	var/skill_level = max(1, L.mind.get_skill_level(/datum/skill/magic/arcane))
+	var/skill_level = max(1, GET_MOB_SKILL_VALUE_OLD(L, /datum/attribute/skill/magic/arcane))
 	return softcap + (skill_level * 100)
 
 ///this is how a mana pool responds to backlash for most pools this is just taking damage

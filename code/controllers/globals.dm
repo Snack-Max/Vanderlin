@@ -17,8 +17,11 @@ GLOBAL_REAL(GLOB, /datum/controller/global_vars)
 	// I have an issue report open, lummox has not responded. It might be a FeaTuRE
 	// Sooo we gotta be dumb
 	var/list/controller_vars = exclude_these.vars.Copy()
+	controller_vars["vars"] = null
 	gvars_datum_in_built_vars = controller_vars + list(NAMEOF(src, gvars_datum_protected_varlist), NAMEOF(src, gvars_datum_in_built_vars), NAMEOF(src, gvars_datum_init_order))
-	QDEL_IN(exclude_these, 0)	//signal logging isn't ready
+	//QDEL_IN(exclude_these, 0)	//signal logging isn't ready
+
+	QDEL_NULL(exclude_these)
 
 	log_world("[vars.len - gvars_datum_in_built_vars.len] global variables")
 
@@ -29,11 +32,9 @@ GLOBAL_REAL(GLOB, /datum/controller/global_vars)
 	SHOULD_CALL_PARENT(FALSE)
 	return QDEL_HINT_IWILLGC
 
-/datum/controller/global_vars/stat_entry()
-	if(!statclick)
-		statclick = new/obj/effect/statclick/debug(null, "Initializing...", src)
-
-	stat("Globals:", statclick.update("Edit"))
+/datum/controller/global_vars/stat_entry(msg)
+	msg = "Edit"
+	return msg
 
 /datum/controller/global_vars/vv_edit_var(var_name, var_value)
 	if(gvars_datum_protected_varlist[var_name])

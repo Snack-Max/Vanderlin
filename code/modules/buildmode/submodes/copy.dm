@@ -12,10 +12,9 @@
 	to_chat(c, "<span class='notice'>Right Mouse Button on obj/mob = Select target to copy</span>")
 	to_chat(c, "<span class='notice'>***********************************************************</span>")
 
-/datum/buildmode_mode/copy/handle_click(client/c, params, obj/object)
-	var/list/pa = params2list(params)
-	var/left_click = pa.Find("left")
-	var/right_click = pa.Find("right")
+/datum/buildmode_mode/copy/handle_click(client/c, list/modifiers, obj/object)
+	var/left_click = LAZYACCESS(modifiers, LEFT_CLICK)
+	var/right_click = LAZYACCESS(modifiers, RIGHT_CLICK)
 
 	if(left_click)
 		var/turf/T = get_turf(object)

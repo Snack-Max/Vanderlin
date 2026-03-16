@@ -2,18 +2,17 @@
 	category = CATEGORY_HUMAN
 	weight = WEIGHT_MOB
 
-
 /datum/keybinding/living/can_use(client/user)
 	return isliving(user.mob)
 
 /datum/keybinding/living/swap_left
 	hotkey_keys = list("Q")
-	classic_keys = list("Q") // PAGEUP
 	name = "swap_left"
 	full_name = "Swap to left hand"
 	description = ""
 
 /datum/keybinding/living/swap_left/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -29,12 +28,12 @@
 
 /datum/keybinding/living/swap_right
 	hotkey_keys = list("E")
-	classic_keys = list("E") // PAGEUP
 	name = "swap_right"
 	full_name = "Swap to right hand"
 	description = ""
 
 /datum/keybinding/living/swap_right/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -56,6 +55,7 @@
 	description = ""
 
 /datum/keybinding/living/swap_hands/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -69,9 +69,10 @@
 	classic_keys = list()
 	name = "activate_inhand"
 	full_name = "Activate in-hand"
-	description = "Uses whatever item you have inhand"
+	description = "Uses whatever item you have in-hand"
 
 /datum/keybinding/living/activate_inhand/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -88,6 +89,7 @@
 	description = ""
 
 /datum/keybinding/living/drop_item/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -105,6 +107,7 @@
 	description = "Sprinting can be dangerous to your health if you aren't careful."
 
 /datum/keybinding/living/sprint/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -121,6 +124,7 @@
 	description = "Press this hotkey to sneak around, which has many uses."
 
 /datum/keybinding/living/sneak/down(client/user)
+	. = ..()
 	var/mob/M = user.mob
 	if(!isliving(M))
 		return
@@ -138,6 +142,7 @@
 	description = "Yield to your enemy, which may save your life or end it quicker."
 
 /datum/keybinding/living/submit/down(client/user)
+	. = ..()
 	if(!isliving(user))
 		return
 	var/mob/living/L = user.mob
@@ -153,6 +158,7 @@
 	description = "Stop an action such as a charged attack or spam this to resist against a grab."
 
 /datum/keybinding/living/resist/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!istype(L))
 		return FALSE
@@ -167,6 +173,7 @@
 	description = "Initiates combat mode. Enables certain RMB intents. Allows to dodge and parry."
 
 /datum/keybinding/living/defendtoggle/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!isliving(L))
 		return
@@ -179,6 +186,7 @@
 	description = "Change between dodging and parrying."
 
 /datum/keybinding/living/dodgeparry/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!istype(L))
 		return FALSE
@@ -195,6 +203,7 @@
 	var/lastrest = 0
 
 /datum/keybinding/living/restd/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!istype(L))
 		return FALSE
@@ -213,6 +222,7 @@
 	var/lastrest = 0
 
 /datum/keybinding/living/standu/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!istype(L))
 		return FALSE
@@ -231,6 +241,7 @@
 	var/lastrest = 0
 
 /datum/keybinding/living/rest/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!istype(L))
 		return FALSE
@@ -249,6 +260,7 @@
 	var/lastrest = 0
 
 /datum/keybinding/living/lookup/down(client/user)
+	. = ..()
 	var/mob/living/L = user.mob
 	if(!lastrest || world.time > lastrest + 15)
 		L.look_up()
@@ -264,9 +276,18 @@
 	description = "Use this to pixel shift"
 
 /datum/keybinding/living/pixelshift/down(client/user)
+	. = ..()
 	user.mob.AddComponent(/datum/component/pixel_shift)
 	SEND_SIGNAL(user.mob, COMSIG_KB_LIVING_PIXEL_SHIFT_DOWN)
 
 
 /datum/keybinding/living/pixelshift/up(client/user)
+	. = ..()
 	SEND_SIGNAL(user.mob, COMSIG_KB_LIVING_ITEM_PIXEL_SHIFT_UP)
+
+/datum/keybinding/living/view_pet_data
+	hotkey_keys = list("Shift")
+	name = "view_pet_commands"
+	full_name = "View Pet Commands"
+	description = "Hold down to see all the commands you can give your pets!"
+	keybind_signal = COMSIG_KB_LIVING_VIEW_PET_COMMANDS

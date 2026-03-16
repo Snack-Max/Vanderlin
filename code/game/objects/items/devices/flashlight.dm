@@ -12,7 +12,7 @@
 	light_system = MOVABLE_LIGHT
 	light_outer_range = 4
 	light_power = 1
-	slot_flags = ITEM_SLOT_BELT
+	slot_flags = ITEM_SLOT_HIP
 	possible_item_intents = list(INTENT_GENERIC)
 	var/on = FALSE
 
@@ -29,22 +29,20 @@
 		icon_state = initial(icon_state)
 	set_light_on(on)
 
-/obj/item/flashlight/attack_self(mob/user)
+/obj/item/flashlight/attack_self(mob/user, list/modifiers)
 	on = !on
 	update_brightness(user)
-	for(var/X in actions)
-		var/datum/action/A = X
-		A.UpdateButtonIcon()
+	update_item_action_buttons()
 	return 1
 
 /obj/item/flashlight/suicide_act(mob/living/carbon/human/user)
-	if (user.eye_blind)
+	if (user.is_blind())
 		user.visible_message("<span class='suicide'>[user] is putting [src] close to [user.p_their()] eyes and turning it on... but [user.p_theyre()] blind!</span>")
 		return SHAME
 	user.visible_message("<span class='suicide'>[user] is putting [src] close to [user.p_their()] eyes and turning it on! It looks like [user.p_theyre()] trying to commit suicide!</span>")
 	return (FIRELOSS)
 
-/obj/item/flashlight/attack(mob/living/carbon/M, mob/living/carbon/human/user)
+/obj/item/flashlight/attack(mob/living/carbon/M, mob/living/carbon/human/user, list/modifiers)
 	add_fingerprint(user)
 	return ..()
 
@@ -99,7 +97,7 @@
 	else
 		item_state = "[initial(item_state)]"
 
-/obj/item/flashlight/flare/attack_self(mob/user)
+/obj/item/flashlight/flare/attack_self(mob/user, list/modifiers)
 
 	// Usual checks
 	if(!fuel)
@@ -136,8 +134,8 @@
 	flags_1 = null
 	possible_item_intents = list(/datum/intent/use, /datum/intent/hit)
 	slot_flags = ITEM_SLOT_HIP
-	var/datum/looping_sound/torchloop/soundloop
 	var/should_self_destruct = TRUE //added for torch burnout
+	var/max_uses = 12
 	max_integrity = 40
 	fuel = 30 MINUTES
 	light_depth = 0
@@ -156,10 +154,6 @@
 				return list("shrink" = 0.7,"sx" = -8,"sy" = 4,"nx" = 10,"ny" = 4,"wx" = -7,"wy" = 3,"ex" = 2,"ey" = 6,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0,"nturn" = 2,"sturn" = 2,"wturn" = -2,"eturn" = -2,"nflip" = 0,"sflip" = 8,"wflip" = 8,"eflip" = 0)
 			if("onbelt")
 				return list("shrink" = 0.3,"sx" = -2,"sy" = -5,"nx" = 4,"ny" = -5,"wx" = 0,"wy" = -5,"ex" = 2,"ey" = -5,"nturn" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0)
-
-/obj/item/flashlight/flare/torch/Initialize()
-	. = ..()
-	//soundloop = new(src, FALSE)
 
 /obj/item/flashlight/flare/torch/process()
 	open_flame(heat)
@@ -184,7 +178,7 @@
 					return
 		fuel = max(fuel - 10, 0)
 
-/obj/item/flashlight/flare/torch/attack_self(mob/user)
+/obj/item/flashlight/flare/torch/attack_self(mob/user, list/modifiers)
 
 	// Usual checks
 	if(!fuel)
@@ -198,8 +192,7 @@
 		turn_off()
 
 /obj/item/flashlight/flare/torch/turn_off()
-	playsound(src.loc, 'sound/items/firesnuff.ogg', 50)
-	soundloop?.stop()
+	playsound(src, 'sound/items/firesnuff.ogg', 50)
 	STOP_PROCESSING(SSobj, src)
 	..()
 	if(ismob(loc))
@@ -212,19 +205,18 @@
 	. = ..()
 	if(fuel)
 		if(!on)
-			playsound(src.loc, 'sound/items/firelight.ogg', 100)
+			playsound(src, 'sound/items/firelight.ogg', 100)
 			on = TRUE
 			damtype = BURN
 			update_brightness()
 			force = on_damage
-			//soundloop.start()
 			if(ismob(loc))
 				var/mob/M = loc
 				M.update_inv_hands()
 			START_PROCESSING(SSobj, src)
 			return TRUE
 
-/obj/item/flashlight/flare/torch/afterattack(atom/movable/A, mob/user, proximity)
+/obj/item/flashlight/flare/torch/afterattack(atom/movable/A, mob/user, proximity, list/modifiers)
 	. = ..()
 	if (!proximity)
 		return
@@ -236,7 +228,7 @@
 
 		if (should_self_destruct)  // check if self-destruct
 			times_used += 1
-			if (times_used >= 8) //amount used before burning out
+			if (times_used >= max_uses) //amount used before burning out
 				user.visible_message("<span class='warning'>[src] has burnt out and falls apart!</span>")
 				qdel(src)
 
@@ -259,23 +251,14 @@
 	light_outer_range = 6
 	fuel = 120 MINUTES
 	should_self_destruct = TRUE
+	max_uses = 60
 	metalizer_result = null
+	melting_material = /datum/material/iron
+	melt_amount = 15
 
-/obj/item/flashlight/flare/torch/metal/afterattack(atom/movable/A, mob/user, proximity)
+/obj/item/flashlight/flare/torch/metal/prelit/Initialize()
 	. = ..()
-	if(!proximity)
-		return
-	if(on && (prob(50) || (user.used_intent.type == /datum/intent/use)))
-		if(ismob(A))
-			A.spark_act()
-		else
-			A.fire_act(3,3)
-
-		if (should_self_destruct)  // check if self-destruct
-			times_used += 1
-			if (times_used >= 13) //amount used before burning out
-				user.visible_message("<span class='warning'>[src] has burnt out and falls apart!</span>")
-				qdel(src)
+	spark_act()
 
 /obj/item/flashlight/flare/torch/lantern
 	name = "iron lamptern"
@@ -294,7 +277,7 @@
 	melting_material = /datum/material/iron
 	melt_amount = 75
 
-/obj/item/flashlight/flare/torch/lantern/afterattack(atom/movable/A, mob/user, proximity)
+/obj/item/flashlight/flare/torch/lantern/afterattack(atom/movable/A, mob/user, proximity, list/modifiers)
 	. = ..()
 	if(!proximity)
 		return
@@ -316,7 +299,7 @@
 	if(tag)
 		switch(tag)
 			if("gen")
-				return list("shrink" = 0.4,"sx" = -2,"sy" = -4,"nx" = 9,"ny" = -4,"wx" = -3,"wy" = -4,"ex" = 2,"ey" = -4,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0)
+				return list("shrink" = 0.4,"sx" = -6,"sy" = -4,"nx" = 6,"ny" = -4,"wx" = -2,"wy" = -4,"ex" = 1,"ey" = -4,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0)
 			if("onbelt")
 				return list("shrink" = 0.3,"sx" = -2,"sy" = -5,"nx" = 4,"ny" = -5,"wx" = 0,"wy" = -5,"ex" = 2,"ey" = -5,"nturn" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0)
 
@@ -354,6 +337,6 @@
 	if(tag)
 		switch(tag)
 			if("gen")
-				return list("shrink" = 0.4,"sx" = -2,"sy" = -4,"nx" = 9,"ny" = -4,"wx" = -3,"wy" = -4,"ex" = 2,"ey" = -4,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0)
+				return list("shrink" = 0.4,"sx" = -6,"sy" = -4,"nx" = 6,"ny" = -4,"wx" = -2,"wy" = -4,"ex" = 1,"ey" = -4,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0)
 			if("onbelt")
 				return list("shrink" = 0.3,"sx" = -2,"sy" = -5,"nx" = 4,"ny" = -5,"wx" = 0,"wy" = -5,"ex" = 2,"ey" = -5,"nturn" = 0,"sturn" = 0,"wturn" = 0,"eturn" = 0,"nflip" = 0,"sflip" = 0,"wflip" = 0,"eflip" = 0,"northabove" = 0,"southabove" = 1,"eastabove" = 1,"westabove" = 0)

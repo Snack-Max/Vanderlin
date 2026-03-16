@@ -1,6 +1,6 @@
 /datum/slapcraft_recipe/carpentry
 	abstract_type = /datum/slapcraft_recipe/carpentry
-	skillcraft = /datum/skill/craft/carpentry
+	skillcraft = /datum/attribute/skill/craft/carpentry
 	category = SLAP_CAT_CARPTENTRY
 
 /datum/slapcraft_recipe/carpentry/structure
@@ -9,9 +9,10 @@
 	subcategory = SLAP_SUBCAT_STRUCTURE
 	assembly_weight_class = WEIGHT_CLASS_HUGE
 	craftsound = 'sound/foley/Building-01.ogg'
+	category = "Structure"
 
 /datum/slapcraft_recipe/carpentry/structure/check_craft_requirements(mob/user, turf/T)
-	if(istype(T,/turf/open/transparent/openspace))
+	if(istype(T,/turf/open/openspace))
 		return FALSE
 	if(istype(T, /turf/open/water))
 		return FALSE
@@ -30,7 +31,7 @@
 
 /datum/slapcraft_recipe/masonry
 	abstract_type = /datum/slapcraft_recipe/masonry
-	skillcraft = /datum/skill/craft/masonry
+	skillcraft = /datum/attribute/skill/craft/masonry
 	category = SLAP_CAT_MASONRY
 	assembly_weight_class = WEIGHT_CLASS_HUGE
 
@@ -39,9 +40,10 @@
 	anchor_craft = TRUE
 	subcategory = SLAP_SUBCAT_STRUCTURE
 	craftsound = 'sound/foley/Building-02.ogg'
+	category = "Structure"
 
 /datum/slapcraft_recipe/masonry/structure/check_craft_requirements(mob/user, turf/T)
-	if(istype(T,/turf/open/transparent/openspace))
+	if(istype(T,/turf/open/openspace))
 		return FALSE
 	if(istype(T, /turf/open/water))
 		return FALSE
@@ -59,7 +61,7 @@
 
 /datum/slapcraft_recipe/engineering
 	abstract_type = /datum/slapcraft_recipe/engineering
-	skillcraft =/datum/skill/craft/engineering
+	skillcraft =/datum/attribute/skill/craft/engineering
 	category = SLAP_CAT_ENGINEERING
 	assembly_weight_class = WEIGHT_CLASS_HUGE
 
@@ -68,9 +70,10 @@
 	anchor_craft = TRUE
 	subcategory = SLAP_SUBCAT_STRUCTURE
 	craftsound = 'sound/foley/Building-01.ogg'
+	category = "Structure"
 
 /datum/slapcraft_recipe/engineering/structure/check_craft_requirements(mob/user, turf/T)
-	if(istype(T,/turf/open/transparent/openspace))
+	if(istype(T,/turf/open/openspace))
 		return FALSE
 	if(istype(T, /turf/open/water))
 		return FALSE

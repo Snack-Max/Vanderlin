@@ -1,4 +1,4 @@
-/client/proc/manipulate_organs(mob/living/carbon/C in world)
+/client/proc/manipulate_organs(mob/living/carbon/C as anything in GLOB.carbon_list)
 	set name = "Manipulate Organs"
 	set category = "Debug"
 	var/operation = input("Select organ operation.", "Organ Manipulation", "cancel") as null|anything in list("add organ", "drop organ", "remove organ", "cancel")
@@ -22,8 +22,7 @@
 			message_admins("[key_name_admin(usr)] has added organ [organ.type] to [ADMIN_LOOKUPFLW(C)]")
 
 		if("drop organ", "remove organ")
-			for(var/X in C.internal_organs)
-				var/obj/item/organ/I = X
+			for(var/obj/item/organ/I as anything in C.internal_organs)
 				organs["[I.name] ([I.type])"] = I
 
 			var/obj/item/organ = input("Select organ/implant:", "Organ Manipulation", null) as null|anything in organs

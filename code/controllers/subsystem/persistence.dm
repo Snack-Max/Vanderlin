@@ -13,17 +13,11 @@ SUBSYSTEM_DEF(persistence)
 	var/list/picture_logging_information = list()
 
 /datum/controller/subsystem/persistence/Initialize()
-	LoadPoly()
 	LoadRecentModes()
 	if(CONFIG_GET(flag/use_antag_rep))
 		LoadAntagReputation()
 	LoadRandomizedRecipes()
 	return ..()
-
-/datum/controller/subsystem/persistence/proc/LoadPoly()
-	for(var/mob/living/simple_animal/parrot/Poly/P in GLOB.alive_mob_list)
-		twitterize(P.speech_buffer, "polytalk")
-		break //Who's been duping the bird?!
 
 /datum/controller/subsystem/persistence/proc/LoadRecentModes()
 	var/json_file = file("data/RecentModes.json")
@@ -121,8 +115,7 @@ SUBSYSTEM_DEF(persistence)
 	var/list/file_data = list()
 
 	//asert globchems done
-	for(var/randomized_type in subtypesof(/datum/chemical_reaction/randomized))
-		var/datum/chemical_reaction/randomized/R = randomized_type
+	for(var/datum/chemical_reaction/randomized/R as anything in subtypesof(/datum/chemical_reaction/randomized))
 		R = get_chemical_reaction(initial(R.id)) //ew, would be nice to add some simple tracking
 		if(R && R.persistent && R.id)
 			var/recipe_data = list()
@@ -137,3 +130,5 @@ SUBSYSTEM_DEF(persistence)
 
 	fdel(json_file)
 	WRITE_FILE(json_file, json_encode(file_data))
+
+#undef FILE_ANTAG_REP

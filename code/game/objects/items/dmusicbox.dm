@@ -1,12 +1,13 @@
 
 /datum/looping_sound/dmusloop
 	mid_sounds = list()
-	mid_length = 60
+	mid_length = 2400
 	volume = 100
-	falloff = 2
+	falloff_exponent = 2
 	extra_range = 5
-	var/stress2give = /datum/stressevent/music
+	var/stress2give = /datum/stress_event/music
 	persistent_loop = TRUE
+	sound_group = /datum/sound_group/instruments
 
 /datum/looping_sound/dmusloop/on_hear_sound(mob/M)
 	. = ..()
@@ -17,52 +18,63 @@
 
 /obj/item/dmusicbox
 	name = "dwarven music box"
-	desc = "A renown design of the Dwarven Cult of Malum, bombastic machine with odd musical functions."
+	desc = "A personal device heralding the new era of machine and steam. Dwarven artificers both prize and fear this device for its broad musical range, which notably have made it an object of great value to Baothans' newfound 'Star-Song' rituals."
 	icon = 'icons/roguetown/misc/machines.dmi'
 	icon_state = "mbox0"
-	gripped_intents = list(INTENT_GENERIC)
 	w_class = WEIGHT_CLASS_HUGE
-	twohands_required = TRUE
 	force = 20
 	throwforce = 20
 	throw_range = 2
 	var/datum/looping_sound/dmusloop/soundloop
 	var/curfile
 	var/playing = FALSE
-	var/loaded = TRUE
+	var/loaded = FALSE
 	var/lastfilechange = 0
 	var/curvol = 100
 
 /obj/item/dmusicbox/Initialize()
-	soundloop = new(src, FALSE)
-//	soundloop.start()
-	update_icon()
 	. = ..()
+	soundloop = new(src, FALSE)
+	update_appearance(UPDATE_ICON_STATE)
 
-/obj/item/dmusicbox/update_icon()
+/obj/item/dmusicbox/examine(mob/user)
+	. = ..()
+	. += span_notice("Right click [src] to select a .ogg file. Interact with self to toggle music.")
+
+/obj/item/dmusicbox/Destroy()
+	if(soundloop)
+		QDEL_NULL(soundloop)
+	return ..()
+
+/obj/item/dmusicbox/update_icon_state()
+	. = ..()
 	if(playing)
 		icon_state = "mboxon"
 	else
 		icon_state = "mbox[loaded]"
 
-/obj/item/dmusicbox/attackby(obj/item/P, mob/user, params)
+/obj/item/dmusicbox/attackby(obj/item/P, mob/user, list/modifiers)
 	if(!loaded)
 		if(istype(P, /obj/item/coin/gold))
 			loaded=TRUE
 			qdel(P)
-			update_icon()
-			playsound(loc, 'sound/misc/machinevomit.ogg', 100, TRUE, -1)
+			update_appearance(UPDATE_ICON_STATE)
+			playsound(src, 'sound/misc/machinevomit.ogg', 100, TRUE, -1)
 			return
-	. = ..()
+	return ..()
 
-/obj/item/dmusicbox/rmb_self(mob/user)
-	attack_right(user)
-	return
-
-/obj/item/dmusicbox/attack_right(mob/user)
+/obj/item/dmusicbox/attack_self_secondary(mob/user, list/modifiers)
 	. = ..()
-	if(.)
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
 		return
+	attack_hand_secondary(user, modifiers)
+	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
+
+/obj/item/dmusicbox/attack_hand_secondary(mob/user, list/modifiers)
+	. = ..()
+	if(. == SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN)
+		return
+	. = SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 	if(loc != user)
 		return
 	if(!user.ckey)
@@ -77,7 +89,7 @@
 	if(!loaded)
 		say("A GOLD COIN FOR A CAROL!")
 		return
-	playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+	playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	var/infile = input(user, "CHOOSE A NEW SONG", src) as null|file
 
 	if(!infile)
@@ -101,15 +113,14 @@
 	curfile = file("data/jukeboxuploads/[user.ckey]/[filename]")
 
 	loaded = FALSE
-	update_icon()
+	update_appearance(UPDATE_ICON_STATE)
 
-
-/obj/item/dmusicbox/attack_self(mob/living/user)
+/obj/item/dmusicbox/attack_self(mob/living/user, list/modifiers)
 	. = ..()
 	if(.)
 		return
 	user.changeNext_move(CLICK_CD_MELEE)
-	playsound(loc, 'sound/misc/beep.ogg', 100, FALSE, -1)
+	playsound(src, 'sound/misc/beep.ogg', 100, FALSE, -1)
 	if(!playing)
 		if(curfile)
 			playing = TRUE
@@ -119,4 +130,4 @@
 	else
 		playing = FALSE
 		soundloop.stop()
-	update_icon()
+	update_appearance(UPDATE_ICON_STATE)

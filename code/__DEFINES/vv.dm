@@ -101,6 +101,9 @@
 #define VV_HK_GIVE_CONTROL_TO_PLAYER "Give Control To Player"
 #define VV_HK_OFFER_GHOSTS "offer_ghosts"
 
+// /mob/living
+#define VV_HK_MODIFY_STATS "modstats"
+
 // /mob/living/carbon
 #define VV_HK_MODIFY_BODYPART "mod_bodypart"
 #define VV_HK_MODIFY_ORGANS "organs_modify"
@@ -111,6 +114,8 @@
 // /mob/living/carbon/human
 #define VV_HK_COPY_OUTFIT "copy_outfit"
 #define VV_HK_SET_SPECIES "setspecies"
+#define VV_HK_CORONATE "coronate"
+#define VV_HK_CHANGE_TITLE "change_title"
 
 // misc
 #define VV_HK_SPACEVINE_PURGE "spacevine_purge"

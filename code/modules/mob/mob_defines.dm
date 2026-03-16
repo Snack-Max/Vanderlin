@@ -11,11 +11,12 @@
 	density = TRUE
 	layer = MOB_LAYER
 	animate_movement = SLIDE_STEPS
-	flags_1 = HEAR_1
 	hud_possible = list(ANTAG_HUD)
 	mouse_drag_pointer = MOUSE_ACTIVE_POINTER
 	throwforce = 10
 	vis_flags = VIS_INHERIT_PLANE
+	pass_flags_self = PASSMOB
+	blocks_emissive = EMISSIVE_BLOCK_GENERIC
 
 	//FOV STUFF
 	plane = GAME_PLANE_FOV_HIDDEN
@@ -63,18 +64,6 @@
 	var/next_lmove = null
 	var/used_hand = 1
 
-	/**
-	 * Magic var that stops you moving and interacting with anything
-	 *
-	 * Set when you're being turned into something else and also used in a bunch of places
-	 * it probably shouldn't really be
-	 */
-	var/notransform = null	//Carbon
-
-	/// Is the mob blind
-	var/eye_blind = 0		//Carbon
-	/// Does the mob have blurry sight
-	var/eye_blurry = 0		//Carbon
 	/// What is the mobs real name (name is overridden for disguises etc)
 	var/real_name = null
 
@@ -92,12 +81,6 @@
 
 	/// Default body temperature
 	var/bodytemperature = BODYTEMP_NORMAL	//310.15K / 98.6F
-	/// Drowsyness level of the mob
-	var/drowsyness = 0//Carbon
-	/// Dizziness level of the mob
-	var/dizziness = 0//Carbon
-	/// Jitteryness level of the mob
-	var/jitteriness = 0//Carbon
 	/// Hunger level of the mob
 	var/nutrition = NUTRITION_LEVEL_START_MIN // randomised in Initialize
 	var/hydration = HYDRATION_LEVEL_START_MIN
@@ -106,6 +89,11 @@
 
 	/// How many ticks this mob has been over reating
 	var/overeatduration = 0		// How long this guy is overeating //Carbon
+
+	/// Skill holder
+	var/datum/attribute_holder/attributes = /datum/attribute_holder
+	/// Extra effort that can be spent on efforts
+	var/extra_effort = 0
 
 	/// The current intent of the mob
 	var/uses_intents = TRUE
@@ -121,12 +109,12 @@
 	var/list/possible_a_intents = list()//Living
 	var/list/possible_offhand_intents = list()//Living
 	var/list/possible_rmb_intents = list()
-	var/list/base_intents = list() //bare hand intents
+	var/list/base_intents = list(INTENT_HARM) //bare hand intents
 	var/l_index = 1
 	var/r_index = 1
 	var/r_ua_index = 1
 	var/l_ua_index = 1
-	var/oactive = FALSE //offhand active
+
 	/// The movement intent of the mob (run/wal)
 	var/m_intent = MOVE_INTENT_WALK//Living
 
@@ -140,7 +128,7 @@
 
 	//Hands
 	///What hand is the active hand
-	var/active_hand_index = 1
+	var/active_hand_index = 2
 	/**
 	 * list of items held in hands
 	 *
@@ -168,22 +156,13 @@
 
 	/// What job does this mob have
 	var/job = null//Living
-	var/migrant_type = null
+	var/datum/job/job_type
 
 	/// A list of factions that this mob is currently in, for hostile mob targetting, amongst other things
 	var/list/faction = list(FACTION_NEUTRAL)
 
 	///The last mob/living/carbon to push/drag/grab this mob (exclusively used by slimes friend recognition)
 	var/mob/living/carbon/LAssailant = null
-
-	/**
-	 * construct spells and mime spells.
-	 *
-	 * Spells that do not transfer from one mob to another and can not be lost in mindswap.
-	 * obviously do not live in the mind
-	 */
-	var/list/mob_spell_list = list()
-
 
 	/// bitflags defining which status effects can be inflicted (replaces canknockdown, canstun, etc)
 	var/status_flags = CANSTUN|CANKNOCKDOWN|CANUNCONSCIOUS|CANPUSH|CANSLOWDOWN
@@ -276,10 +255,10 @@
 
 	var/mobid = 0 //incremented on spawn
 
-	var/cmode = 0
+	/// Combat Mode
+	var/cmode = FALSE
 	var/d_intent = INTENT_DODGE
 	var/islatejoin = FALSE
-	var/obj/effect/proc_holder/ranged_ability //Any ranged ability the mob has, as a click override
 
 	var/list/mob_timers = list()
 
@@ -288,3 +267,33 @@
 	var/sprinted_tiles = 0
 	///how many tiles we can move while casting
 	var/cast_move = 0
+
+	/// pronouns of the mob, set in the character sheet.
+	var/pronouns = null
+
+	/// Weakref to the item we are offering
+	var/datum/weakref/offered_item_ref
+
+	/// A ref of the area we're taking our ambient loop from.
+	var/area/ambience_tracked_area
+
+	var/obj/effect/spell_rune/spell_rune
+	var/datum/intent/curplaying
+	var/accent = ACCENT_DEFAULT
+	var/cmode_timer
+	var/monitor_key
+
+	var/last_aimhchange = 0
+	var/aimheight = 11
+	var/cmode_music = 'sound/music/cmode/combat.ogg'
+
+	/// new title given by an admin.
+	var/admin_title = null
+
+	VAR_PROTECTED/base_strength = 10
+	VAR_PROTECTED/base_perception = 10
+	VAR_PROTECTED/base_endurance = 10
+	VAR_PROTECTED/base_constitution = 10
+	VAR_PROTECTED/base_intelligence = 10
+	VAR_PROTECTED/base_speed = 10
+	VAR_PROTECTED/base_fortune = 10

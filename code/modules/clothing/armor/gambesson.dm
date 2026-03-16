@@ -21,6 +21,8 @@
 	body_parts_covered = COVERAGE_FULL
 	prevent_crits = ALL_EXCEPT_CHOP_AND_STAB
 
+	material_category = ARMOR_MAT_FABRIC
+
 /obj/item/clothing/armor/gambeson/light
 	name = "light gambeson"
 	desc = "Thin and the maker skimped on the padding, typically worn by the peasantry to give some protection against cold for the whole body."
@@ -31,6 +33,17 @@
 	armor = ARMOR_PADDED_BAD
 	prevent_crits = MINOR_CRITICALS
 
+/obj/item/clothing/armor/gambeson/light/steppe
+	name = "steppe robes"
+	desc = "Loose wind resistant robes worn by nomads of the steppes, designed for comfort and protection in harsh climates."
+	icon_state = "chargah"
+
+/obj/item/clothing/armor/gambeson/light/colored
+	misc_flags = CRAFTING_TEST_EXCLUDE
+
+/obj/item/clothing/armor/gambeson/light/colored/black
+	color = CLOTHING_SOOT_BLACK
+
 /obj/item/clothing/armor/gambeson/heavy
 	name = "padded gambeson"
 	desc = "Thick, padded, this will help a little even against arrows. A wise man carried steel as well, but it will do in a pinch."
@@ -39,6 +52,22 @@
 
 	armor = ARMOR_PADDED_GOOD
 
+/obj/item/clothing/armor/gambeson/heavy/colored
+	misc_flags = CRAFTING_TEST_EXCLUDE
+
+/obj/item/clothing/armor/gambeson/heavy/colored/dark
+	color = CLOTHING_DARK_INK
+
+/obj/item/clothing/armor/gambeson/heavy/lakkarijupon
+	name = "robed jupon"
+	desc = "A thick, quilted jupon with an iron heart protector. It's great for the southern desert's heat and northern tundra's cold."
+	icon_state = "lakkarijupon"
+	max_integrity = INTEGRITY_STRONG
+	r_sleeve_status = SLEEVE_NORMAL
+	l_sleeve_status = SLEEVE_NORMAL
+	sewrepair = TRUE
+
+	armor = ARMOR_PADDED_GOOD
 
 /obj/item/clothing/armor/gambeson/apothecary
 	name = "apothecary overcoat"
@@ -54,20 +83,32 @@
 	sleeved = 'icons/roguetown/clothing/special/onmob/steward.dmi'
 	icon_state = "stewardtailcoat"
 	item_state = "stewardtailcoat"
-	armor = ARMOR_PADDED_GOOD
+	armor = ARMOR_PADDED
 	icon = 'icons/roguetown/clothing/special/steward.dmi'
 	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/steward.dmi'
 
-/obj/item/clothing/armor/gambeson/heavy/dark
-	color = CLOTHING_DARK_INK
+/obj/item/clothing/armor/gambeson/hand
+	name = "noble undercoat"
+	desc = "A thick undercoat with polished golden buttons."
+	sleeved = 'icons/roguetown/clothing/special/onmob/hand.dmi'
+	icon_state = "handgambeson"
+	item_state = "handgambeson"
+	armor = ARMOR_PADDED_GOOD
+	icon = 'icons/roguetown/clothing/special/hand.dmi'
+	mob_overlay_icon = 'icons/roguetown/clothing/special/onmob/hand.dmi'
+	detail_tag = "_detail"
+	detail_color = CLOTHING_BERRY_BLUE
 
+/obj/item/clothing/armor/gambeson/hand/spy
+	detail_color = CLOTHING_ROYAL_PURPLE
+	misc_flags = CRAFTING_TEST_EXCLUDE
 
 //................ Padded Dress ............... //
 /obj/item/clothing/armor/gambeson/heavy/dress
 	name = "padded dress"
 	desc = "Favored by the female nobility, to maintain both vitality and good taste while out hunting."
 	icon_state = "armordress"
-	allowed_race = list("human", "tiefling", "elf", "aasimar")
+	allowed_race = SPECIES_BASE_BODY
 	r_sleeve_status = SLEEVE_NORMAL
 	l_sleeve_status = SLEEVE_NORMAL
 	sellprice = VALUE_PADDED_DRESS
@@ -92,41 +133,16 @@
 	r_sleeve_status = SLEEVE_NORMAL
 	l_sleeve_status = SLEEVE_NORMAL
 	slot_flags = ITEM_SLOT_ARMOR|ITEM_SLOT_SHIRT
-
-/obj/item/clothing/armor/gambeson/heavy/winterdress/update_icon()
-	cut_overlays()
-	if(get_detail_tag())
-		var/mutable_appearance/pic = mutable_appearance(icon(icon, "[icon_state][detail_tag]"))
-		pic.appearance_flags = RESET_COLOR
-		if(get_detail_color())
-			pic.color = get_detail_color()
-		add_overlay(pic)
-
-/obj/item/clothing/armor/gambeson/heavy/winterdress/lordcolor(primary,secondary)
-	detail_color = primary
-	update_icon()
-
-/obj/item/clothing/armor/gambeson/heavy/winterdress/Initialize()
-	. = ..()
-	if(GLOB.lordprimary)
-		lordcolor(GLOB.lordprimary,GLOB.lordsecondary)
-	else
-		GLOB.lordcolor += src
-
-/obj/item/clothing/armor/gambeson/heavy/winterdress/Destroy()
-	GLOB.lordcolor -= src
-	return ..()
-
+	uses_lord_coloring = LORD_PRIMARY
 
 //................ Arming Jacket ............... //
 /obj/item/clothing/armor/gambeson/arming
 	name = "arming jacket"
-	desc = "Thick quilted cloth, a gambesson for the discerning knight. it is meant to be used under heavier armor."
+	desc = "Thick quilted cloth, a gambeson for the discerning knight. it is meant to be used under heavier armor."
 	icon_state = "arming"
 	sellprice = VALUE_GAMBESSON+BONUS_VALUE_MODEST
 
 	body_parts_covered =  COVERAGE_ALL_BUT_LEGS
-
 
 //................ Stalker Robe ............... //
 /obj/item/clothing/armor/gambeson/shadowrobe
@@ -150,4 +166,13 @@
 
 /obj/item/clothing/armor/gambeson/light/striped/Initialize()
 	color = pick(CLOTHING_SALMON, CLOTHING_BERRY_BLUE, CLOTHING_SPRING_GREEN, CLOTHING_PEAR_YELLOW)
-	..()
+	return ..()
+
+/obj/item/clothing/armor/gambeson/heavy/inq
+	name = "inquisitorial leather tunic"
+	desc = "The finest leather tunic. Made to ENDURE, Made to Inquire, come heretic or hellfire."
+	icon_state = "leathertunic"
+	color = null
+	prevent_crits = list(BCLASS_CUT, BCLASS_BLUNT, BCLASS_CHOP)
+	armor = ARMOR_PADDED
+	body_parts_covered = COVERAGE_ALL_BUT_LEGS

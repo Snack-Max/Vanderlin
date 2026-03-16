@@ -11,7 +11,30 @@
 #define STAMINA 	"stamina"
 #define BRAIN		"brain"
 
-#define MELEE_TYPES list("blunt", "slash", "stab")
+//Damage flag defines //
+// STRING HERE NEEDS TO EXACTLY MATCH VAR NAME IN /datum/armor
+/// better defined as area pressure melee
+#define BLUNT "blunt"
+/// better defined as line pressure melee
+#define SLASH "slash"
+/// better defined as point pressure melee
+#define STAB "stab"
+/// basically projectiles
+#define PIERCE "piercing"
+/// protection against burning
+#define FIRE "fire"
+/// protection against pools of acid
+#define ACID "acid"
+/// protection against magical attacks (make this adjustable via rune enchantments or something)
+#define MAGIC "magic"
+
+/// Armor values that are used for damage
+#define ARMOR_LIST_DAMAGE(...) list(BLUNT, SLASH, STAB, PIERCE)
+
+/// All armors, preferable in the order as seen above
+#define ARMOR_LIST_ALL(...) list(BLUNT, SLASH, STAB, PIERCE, FIRE, ACID, MAGIC)
+
+#define MELEE_TYPES list(BLUNT, SLASH, STAB)
 
 //bitflag damage defines used for suicide_act
 #define BRUTELOSS 	            	(1<<0)
@@ -30,8 +53,6 @@
 #define EFFECT_IRRADIATE	"irradiate"
 #define EFFECT_STUTTER		"stutter"
 #define EFFECT_SLUR 		"slur"
-#define EFFECT_EYE_BLUR		"eye_blur"
-#define EFFECT_DROWSY		"drowsy"
 #define EFFECT_JITTER		"jitter"
 
 //Bitflags defining which status effects could be or are inflicted on a mob
@@ -50,6 +71,8 @@
 #define HEALTH_THRESHOLD_NEARDEATH -90 //Not used mechanically, but to determine if someone is so close to death they hear the other side
 
 #define DAMAGE_THRESHOLD_FIRE_CRIT 150
+
+#define HALFWAYCRITDEATH ((HEALTH_THRESHOLD_CRIT + HEALTH_THRESHOLD_DEAD) * 0.5)
 
 //Actual combat defines
 
@@ -76,7 +99,7 @@
 #define GRAB_KILL					3
 
 //Grab breakout odds
-#define BASE_GRAB_RESIST_CHANCE 	45
+#define BASE_GRAB_RESIST_CHANCE 	25
 
 //slowdown when in softcrit. Note that crawling slowdown will also apply at the same time!
 #define SOFTCRIT_ADD_SLOWDOWN 1
@@ -132,62 +155,147 @@
 
 //Weapon intents
 #define SWORD_CUT		 /datum/intent/sword/cut
-#define SWORD_THRUST	 /datum/intent/sword/thrust
-#define SWORD_CHOP		 /datum/intent/sword/chop //2h swords only
-#define SWORD_STRIKE	 /datum/intent/sword/strike //mordhau grip
+#define SHORT_CUT		 /datum/intent/sword/cut/short
+#define SWDLONG_CUT		 /datum/intent/sword/cut/long
+#define ZWEI_CUT		 /datum/intent/sword/cut/zwei
+#define RAPIER_CUT		 /datum/intent/sword/cut/rapier
 
-#define ELFSWORD_CUT		/datum/intent/sword/cut/elf
-#define ELFSWORD_THRUST		/datum/intent/sword/thrust/elf
+#define SWORD_THRUST	 /datum/intent/sword/thrust
+#define SHORT_THRUST	 /datum/intent/sword/thrust/short
+#define SWDLONG_THRUST	 /datum/intent/sword/thrust/long
+#define CURVED_THRUST	 /datum/intent/sword/thrust/curved
+#define ZWEI_THRUST		 /datum/intent/sword/thrust/zwei
+#define RAPIER_THRUST	 /datum/intent/sword/thrust/rapier
+
+#define SWORD_CHOP		 /datum/intent/sword/chop //2h swords only
+#define SWDLONG_CHOP	 /datum/intent/sword/chop/long
+#define SHOTEL_CHOP		 /datum/intent/sword/chop/long/shotel
+
+#define SWORD_STRIKE	 /datum/intent/sword/strike //mordhau grip
+#define SWORD_DISARM	 /datum/intent/sword/disarm
+#define POMMEL_BASH		 /datum/intent/sword/bash
+
+#define PRECISION_CUT	 /datum/intent/katana/precision_cut
+#define KATANA_CUT		 /datum/intent/katana/cut
+#define KATANA_ARC		 /datum/intent/katana/arc
+#define KATANA_ONEHAND	 /datum/intent/katana/cut/one_hand_cut
+
+#define ESTOC_LUNGE 	 /datum/intent/sword/lunge
+#define ESTOC_THRUST	 /datum/intent/sword/thrust/estoc
 
 #define AXE_CUT				/datum/intent/axe/cut
-#define AXE_CHOP			/datum/intent/axe/chop
+#define GREATAXE_CUT		/datum/intent/axe/cut/greataxe
+#define DBLGREATAXE_CUT		/datum/intent/axe/cut/greataxe/doublehead
 
-#define SPEAR_THRUST		/datum/intent/polearm/thrust/spear
-#define POLEARM_BASH			/datum/intent/polearm/bash
-#define SPEAR_CUT			/datum/intent/polearm/cut
+#define AXE_THRUST			/datum/intent/axe/thrust
+
+#define AXE_CHOP			/datum/intent/axe/chop
+#define AXE_GRTCHOP			/datum/intent/axe/chop/great //For polearm axes
+#define GREATAXE_CHOP		/datum/intent/axe/chop/greataxe
+#define DBLGREATAXE_CHOP	/datum/intent/axe/chop/greataxe/doublehead
 
 #define POLEARM_THRUST		/datum/intent/polearm/thrust
+#define SPEAR_THRUST		/datum/intent/polearm/thrust/spear
+#define POLEARM_BASH		/datum/intent/polearm/bash
+#define POLEARM_CHOP		/datum/intent/polearm/chop
+#define SPEAR_CUT			/datum/intent/polearm/cut
 
-#define MESSER_CHOP			/datum/intent/sword/chop/messer
+#define NAGI_CUT			/datum/intent/polearm/cut/naginata
+#define NAGI_REND			/datum/intent/rend/reach
 
-#define OHAXE_STRIKE		/datum/intent/axe/cut/dwarf
-#define OHAXE_THRUST		/datum/intent/axe/thrust/dwarf
-#define OHAXE_SMASH			/datum/intent/axe/smash/dwarf
-#define OHAXE_CHOP			/datum/intent/axe/chop/dwarf
-
-#define BIGSWORD_CHOP		/datum/intent/sword/chop/bigsword
-#define BIGSWORD_CUT		/datum/intent/sword/cut/bigsword
+#define GUTS_CUT			/datum/intent/sword/cut/guts
+#define GUTS_THRUST			/datum/intent/sword/thrust/guts
+#define GUTS_STRIKE			/datum/intent/sword/strike/guts
+#define GUTS_CHOP			/datum/intent/sword/chop/long/guts
 
 #define MACE_SMASH			/datum/intent/mace/smash
+#define MACE_HVYSMASH		/datum/intent/mace/smash/heavy
+#define MACE_WOODSMASH		/datum/intent/mace/smash/wood
+
 #define MACE_STRIKE			/datum/intent/mace/strike
+#define MACE_WDSTRIKE		/datum/intent/mace/strike/wood
+#define MACE_HVYSTRIKE		/datum/intent/mace/strike/heavy
+#define SHOVEL_STRIKE		/datum/intent/mace/strike/shovel
+
+#define MACE_THRUST			/datum/intent/mace/thrust
+#define WARHM_THRUST		/datum/intent/mace/warhammer/stab
+#define WARHM_IMPALE		/datum/intent/mace/warhammer/impale
+
+#define FLAIL_STRIKE		/datum/intent/flail/strike
+#define FLAIL_LNGSTRIKE		/datum/intent/flail/strike/long
+#define FLAIL_SMASH			/datum/intent/flail/strike/smash
+#define FLAIL_LNGSMASH		/datum/intent/flail/strike/smash/long
+#define MATTHIOS_STRIKE		/datum/intent/flail/strike/matthiosflail
+#define MATTHIOS_SMASH		/datum/intent/flail/strike/smash/matthiosflail
+
+#define WHIP_CRACK			/datum/intent/whip/crack
+#define WHIP_STRIKE			/datum/intent/whip
+#define WHIP_MTLCRACK		/datum/intent/whip/crack/metal
+#define WHIP_CUT			/datum/intent/whip/cut
+#define WHIP_LASH			/datum/intent/whip/lash
+#define WHIP_MTLLASH		/datum/intent/whip/lash/metal
+#define CANE_LASH			/datum/intent/whip/lash/cane
 
 #define DAGGER_CUT			/datum/intent/dagger/cut
 #define DAGGER_THRUST		/datum/intent/dagger/thrust
-#define ICEPICK_STAB		/datum/intent/dagger/icepick
+#define DAGGER_CHOP			/datum/intent/dagger/chop
+#define CLEAVER_CHOP		/datum/intent/dagger/chop/cleaver
+#define SCISSOR_SNIP		/datum/intent/snip
+#define FACE_STEAL			/datum/intent/peculate
+#define STILETTO_CUT		/datum/intent/dagger/cut/stiletto
+#define STILETTO_THRUST		/datum/intent/dagger/thrust/stiletto
 
-#define MAUL_SMASH			/datum/intent/maul/smash
-#define MAUL_STRIKE			/datum/intent/maul/strike
+#define KNUCKLE_STRIKE		/datum/intent/knuckles/strike
+#define KNUCKLE_SMASH		/datum/intent/knuckles/smash
+#define KATAR_CUT			/datum/intent/katar/cut
+#define KATAR_THRUST		/datum/intent/katar/thrust
+
+#define NEANT_SHOOT			/datum/intent/shoot/neant
+#define PLEX_BLINK			/datum/intent/plex_dash
+#define DAZE_BASH			/datum/intent/effect/daze
 
 #define INTENT_FEED			/datum/intent/food
 
 #define DUMP_INTENT			/datum/intent/pforkdump
 #define TILL_INTENT			/datum/intent/till
+#define PICK_INTENT			/datum/intent/pick
+#define FLAIL_THRESH		/datum/intent/flailthresh
+#define SHOVEL_IRRIGATE		/datum/intent/irrigate
+#define SHOVEL_SCOOP		/datum/intent/shovelscoop
 
 #define ROD_CAST			/datum/intent/cast
 #define ROD_AUTO			/datum/intent/auto
 #define ROD_REEL			/datum/intent/reel
 
+#define INTENT_FILL			/datum/intent/fill
 #define INTENT_SPLASH		/datum/intent/splash
 #define INTENT_POUR			/datum/intent/pour
 
-//Intent blade class for dismember class
+#define INTENT_SOAK			/datum/intent/soak
+#define INTENT_WRING		/datum/intent/wring
+
+#define INTENT_USE			/datum/intent/use
+
+#define SHIELD_BASH			/datum/intent/shield/bash
+#define METAL_BASH			/datum/intent/shield/bash/metal
+#define SHIELD_BLOCK		/datum/intent/shield/block
+#define METAL_BLOCK			/datum/intent/shield/block/metal
+
+// animation types
+#define ATTACK_ANIMATION_BONK "bonk"
+#define ATTACK_ANIMATION_SWIPE "swipe"
+#define ATTACK_ANIMATION_THRUST "thrust"
+
+//Intent blade class for dismember class, if you add more here - you need to update the lists get_attack_animation_type() uses
 #define BCLASS_BLUNT		"blunt"
 #define BCLASS_SMASH		"smashing"
+#define BCLASS_DRILL		"drilling"
 #define BCLASS_CUT			"slash"
 #define BCLASS_CHOP			"chopping"
-#define BCLASS_STAB			"stabbing"
+#define BCLASS_STAB			"stab"
+#define BCLASS_PIERCE		"pierce"
 #define BCLASS_SHOT			"shot"
-#define BCLASS_PICK			"stab"
+#define BCLASS_PICK			"pick"
 #define BCLASS_TWIST		"twist"
 #define BCLASS_PUNCH		"punch"
 #define BCLASS_BITE			"bite"
@@ -206,12 +314,19 @@
 #define WLENGTH_LONG		3		//can attack chest and down from the ground. dont need to grab. swords 2h axes
 #define WLENGTH_GREAT		4		//can attack any bodypart from ground. think spears
 
+//Weapon Durability and Sharpness
+#define INTEG_PARRY_DECAY				1 //Integrity loss on parry
+#define INTEG_PARRY_DECAY_NOSHARP		5 //Integrity decay on parry for weapons with no sharpness OR for off-hand parries
+#define SHARPNESS_ONHIT_DECAY			3 //Sharpness loss on parry
+#define SHARPNESS_TIER1_THRESHOLD		0.8 // %-age threshold when damage starts to fall off, your damfactor and STR factor
+#define SHARPNESS_TIER2_THRESHOLD		0.25 // %-age threshold when damage really falls off, base damage of the weapon included.
+
 //attacktype
 #define DULLING_CUT 1
 #define DULLING_BASH 2
 #define DULLING_BASHCHOP 3
 #define DULLING_PICK 4 //rockwalls
-#define DULLING_FLOOR 5 //floors, only attacked by overhead smash and chop intents like from 2hammers
+// #define DULLING_FLOOR 5 //floors, only attacked by overhead smash and chop intents like from 2hammers
 //see get_complex_damage()
 
 //NOTE: INTENT_HOTKEY_* defines are not actual intents!
@@ -325,8 +440,30 @@ GLOBAL_LIST_INIT(shove_disarming_types, typecacheof(list(
 #define DAMAGE_PRECISION 0.1
 
 //bullet_act() return values
-#define BULLET_ACT_HIT				"HIT"		//It's a successful hit, whatever that means in the context of the thing it's hitting.
-#define BULLET_ACT_BLOCK			"BLOCK"		//It's a blocked hit, whatever that means in the context of the thing it's hitting.
-#define BULLET_ACT_FORCE_PIERCE		"PIERCE"	//It pierces through the object regardless of the bullet being piercing by default.
-#define BULLET_ACT_TURF				"TURF"		//It hit us but it should hit something on the same turf too. Usually used for turfs.
-#define BULLET_ACT_MISS				"MISS"
+/// It's a successful hit, whatever that means in the context of the thing it's hitting.
+#define BULLET_ACT_HIT "HIT"
+// /It's a blocked hit, whatever that means in the context of the thing it's hitting.
+#define BULLET_ACT_BLOCK "BLOCK"
+/// It pierces through the object regardless of the bullet being piercing by default.
+#define BULLET_ACT_FORCE_PIERCE		"PIERCE"
+
+/// Alternate attack defines. Return these at the end of procs like afterattack_secondary.
+/// Calls the normal attack proc. For example, if returned in afterattack_secondary, will call afterattack.
+/// Will continue the chain depending on the return value of the non-alternate proc, like with normal attacks.
+#define SECONDARY_ATTACK_CALL_NORMAL 1
+
+/// Cancels the attack chain entirely.
+#define SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN 2
+
+/// Proceed with the attack chain, but don't call the normal methods.
+#define SECONDARY_ATTACK_CONTINUE_CHAIN 3
+
+/// If a carbon is thrown at a speed faster than normal and impacts something solid, they take extra damage for every extra speed up to this number (see [/mob/living/carbon/proc/throw_impact])
+#define CARBON_MAX_IMPACT_SPEED_BONUS 5
+
+/// Default penalty for parrying dicerolls, normally lasts PARRYING_PENALTY_COOLDOWN_DURATION
+#define PARRYING_PENALTY 2
+/// Default penalty for dodging dicerolls, normally lasts DODGING_PENALTY_COOLDOWN_DURATION
+#define DODGING_PENALTY 1
+/// A define so the cooldown on the baited status and the duration of the baitcd status are the same
+#define BAIT_COOLDOWN_TIME 15 SECONDS

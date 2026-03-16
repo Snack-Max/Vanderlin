@@ -1,0 +1,367 @@
+//MAP CONVERTED BY dmm2tgm.py THIS HEADER COMMENT PREVENTS RECONVERSION, DO NOT REMOVE
+"d" = (
+/obj/effect/dungeon_directional_helper/east,
+/turf/open/floor/dirt/road,
+/area/under/tomb/wilds/ambush)
+"f" = (
+/turf/closed/mineral/bedrock,
+/area/under/tomb/wilds/ambush)
+"g" = (
+/obj/effect/spawner/map_spawner/treeorbush,
+/obj/structure/flora/tree/evil,
+/turf/open/floor/dirt,
+/area/under/tomb/wilds/ambush)
+"j" = (
+/turf/closed/mineral/bedrock,
+/area/under/tomb/wilds)
+"l" = (
+/turf/open/floor/dirt/ambush,
+/area/under/tomb/wilds/ambush)
+"n" = (
+/turf/open/floor/naturalstone,
+/area/under/tomb/wilds)
+"t" = (
+/obj/structure/flora/newtree,
+/turf/open/floor/dirt/ambush,
+/area/under/tomb/wilds/ambush)
+"v" = (
+/obj/effect/spawner/map_spawner/treeorbush,
+/obj/effect/spawner/map_spawner/treeorbush,
+/turf/open/floor/dirt,
+/area/under/tomb/wilds/ambush)
+"B" = (
+/obj/structure/flora/newtree,
+/turf/open/floor/dirt,
+/area/under/tomb/wilds/ambush)
+"D" = (
+/obj/effect/spawner/map_spawner/treeorbush,
+/turf/open/floor/dirt/ambush,
+/area/under/tomb/wilds/ambush)
+"H" = (
+/turf/open/floor/dirt/road,
+/area/under/tomb/wilds/ambush)
+"J" = (
+/obj/effect/landmark/ambush,
+/turf/open/floor/dirt/road,
+/area/under/tomb/wilds/ambush)
+"N" = (
+/obj/effect/dungeon_directional_helper/west,
+/turf/open/floor/dirt/road,
+/area/under/tomb/wilds/ambush)
+"O" = (
+/obj/effect/spawner/map_spawner/treeorbush,
+/obj/structure/flora/tree/wise{
+	desc = "You must be exactlyh 25 years old to play this game.";
+	name = "Woody"
+	},
+/turf/open/floor/dirt,
+/area/under/tomb/wilds/ambush)
+"R" = (
+/turf/open/openspace,
+/area/under/tomb/wilds)
+"X" = (
+/obj/effect/spawner/map_spawner/treeorbush,
+/turf/open/floor/dirt,
+/area/under/tomb/wilds/ambush)
+
+(1,1,1) = {"
+f
+H
+H
+N
+H
+H
+H
+f
+"}
+(2,1,1) = {"
+f
+X
+X
+B
+X
+B
+H
+f
+"}
+(3,1,1) = {"
+f
+X
+X
+X
+X
+D
+H
+f
+"}
+(4,1,1) = {"
+f
+X
+H
+H
+l
+H
+H
+f
+"}
+(5,1,1) = {"
+f
+X
+J
+B
+X
+B
+X
+f
+"}
+(6,1,1) = {"
+f
+O
+H
+l
+X
+X
+X
+f
+"}
+(7,1,1) = {"
+f
+B
+H
+H
+H
+H
+X
+f
+"}
+(8,1,1) = {"
+f
+X
+X
+X
+B
+J
+X
+f
+"}
+(9,1,1) = {"
+f
+H
+H
+H
+H
+H
+X
+f
+"}
+(10,1,1) = {"
+f
+H
+v
+v
+X
+t
+X
+f
+"}
+(11,1,1) = {"
+f
+J
+B
+X
+H
+H
+H
+f
+"}
+(12,1,1) = {"
+f
+H
+H
+H
+H
+B
+H
+f
+"}
+(13,1,1) = {"
+f
+X
+X
+X
+X
+g
+H
+f
+"}
+(14,1,1) = {"
+f
+X
+B
+X
+X
+X
+H
+f
+"}
+(15,1,1) = {"
+f
+H
+H
+d
+H
+H
+H
+f
+"}
+
+(1,1,2) = {"
+j
+n
+n
+n
+n
+n
+n
+j
+"}
+(2,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(3,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(4,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(5,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(6,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(7,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(8,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(9,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(10,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(11,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(12,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(13,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(14,1,2) = {"
+j
+R
+R
+R
+R
+R
+R
+j
+"}
+(15,1,2) = {"
+j
+n
+n
+n
+n
+n
+n
+j
+"}

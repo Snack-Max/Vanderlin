@@ -9,11 +9,10 @@
 	mob_biotypes = MOB_ORGANIC|MOB_HUMANOID
 	robust_searching = 1
 	speak_chance = 5
-	turns_per_move = 1
 	move_to_delay = 1
-	TOTALCON = 9
-	TOTALSTR = 14
-	TOTALSPD = 13
+	base_constitution = 9
+	base_strength = 14
+	base_speed = 13
 	maxHealth = 200
 	health = 200
 	harm_intent_damage = 15
@@ -38,11 +37,11 @@
 	faction = list(FACTION_ORCS)
 	footstep_type = FOOTSTEP_MOB_BAREFOOT
 	del_on_death = TRUE
-
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
 	ai_controller = /datum/ai_controller/orc
 
+/mob/living/simple_animal/hostile/orc/Initialize()
+	. = ..()
+	AddComponent(/datum/component/ai_aggro_system)
 
 /mob/living/simple_animal/hostile/orc/orc2
 	icon_state = "savageorc2"
@@ -132,49 +131,9 @@
 
 /mob/living/simple_animal/hostile/orc/taunted(mob/user)
 	emote("aggro")
-	GiveTarget(user)
 	return
 
 /mob/living/simple_animal/hostile/orc/simple_limb_hit(zone)
-	if(!zone)
-		return ""
-	switch(zone)
-		if(BODY_ZONE_PRECISE_R_EYE)
-			return "head"
-		if(BODY_ZONE_PRECISE_L_EYE)
-			return "head"
-		if(BODY_ZONE_PRECISE_NOSE)
-			return "nose"
-		if(BODY_ZONE_PRECISE_MOUTH)
-			return "mouth"
-		if(BODY_ZONE_PRECISE_SKULL)
-			return "head"
-		if(BODY_ZONE_PRECISE_EARS)
-			return "head"
-		if(BODY_ZONE_PRECISE_NECK)
-			return "neck"
-		if(BODY_ZONE_PRECISE_L_HAND)
-			return "foreleg"
-		if(BODY_ZONE_PRECISE_R_HAND)
-			return "foreleg"
-		if(BODY_ZONE_PRECISE_L_FOOT)
-			return "leg"
-		if(BODY_ZONE_PRECISE_R_FOOT)
-			return "leg"
-		if(BODY_ZONE_PRECISE_STOMACH)
-			return "stomach"
-		if(BODY_ZONE_PRECISE_GROIN)
-			return "tail"
-		if(BODY_ZONE_HEAD)
-			return "head"
-		if(BODY_ZONE_R_LEG)
-			return "leg"
-		if(BODY_ZONE_L_LEG)
-			return "leg"
-		if(BODY_ZONE_R_ARM)
-			return "foreleg"
-		if(BODY_ZONE_L_ARM)
-			return "foreleg"
 	return ..()
 
 /obj/projectile/bullet/reusable/arrow/orc
@@ -203,14 +162,10 @@
 	retreat_distance = 2
 	minimum_distance = 5
 	ranged_cooldown_time = 60
-	check_friendly_fire = 1
 	loot = list(/obj/effect/mob_spawn/human/orc/corpse/savageorc2,
 			/obj/item/gun/ballistic/revolver/grenadelauncher/bow,
 			/obj/item/ammo_casing/caseless/arrow = 3,
 			/obj/effect/decal/cleanable/blood)
 	maxHealth = 100
 	health = 100
-
-	can_have_ai = FALSE //disable native ai
-	AIStatus = AI_OFF
 	ai_controller = /datum/ai_controller/orc_ranged

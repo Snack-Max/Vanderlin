@@ -1,5 +1,3 @@
-#define SDQL_qdel_datum(d) qdel(d)
-
 //SDQL2 datumized, /tg/station special!
 
 /*
@@ -164,7 +162,6 @@
 
 */
 
-
 #define SDQL2_STATE_ERROR 0
 #define SDQL2_STATE_IDLE 1
 #define SDQL2_STATE_PRESEARCH 2
@@ -172,9 +169,6 @@
 #define SDQL2_STATE_EXECUTING 4
 #define SDQL2_STATE_SWITCHING 5
 #define SDQL2_STATE_HALTING 6
-
-#define SDQL2_VALID_OPTION_TYPES list("proccall", "select", "priority", "autogc" , "sequential")
-#define SDQL2_VALID_OPTION_VALUES list("async", "blocking", "force_nulls", "skip_nulls", "high", "normal", "keep_alive" , "true")
 
 #define SDQL2_OPTION_SELECT_OUTPUT_SKIP_NULLS			(1<<0)
 #define SDQL2_OPTION_BLOCKING_CALLS						(1<<1)
@@ -197,7 +191,7 @@
 		CRASH("SDQL2 fatal error");};
 
 /client/proc/SDQL2_query(query_text as message)
-	set category = "Debug"
+	set category = "Debug.Core"
 	if(!check_rights(R_DEBUG))  //Shouldn't happen... but just to be safe.
 		message_admins("<span class='danger'>ERROR: Non-admin [key_name(usr)] attempted to execute a SDQL query!</span>")
 		log_admin("Non-admin [key_name(usr)] attempted to execute a SDQL query!")
@@ -264,8 +258,7 @@
 	do
 		CHECK_TICK
 		finished = TRUE
-		for(var/i in running)
-			var/datum/SDQL2_query/query = i
+		for(var/datum/SDQL2_query/query as anything in running)
 			if(QDELETED(query))
 				running -= query
 				continue
@@ -426,11 +419,14 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 		delete_click = new(null, "INITIALIZING", src)
 	if(!action_click)
 		action_click = new(null, "INITIALIZNG", src)
-	stat("[id]		", delete_click.update("DELETE QUERY | STATE : [text_state()] | ALL/ELIG/FIN \
+	var/list/L = list()
+	L[++L.len] = list("[id] ", "[delete_click.update("DELETE QUERY | STATE : [text_state()] | ALL/ELIG/FIN \
 	[islist(obj_count_all)? length(obj_count_all) : (isnull(obj_count_all)? "0" : obj_count_all)]/\
 	[islist(obj_count_eligible)? length(obj_count_eligible) : (isnull(obj_count_eligible)? "0" : obj_count_eligible)]/\
-	[islist(obj_count_finished)? length(obj_count_finished) : (isnull(obj_count_finished)? "0" : obj_count_finished)] - [get_query_text()]"))
-	stat("			", action_click.update("[SDQL2_IS_RUNNING? "HALT" : "RUN"]"))
+	[islist(obj_count_finished)? length(obj_count_finished) : (isnull(obj_count_finished)? "0" : obj_count_finished)] - [get_query_text()]")]", REF(delete_click))
+	L[++L.len] = list(" ", "[action_click.update("[SDQL2_IS_RUNNING? "HALT" : "RUN"]")]", REF(action_click))
+	return L
+
 
 /datum/SDQL2_query/proc/delete_click()
 	admin_del(usr)
@@ -531,7 +527,22 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 			if(length(select_text))
 				var/text = islist(select_text)? select_text.Join() : select_text
 				var/static/result_offset = 0
-				showmob << browse(text, "window=SDQL-result-[result_offset++]")
+				var/dat
+				dat = {"
+				<!DOCTYPE html>
+				<html lang="en">
+				<meta charset='UTF-8'>
+				<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'/>
+				<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
+
+				<html>
+				<head><title>SDQL-result</title></head>
+				<body>
+				[text]
+				</body>
+				</html>
+				"}
+				showmob << browse(dat,"window=SDQL-result-[result_offset++]")
 	show_next_to_key = null
 	if(qdel_on_finish)
 		qdel(src)
@@ -610,8 +621,7 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 		location = list(location)
 
 	if(type == "*")
-		for(var/i in location)
-			var/datum/d = i
+		for(var/datum/d as anything in location)
 			if(d.can_vv_get() || superuser)
 				out += d
 			SDQL2_TICK_CHECK
@@ -688,7 +698,7 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 
 		if("delete")
 			for(var/datum/d in found)
-				SDQL_qdel_datum(d)
+				qdel(d)
 				obj_count_finished++
 				SDQL2_TICK_CHECK
 				SDQL2_HALT_CHECK
@@ -1068,8 +1078,6 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 				v = SSticker
 			if("SStimer")
 				v = SStimer
-			if("SSnpcpool")
-				v = SSnpcpool
 			if("SSmobs")
 				v = SSmobs
 			if("SSmood")
@@ -1224,3 +1232,21 @@ GLOBAL_DATUM_INIT(sdql2_vv_statobj, /obj/effect/statclick/SDQL2_VV_all, new(null
 
 /obj/effect/statclick/SDQL2_VV_all/Click()
 	usr.client.debug_variables(GLOB.sdql2_queries)
+
+#undef SDQL2_STATE_ERROR
+#undef SDQL2_STATE_IDLE
+#undef SDQL2_STATE_PRESEARCH
+#undef SDQL2_STATE_SEARCHING
+#undef SDQL2_STATE_EXECUTING
+#undef SDQL2_STATE_SWITCHING
+#undef SDQL2_STATE_HALTING
+#undef SDQL2_OPTION_SELECT_OUTPUT_SKIP_NULLS
+#undef SDQL2_OPTION_BLOCKING_CALLS
+#undef SDQL2_OPTION_HIGH_PRIORITY
+#undef SDQL2_OPTION_DO_NOT_AUTOGC
+#undef SDQL2_OPTION_SEQUENTIAL
+#undef SDQL2_OPTIONS_DEFAULT
+#undef SDQL2_IS_RUNNING
+#undef SDQL2_HALT_CHECK
+#undef SDQL2_TICK_CHECK
+#undef SDQL2_STAGE_SWITCH_CHECK

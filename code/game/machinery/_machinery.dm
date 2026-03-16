@@ -71,9 +71,6 @@
 		if(subset && !(A in subset))
 			continue
 		A.forceMove(T)
-		if(isliving(A))
-			var/mob/living/L = A
-			L.update_mobility()
 	occupant = null
 
 /obj/machinery/proc/can_be_occupant(atom/movable/am)
@@ -115,7 +112,7 @@
 	..()
 	if(!can_interact(usr))
 		return 1
-	if(!usr.canUseTopic(src))
+	if(!usr.can_perform_action(src, NEED_DEXTERITY))
 		return 1
 	add_fingerprint(usr)
 	return 0
@@ -150,13 +147,12 @@
 			component_parts.Cut()
 	qdel(src)
 
-/obj/machinery/obj_break(damage_flag)
-	SHOULD_CALL_PARENT(TRUE)
+/obj/machinery/atom_break(damage_flag, silent)
 	. = ..()
 	if(!(stat & BROKEN) && !(flags_1 & NODECONSTRUCT_1))
 		stat |= BROKEN
 		SEND_SIGNAL(src, COMSIG_MACHINERY_BROKEN, damage_flag)
-		update_icon()
+		update_appearance(UPDATE_ICON)
 		return TRUE
 
 /obj/machinery/contents_explosion(severity, target)
@@ -166,7 +162,7 @@
 /obj/machinery/handle_atom_del(atom/A)
 	if(A == occupant)
 		occupant = null
-		update_icon()
+		update_appearance(UPDATE_ICON)
 		updateUsrDialog()
 
 /obj/proc/can_be_unfasten_wrench(mob/user, silent) //if we can unwrench this object; returns SUCCESSFUL_UNFASTEN and FAILED_UNFASTEN, which are both TRUE, or CANT_UNFASTEN, which isn't.
@@ -211,8 +207,8 @@
 /obj/machinery/examine(mob/user)
 	. = ..()
 	if(!(resistance_flags & INDESTRUCTIBLE))
-		if(max_integrity)
-			var/healthpercent = (obj_integrity/max_integrity) * 100
+		if(uses_integrity)
+			var/healthpercent = (atom_integrity / max_integrity) * 100
 			switch(healthpercent)
 				if(50 to 99)
 					. += "It looks slightly damaged."
@@ -244,8 +240,8 @@
 	for (var/i in 1 to 32)
 		. += hex2num(md5[i])
 	. = . % 9
-	AM.pixel_x = -8 + ((.%3)*8)
-	AM.pixel_y = -8 + (round( . / 3)*8)
+	AM.pixel_x = AM.base_pixel_x - 8 + ((.%3)*8)
+	AM.pixel_y = AM.base_pixel_y - 8 + (round( . / 3)*8)
 
 /obj/machinery/Crossed(atom/movable/AM)
 	. = ..()
@@ -271,7 +267,7 @@
 			var/mob/living/simple_animal/A = L
 			if (!A.dextrous)
 				return
-		if(L.mobility_flags & MOBILITY_MOVE)
+		if(!HAS_TRAIT(L, TRAIT_IMMOBILIZED))
 			climb_structure(user)
 			return
 	if(!istype(O, /obj/item) || user.get_active_held_item() != O)
@@ -290,9 +286,9 @@
 /obj/machinery/proc/climb_structure(mob/living/user)
 	src.add_fingerprint(user)
 	var/adjusted_climb_time = climb_time
-	if(user.restrained()) //climbing takes twice as long when restrained.
+	if(HAS_TRAIT(user, TRAIT_HANDS_BLOCKED)) //climbing takes twice as long when restrained.
 		adjusted_climb_time *= 2
-	adjusted_climb_time -= user.STASPD * 2
+	adjusted_climb_time -= GET_MOB_ATTRIBUTE_VALUE(user, STAT_SPEED) * 2
 	adjusted_climb_time = max(adjusted_climb_time, 0)
 
 	structureclimber = user

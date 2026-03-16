@@ -1,4 +1,3 @@
-#define QDEL_LIST_CONTENTS(L) if(L) { for(var/I in L) qdel(I); L.Cut(); }
 /obj/effect/decal/cleanable/roguerune	// basis for all rituals
 	name = "ritualrune"
 	desc = "Strange symbols pulse upon the ground..."
@@ -65,16 +64,17 @@
 	var/takes_all_items = FALSE
 
 /proc/isarcyne(mob/living/carbon/human/A)
-	return istype(A) && A.mind && (A.mind?.get_skill_level(/datum/skill/magic/arcane) > SKILL_LEVEL_NONE)	//checks if person has arcane skill
+	return istype(A) && A.mind && (GET_MOB_SKILL_VALUE_OLD(A, /datum/attribute/skill/magic/arcane) > SKILL_LEVEL_NONE)	//checks if person has arcane skill
 
 /proc/isdivine(mob/living/carbon/human/A)
-	return istype(A) && A.mind && (A.mind?.get_skill_level(/datum/skill/magic/holy) > SKILL_LEVEL_NONE)	//checks if person has holy/divine skill
+	return istype(A) && A.mind && (GET_MOB_SKILL_VALUE_OLD(A, /datum/attribute/skill/magic/holy) > SKILL_LEVEL_NONE)	//checks if person has holy/divine skill
 
 /proc/isdruid(mob/living/carbon/human/A)
-	return istype(A) && A.mind && (A.mind?.get_skill_level(/datum/skill/magic/druidic) > SKILL_LEVEL_NONE)	//checks if person has druidic skill
+	return istype(A) && A.mind && (GET_MOB_SKILL_VALUE_OLD(A, /datum/attribute/skill/magic/druidic) > SKILL_LEVEL_NONE)	//checks if person has druidic skill
 
 /proc/isblood(mob/living/carbon/human/A)
-	return istype(A) && A.mind && (A.mind?.get_skill_level(/datum/skill/magic/blood) > SKILL_LEVEL_NONE)		//checks if person has blood magic skill
+	return istype(A) && A.mind && (GET_MOB_SKILL_VALUE_OLD(A, /datum/attribute/skill/magic/blood) > SKILL_LEVEL_NONE)		//checks if person has blood magic skill
+
 GLOBAL_LIST_INIT(rune_types, generate_rune_types())
 GLOBAL_LIST_INIT(t1rune_types, generate_t1rune_types())
 GLOBAL_LIST_INIT(t2rune_types, generate_t2rune_types())
@@ -104,6 +104,7 @@ GLOBAL_LIST(teleport_runes)
 			continue
 		runes[initial(rune.name)] = rune // Uses the invoker name for displaying purposes
 	return runes
+
 /proc/generate_t2rune_types()
 	RETURN_TYPE(/list)
 	var/list/runes = list()
@@ -114,6 +115,7 @@ GLOBAL_LIST(teleport_runes)
 			continue
 		runes[initial(rune.name)] = rune // Uses the invoker name for displaying purposes
 	return runes
+
 /proc/generate_t3rune_types()
 	RETURN_TYPE(/list)
 	var/list/runes = list()
@@ -153,6 +155,7 @@ GLOBAL_LIST(teleport_runes)
 	color = rgb(255, 0, 0)
 	animate(src, color = oldcolor, time = 5)
 	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, update_atom_colour)), 0.5 SECONDS)
+	rune_in_use = FALSE
 
 /obj/effect/decal/cleanable/roguerune/attack_hand(mob/living/user)
 	if(rune_in_use)
@@ -196,7 +199,6 @@ GLOBAL_LIST(teleport_runes)
 			else if(istype(src,/obj/effect/decal/cleanable/roguerune/arcyne))
 				rituals += GLOB.allowedrunerituallist
 			var/ritualnameinput = input(user, "Rituals", "Vanderlin") as null|anything in rituals
-			testing("ritualnameinput [ritualnameinput]")
 			var/datum/runerituals/pickritual1
 			pickritual1 = rituals[ritualnameinput]
 			if(!pickritual1 || pickritual1 == null)
@@ -328,7 +330,7 @@ GLOBAL_LIST(teleport_runes)
 	return TRUE
 
 /obj/effect/decal/cleanable/roguerune/arcyne	//arcane
-	name = "Arcane ritual rune"
+	name = "arcane ritual rune"
 	desc = "subtype used for arcane rituals- you should not be seeing this."
 	magictype = "arcyne"
 	can_be_scribed = FALSE
@@ -351,8 +353,6 @@ GLOBAL_LIST(teleport_runes)
 	associated_ritual = /datum/runerituals/knowledge
 	var/buffed = FALSE
 
-/obj/effect/decal/cleanable/roguerune/arcyne/knowledge/attack_hand(mob/living/user)
-	. = ..()
 /obj/effect/decal/cleanable/roguerune/arcyne/knowledge/invoke(list/invokers, datum/runerituals/runeritual)
 	runeritual = associated_ritual
 	if(!..())	//VERY important. Calls parent and checks if it fails. parent/invoke has all the checks for ingredients
@@ -375,15 +375,61 @@ GLOBAL_LIST(teleport_runes)
 			to_chat(living_invoker,  span_italics("[src] saps your strength!"))
 	do_invoke_glow()
 
+/obj/effect/decal/cleanable/roguerune/arcyne/leylines	//used for better quality of learning, grants temporary 2 minute INT bonus.
+	name = "leyline attunement matrix"
+	desc = "geometric shapes and lines on the ground resonate with power..."
+	icon = 'icons/effects/96x96.dmi'
+	icon_state = "empowerment"
+	runesize = 1
+	tier = 2
+	pixel_x = -32 //So the big ol' 96x96 sprite shows up right
+	pixel_y = -32
+	pixel_z = 0
+	//icon_state = "6"
+	invocation = "Thal’miren vek’laris un’vethar!"
+	color = "#a70808ce"
+	scribe_damage = 10
+	can_be_scribed = TRUE
+	associated_ritual = /datum/runerituals/leyattunement
+	var/buffed = FALSE
+
+/obj/effect/decal/cleanable/roguerune/arcyne/leylines/invoke(list/invokers, datum/runerituals/runeritual)
+	runeritual = associated_ritual
+	if(!..())	//VERY important. Calls parent and checks if it fails. parent/invoke has all the checks for ingredients
+		return
+	var/mob/living/user = usr
+	if (user.mana_pool.intrinsic_recharge_sources & MANA_SOULS) //unavailable to lich
+		to_chat(user, span_warning("I cannot attune to leylines now."))
+	else
+		if (user.mana_pool.intrinsic_recharge_sources & MANA_ALL_LEYLINES)
+			to_chat(user, span_warning("Already attuned to leylines!"))
+		else
+			user.mana_pool.set_intrinsic_recharge(MANA_ALL_LEYLINES)
+			playsound(user, 'sound/magic/blink.ogg', 80, FALSE)
+			to_chat(user, span_warning("Leylines fill me with power!"))
+			//	SEND_SIGNAL(user, COMSIG_BAPTISM_RECEIVED, user)  //for the baptism reference
+
+	if(ritual_result)
+		pickritual.cleanup_atoms(selected_atoms)
+
+	for(var/atom/invoker in invokers)
+		if(!isliving(invoker))
+			continue
+		var/mob/living/living_invoker = invoker
+		if(invocation)
+			living_invoker.say(invocation, language = /datum/language/common, ignore_spam = TRUE, forced = "cult invocation")
+		if(invoke_damage)
+			living_invoker.apply_damage(invoke_damage, BRUTE)
+			to_chat(living_invoker,  span_italics("[src] saps your strength!"))
+	do_invoke_glow()
 
 /obj/effect/decal/cleanable/roguerune/arcyne/empowerment	//used for better quality of learning, grants temporary 2 minute INT bonus.
-	name = "Empowerment Array"
+	name = "empowerment array"
 	desc = "arcane symbols pulse upon the ground..."
 	icon = 'icons/effects/96x96.dmi'
 	icon_state = "empowerment"
 	tier = 2
-	pixel_x = -32 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -32
+	SET_BASE_PIXEL(-32, -32)
 	pixel_z = 0
 	invocation = "Thal’miren vek’laris un’vethar!"
 	layer = SIGIL_LAYER
@@ -436,6 +482,7 @@ GLOBAL_LIST(teleport_runes)
 		active = FALSE
 		return
 	. = ..()
+
 /obj/effect/decal/cleanable/roguerune/arcyne/wall/invoke(list/invokers, datum/runerituals/runeritual)
 	if(!..())	//VERY important. Calls parent and checks if it fails. parent/invoke has all the checks for ingredients
 		return
@@ -446,20 +493,20 @@ GLOBAL_LIST(teleport_runes)
 		var/turf/target_turf_three = get_step(target_turf, turn(user.dir, -90))
 		var/turf/target_turf_four = get_step(target_turf_two, turn(user.dir, 90))
 		var/turf/target_turf_five = get_step(target_turf_three, turn(user.dir, -90))
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_two)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_two, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_two)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_two, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_three)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_three, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_three)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_three, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_four)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_four, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_four)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_four, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_five)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_five, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_five)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_five, user)
 			src.barriers += newbarrier
 		active = TRUE
 	else
@@ -474,35 +521,35 @@ GLOBAL_LIST(teleport_runes)
 		var/turf/target_turfline2_three = get_step(target_turfline2, turn(user.dir, -90))
 		var/turf/target_turfline2_four = get_step(target_turfline2_two, turn(user.dir, 90))
 		var/turf/target_turfline2_five = get_step(target_turfline2_three, turn(user.dir, -90))
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_two)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_two, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_two)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_two, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_three)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_three, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_three)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_three, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_four)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_four, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_four)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_four, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turf_five)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turf_five, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turf_five)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turf_five, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turfline2)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turfline2, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turfline2)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turfline2, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turfline2_two)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turfline2_two, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turfline2_two)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turfline2_two, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turfline2_three)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turfline2_three, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turfline2_three)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turfline2_three, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turfline2_four)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turfline2_four, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turfline2_four)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turfline2_four, user)
 			src.barriers += newbarrier
-		if(!locate(/obj/structure/arcyne_wall/caster) in target_turfline2_five)
-			var/obj/structure/arcyne_wall/caster/newbarrier = new(target_turfline2_five, user)
+		if(!locate(/obj/structure/forcefield/casted) in target_turfline2_five)
+			var/obj/structure/forcefield/casted/newbarrier = new(target_turfline2_five, user)
 			src.barriers += newbarrier
 		active = TRUE
 
@@ -529,8 +576,7 @@ GLOBAL_LIST(teleport_runes)
 	invocation = "Thar’morak dul’vorr keth’alor!"
 	ritual_number = FALSE
 	runesize = 2
-	pixel_x = -64 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -64
+	SET_BASE_PIXEL(-64, -64)
 	pixel_z = 0
 	can_be_scribed = TRUE
 //	var/id = "arcyne_fortress"
@@ -578,7 +624,6 @@ GLOBAL_LIST(teleport_runes)
 /obj/effect/decal/cleanable/roguerune/arcyne/enchantment
 	invocation = "Vey’thralis en’kael dun’vora!"
 
-
 /obj/effect/decal/cleanable/roguerune/arcyne/teleport
 	name = "planar convergence matrix"
 	desc = "A large spiraling sigil that seems to thrum with power."
@@ -590,8 +635,7 @@ GLOBAL_LIST(teleport_runes)
 	ritual_number = FALSE
 	req_keyword = TRUE
 	runesize = 2
-	pixel_x = -64 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -64
+	SET_BASE_PIXEL(-64, -64)
 	pixel_z = 0
 	can_be_scribed = TRUE
 	associated_ritual = /datum/runerituals/teleport
@@ -604,7 +648,7 @@ GLOBAL_LIST(teleport_runes)
 	listkey = set_keyword ? "[set_keyword] [locname]":"[locname]"
 	LAZYADD(GLOB.teleport_runes, src)
 
-/obj/effect/rune/teleport/Destroy()
+/obj/effect/decal/cleanable/roguerune/arcyne/teleport/Destroy()
 	LAZYREMOVE(GLOB.teleport_runes, src)
 	return ..()
 
@@ -631,7 +675,7 @@ GLOBAL_LIST(teleport_runes)
 	if(isnull(potential_runes[input_rune_key]))
 		fail_invoke()
 		return
-	var/obj/effect/rune/teleport/actual_selected_rune = potential_runes[input_rune_key] //what rune does that key correspond to?
+	var/obj/effect/decal/cleanable/roguerune/arcyne/teleport/actual_selected_rune = potential_runes[input_rune_key] //what rune does that key correspond to?
 	if(!Adjacent(user) || QDELETED(src) || !actual_selected_rune)
 		fail_invoke()
 		return
@@ -687,8 +731,6 @@ GLOBAL_LIST(teleport_runes)
 	else
 		fail_invoke()
 
-
-
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning	//32x32 rune t1(one tile)
 	name = "confinement matrix"
 	desc = "A relatively basic confinement matrix used to hold small things when summoned."
@@ -701,11 +743,10 @@ GLOBAL_LIST(teleport_runes)
 
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning/Destroy()
 	if(summoning)
-		REMOVE_TRAIT(summoned_mob, TRAIT_PACIFISM, TRAIT_GENERIC)	//can't kill while planar bound.
+		REMOVE_TRAIT(summoned_mob, TRAIT_PACIFISM, MAGIC_TRAIT)	//can't kill while planar bound.
 		summoned_mob.status_flags -= GODMODE//remove godmode
 		summoned_mob.candodge = TRUE
 		summoned_mob.binded = FALSE
-		summoned_mob.move_resist = MOVE_RESIST_DEFAULT
 		summoned_mob.SetParalyzed(0)
 		summoned_mob = null
 		summoning = FALSE
@@ -713,16 +754,15 @@ GLOBAL_LIST(teleport_runes)
 
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning/attack_hand(mob/living/user)
 	if(summoning && isarcyne(user))
-		to_chat(user, span_warning("You release the summon from it's containment!"))
+		to_chat(user, span_warning("You release the summon from its containment!"))
 		playsound(usr, 'sound/magic/teleport_diss.ogg', 75, TRUE)
 		do_invoke_glow()
 		sleep(20)
 		animate(summoned_mob, color = null,time = 5)
-		REMOVE_TRAIT(summoned_mob, TRAIT_PACIFISM, TRAIT_GENERIC)	//can't kill while planar bound.
+		REMOVE_TRAIT(summoned_mob, TRAIT_PACIFISM, MAGIC_TRAIT)	//can't kill while planar bound.
 		summoned_mob.status_flags -= GODMODE//remove godmode
 		summoned_mob.candodge = TRUE
 		summoned_mob.binded = FALSE
-		summoned_mob.move_resist = MOVE_RESIST_DEFAULT
 		summoned_mob.SetParalyzed(0)
 		summoned_mob = null
 		summoning = FALSE
@@ -753,9 +793,6 @@ GLOBAL_LIST(teleport_runes)
 			to_chat(living_invoker,  span_italics("[src] saps your strength!"))
 	do_invoke_glow()
 
-
-
-
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning/mid// 96x96 rune t2(3x3 tile)
 	name = "sealate confinement matrix"
 	desc = "An adept confinement matrix improved with the addition of a sealate matrix; used to hold things when summoned."
@@ -763,71 +800,64 @@ GLOBAL_LIST(teleport_runes)
 	icon_state = "sealate"
 	runesize = 1
 	tier = 2
-	pixel_x = -32 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -32
+	SET_BASE_PIXEL(-32, -32)
 	pixel_z = 0
 	can_be_scribed = TRUE
 
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning/adv	//160x160 rune t2(5x5 tile)
 	name = "warded sealate confinement matrix"
-	desc = "An thoroughly warded confinement matrix improved with the addition of a sealate matrix; used to hold larger, dangerous things when summoned."
+	desc = "A thoroughly-warded confinement matrix improved with the addition of a sealate matrix; used to hold larger, dangerous things when summoned."
 	icon = 'icons/effects/160x160.dmi'
 	icon_state = "warded"
 	runesize = 2
 	tier = 3
-	pixel_x = -64 //So the big ol' 160x160 sprite shows up right
-	pixel_y = -64
+	SET_BASE_PIXEL(-64, -64)
 	pixel_z = 0
 	can_be_scribed = TRUE
 
 /obj/effect/decal/cleanable/roguerune/arcyne/summoning/max	//224x224 rune t3(7x7 tile)
 	name = "noc's eye warded sealate confinement matrix"
-	desc = "An thoroughly warded confinement matrix improved with a Noc's eye sealing measure and the addition of a sealate matrix; used to hold the largest, most dangerous things summonable."
+	desc = "A thoroughly-warded confinement matrix improved with a Noc's eye sealing measure and the addition of a sealate matrix; used to hold the largest, most dangerous things summonable."
 	icon = 'icons/effects/224x224.dmi'
 	icon_state = "huge_runeblued"
 	runesize = 3
 	req_invokers = 3
 	tier = 4
-	pixel_x = -96 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -96
+	SET_BASE_PIXEL(-96, -96)
 	pixel_z = 0
 	can_be_scribed = TRUE
 
-/obj/effect/decal/cleanable/roguerune/arcyne/enchanting
-
-
-
+// /obj/effect/decal/cleanable/roguerune/arcyne/enchanting ??
 
 /obj/effect/decal/cleanable/roguerune/divine	//To be used for divine rituals.
 	magictype = "divine"
 	can_be_scribed = FALSE
+
 /obj/effect/decal/cleanable/roguerune/divine/attack_hand(mob/living/user)
 	if(!isdivine(user))
 		to_chat(user, span_warning("You aren't able to understand the words of [src]."))
 		return
 	. = ..()
 
-
-
 /obj/effect/decal/cleanable/roguerune/druid		//to be used with druid magick
 	magictype = "druid"
 	can_be_scribed = FALSE
+
 /obj/effect/decal/cleanable/roguerune/druid/attack_hand(mob/living/user)
 	if(!isdruid(user))
 		to_chat(user, span_warning("You aren't able to understand the words of [src]."))
 		return
 	. = ..()
 
-
 /obj/effect/decal/cleanable/roguerune/blood		//to be used with blood magick
 	magictype = "blood"
 	can_be_scribed = FALSE
+
 /obj/effect/decal/cleanable/roguerune/blood/attack_hand(mob/living/user)
 	if(!isblood(user))
 		to_chat(user, span_warning("You aren't able to understand the words of [src]."))
 		return
 	. = ..()
-
 
 /obj/effect/decal/cleanable/roguerune/arcyne/attunement
 	name = "arcyne attunement matrix"
@@ -840,8 +870,7 @@ GLOBAL_LIST(teleport_runes)
 	ritual_number = FALSE
 	req_keyword = TRUE
 	runesize = 2
-	pixel_x = -64 //So the big ol' 96x96 sprite shows up right
-	pixel_y = -64
+	SET_BASE_PIXEL(-64, -64)
 	pixel_z = 0
 	can_be_scribed = TRUE
 	associated_ritual = /datum/runerituals/attunement

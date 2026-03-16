@@ -1,5 +1,11 @@
+#define TRANSFORMATION_DURATION 22
+/// Will be removed once the transformation is complete.
+#define TEMPORARY_TRANSFORMATION_TRAIT "temporary_transformation"
+/// Considered "permanent" since we'll be deleting the old mob and the client will be inserted into a new one (without this trait)
+#define PERMANENT_TRANSFORMATION_TRAIT "permanent_transformation"
+
 /mob/living/carbon/proc/monkeyize(tr_flags = (TR_KEEPITEMS | TR_KEEPVIRUS | TR_KEEPSTUNS | TR_KEEPREAGENTS | TR_DEFAULTMSG))
-	if (notransform)
+	if (HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
 	//Handle items on mob
 
@@ -21,7 +27,7 @@
 			dropItemToGround(W)
 
 	//Make mob invisible and spawn animation
-	notransform = TRUE
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, "monkeyize")
 	Paralyze(22, ignore_canstun = TRUE)
 	icon = null
 	cut_overlays()
@@ -38,6 +44,7 @@
 
 	//handle DNA and other attributes
 	dna.transfer_identity(O)
+	reset_limb_fingerprints()
 	O.updateappearance(icon_update=0)
 
 	if(suiciding)
@@ -58,20 +65,17 @@
 
 	//re-add organs to new mob. this order prevents moving the mind to a brain at any point
 	if(tr_flags & TR_KEEPORGANS)
-		for(var/X in O.internal_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in O.internal_organs)
 			I.Remove(O, 1)
 
 		if(mind)
 			mind.transfer_to(O)
 
-		for(var/X in internal_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in internal_organs)
 			int_organs += I
 			I.Remove(src, 1)
 
-		for(var/X in int_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in int_organs)
 			I.Insert(O, 1)
 
 	var/obj/item/bodypart/chest/torso = O.get_bodypart(BODY_ZONE_CHEST)
@@ -83,8 +87,7 @@
 		var/obj/item/bodypart/BP = O.get_bodypart(missing_zone)
 		BP.drop_limb(1)
 		if(!(tr_flags & TR_KEEPORGANS)) //we didn't already get rid of the organs of the newly spawned mob
-			for(var/X in O.internal_organs)
-				var/obj/item/organ/G = X
+			for(var/obj/item/organ/G as anything in O.internal_organs)
 				if(BP.body_zone == check_zone(G.zone))
 					qdel(G) //we lose the organs in the missing limbs
 		qdel(BP)
@@ -124,7 +127,7 @@
 //Could probably be merged with monkeyize but other transformations got their own procs, too
 
 /mob/living/carbon/proc/humanize(tr_flags = (TR_KEEPITEMS | TR_KEEPVIRUS | TR_KEEPSTUNS | TR_KEEPREAGENTS | TR_DEFAULTMSG))
-	if (notransform)
+	if (HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
 	//Handle items on mob
 
@@ -151,7 +154,7 @@
 
 
 	//Make mob invisible and spawn animation
-	notransform = TRUE
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, "humanize")
 	Paralyze(22, ignore_canstun = TRUE)
 
 	icon = null
@@ -167,6 +170,7 @@
 		O.equip_to_appropriate_slot(C)
 
 	dna.transfer_identity(O)
+	reset_limb_fingerprints()
 	O.updateappearance(mutcolor_update=1)
 
 	if(cmptext("monkey",copytext(O.dna.real_name,1,7)))
@@ -192,19 +196,16 @@
 		O.updatehealth()
 
 	if(tr_flags & TR_KEEPORGANS)
-		for(var/X in O.internal_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in O.internal_organs)
 			I.Remove(O, 1)
 
 		if(mind)
 			mind.transfer_to(O)
-		for(var/X in internal_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in internal_organs)
 			int_organs += I
 			I.Remove(src, 1)
 
-		for(var/X in int_organs)
-			var/obj/item/organ/I = X
+		for(var/obj/item/organ/I as anything in int_organs)
 			I.Insert(O, 1)
 
 
@@ -217,8 +218,7 @@
 		var/obj/item/bodypart/BP = O.get_bodypart(missing_zone)
 		BP.drop_limb(1)
 		if(!(tr_flags & TR_KEEPORGANS)) //we didn't already get rid of the organs of the newly spawned mob
-			for(var/X in O.internal_organs)
-				var/obj/item/organ/G = X
+			for(var/obj/item/organ/G as anything in O.internal_organs)
 				if(BP.body_zone == check_zone(G.zone))
 					qdel(G) //we lose the organs in the missing limbs
 		qdel(BP)
@@ -230,7 +230,7 @@
 		O.Immobilize(AmountImmobilized(), ignore_canstun = TRUE)
 		O.Paralyze(AmountParalyzed(), ignore_canstun = TRUE)
 		O.Unconscious(AmountUnconscious(), ignore_canstun = TRUE)
-		O.Sleeping(AmountSleeping(), ignore_canstun = TRUE)
+		O.Sleeping(AmountSleeping())
 
 	//transfer reagents
 	if(tr_flags & TR_KEEPREAGENTS)
@@ -262,9 +262,9 @@
 		to_chat(usr, "<span class='danger'>Sorry but this mob type is currently unavailable.</span>")
 		return
 
-	if(notransform)
+	if(HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
-	notransform = TRUE
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, "monkeyize")
 	Paralyze(1, ignore_canstun = TRUE)
 
 	for(var/obj/item/W in src)
@@ -319,8 +319,10 @@
 //Good mobs!
 	if(ispath(MP, /mob/living/simple_animal/pet/cat))
 		return 1
-	if(ispath(MP, /mob/living/simple_animal/parrot))
-		return 1 //Parrots are no longer unfinished! -Nodrak
 
 	//Not in here? Must be untested!
 	return 0
+
+#undef PERMANENT_TRANSFORMATION_TRAIT
+#undef TEMPORARY_TRANSFORMATION_TRAIT
+#undef TRANSFORMATION_DURATION

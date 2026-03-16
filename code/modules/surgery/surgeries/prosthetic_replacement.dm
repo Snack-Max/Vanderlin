@@ -95,7 +95,7 @@
 		BODY_ZONE_L_LEG,
 		BODY_ZONE_R_LEG,
 	)
-	skill_used = /datum/skill/craft/engineering
+	skill_used = /datum/attribute/skill/craft/engineering
 	bodypart_status = BODYPART_ROBOTIC
 
 
@@ -130,7 +130,7 @@
 	time = 15 SECONDS
 	requires_bodypart = TRUE
 	requires_bodypart_type = BODYPART_ROBOTIC
-	skill_min = SKILL_LEVEL_JOURNEYMAN
+	skill_min = SKILL_LEVEL_NOVICE
 	skill_median = SKILL_LEVEL_EXPERT
 	surgery_flags = NONE
 	preop_sound = 'sound/foley/sewflesh.ogg'

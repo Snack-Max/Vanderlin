@@ -1,52 +1,3 @@
-//Wonder recipes
-//NOTE: Wonders are named after their proper keys, the wonder structure handles that code
-/datum/crafting_recipe/structure/wonder
-	name = "wonder"
-	result = /obj/structure/wonder
-	reqs = list(
-		/obj/item/bodypart = 2,
-		/obj/item/organ/stomach = 1,
-	)
-	verbage = "constructs"
-	craftsound = 'sound/foley/Building-01.ogg'
-	skillcraft = null
-	always_availible = FALSE
-	subtype_reqs = TRUE
-
-/datum/crafting_recipe/structure/wonder/first
-	name = "first wonder (2 bodyparts, 1 stomach)"
-	result = /obj/structure/wonder
-	reqs = list(
-		/obj/item/bodypart = 2,
-		/obj/item/organ/stomach = 1,
-	)
-
-/datum/crafting_recipe/structure/wonder/second
-	name = "second wonder (2 bodyparts, 2 lungs)"
-	result = /obj/structure/wonder
-	reqs = list(
-		/obj/item/bodypart = 2,
-		/obj/item/organ/lungs = 2,
-	)
-
-/datum/crafting_recipe/structure/wonder/third
-	name = "third wonder (2 bodyparts, 3 heads, 2 stomachs)"
-	result = /obj/structure/wonder
-	reqs = list(
-		/obj/item/bodypart/head = 3,
-		/obj/item/bodypart = 2,
-		/obj/item/organ/stomach = 2,
-	)
-
-/datum/crafting_recipe/structure/wonder/fourth
-	name = "fourth wonder (4 tongues, 3 eyes, 4 livers)"
-	result = /obj/structure/wonder
-	reqs = list(
-		/obj/item/organ/tongue = 4,
-		/obj/item/organ/eyes = 3,
-		/obj/item/organ/liver = 4,
-	)
-
 //Wonder structure
 /obj/structure/wonder
 	name = "wonder"
@@ -54,7 +5,7 @@
 	icon = 'icons/roguetown/maniac/creations.dmi'
 	icon_state = "creation1"
 	resistance_flags = INDESTRUCTIBLE
-	density = TRUE
+	density = FALSE
 	anchored = TRUE
 	/// The maniac that made this structure
 	var/datum/antagonist/maniac/dream_master
@@ -156,9 +107,7 @@
 	var/obj/item/organ/heart/H = V.getorganslot(ORGAN_SLOT_HEART)
 	if(H && !QDELETED(dream_master))
 		if(!length(H.maniacs))
-			V.add_stress(/datum/stressevent/saw_wonder)
-			V.add_curse(/datum/curse/schizophrenic, silent = TRUE) //let's not jumpscare normal people
-		//	V.add_client_colour(/datum/client_colour/maniac_marked) //Hurt peoples's eyes, we instead give them zizo's curse which make them experience the maniac's hallucinations, how cool.
+			V.add_stress(/datum/stress_event/saw_wonder)
 		if(!(dream_master in H.maniacs))
 			var/inscryption = "[key_text] - [key_num]"
 			LAZYSET(H.inscryptions, dream_master, inscryption)
@@ -166,10 +115,10 @@
 			LAZYSET(H.maniacs2wonder_ids, dream_master, wonder_id)
 			H.maniacs += dream_master
 			V.emote("scream")
-			V.blur_eyes(2)
+			V.set_eye_blur_if_lower(4 SECONDS)
 			SEND_SOUND(V, 'sound/villain/seen_wonder.ogg')
 			V.Paralyze(5 SECONDS)
 			gazed_at = TRUE
 			to_chat(V, span_userdanger("It is WONDERFUL!"))
 			var/N = dream_master.owner?.name
-			V.log_message("was marked by Maniac [N ? "[N]'s " : ""]Wonder #[wonder_id]: \"[strip_html_simple(inscryption)].\"", LOG_ATTACK)
+			V.log_message("was marked by Maniac [N ? "[N]'s " : ""]Wonder #[wonder_id]: \"[STRIP_HTML_SIMPLE(inscryption, MAX_MESSAGE_LEN)].\"", LOG_ATTACK)
